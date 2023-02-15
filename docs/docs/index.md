@@ -7,7 +7,6 @@ The WindingTree Market Protocol is dedicated to the coordination and deal manage
 ## Protocol addresses
 
 - Coordination server: `SERVER_MULTIADDR`
-- Coordination server: `SERVER_MULTIADDR`
 - Bridge contract #1 (`CHAIN`): `BRIDGE_ADDRESS`
 - ...Bridge contract #n...
 - Smart contract (`CHAIN`): `CONTRACT_ADDRESS`
