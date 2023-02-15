@@ -1,0 +1,31 @@
+{
+  "name": "@windingtree/market-docs",
+  "private": true,
+  "description": "WindingTree market protocol docs",
+  "scripts": {
+    "lint:local": "npx markdownlint src/**/*.md",
+    "build": "./scripts/build.sh",
+    "serve": "npx docsify serve ./"
+  },
+  "repository": "git@github.com:kostysh/wtmp-sdk.git",
+  "keywords": [
+    "windingtree",
+    "market",
+    "protocol",
+    "p2p",
+    "libp2p",
+    "sdk",
+    "docs"
+  ],
+  "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
+  "contributors": [
+    "Kostiantyn Smyrnov <kostysh@gmail.com>"
+  ],
+  "license": "MIT",
+  "bugs": "https://github.com/kostysh/wtmp-sdk/issues",
+  "homepage": "https://github.com/kostysh/wtmp-sdk#readme",
+  "devDependencies": {
+    "docsify-cli": "4.4.4",
+    "markdownlint-cli": "0.33.0"
+  }
+}
