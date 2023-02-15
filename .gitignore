@@ -1,0 +1,11 @@
+.env
+.env*
+!.env.example
+node_modules
+dist
+lib
+.eslintcache
+.npmrc
+*.log
+temp
+*.level
