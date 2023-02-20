@@ -2,21 +2,187 @@
 
 ## Supplier configuration
 
+### Owner credentials
+
+EOA or multisig account in the target network. This account is for:
+
+- Registration of the supplier entity in the protocol smart contract
+- Creation or changing of the signer account that is dedicated to signing the supplier's offers
+- Managing the LIF deposit balance
+- Owning the supplier's deals funds
+
+### Signer credentials
+
+EOA
+
+### Supplier subject
+
+This is a tag or a set of tags that depend on the use cases of the supplier business. If this use case is the hotel this tag will be the geolocation hash that represents the hotel address. If this use case is an abstract service provided without linkage to geolocation this tag can be the special unique code of service.
+
+For hotels the protocol recommends using H3 (Hexagonal hierarchical geospatial indexing system) that looks like this: `87283472bffffff`.
+
+The protocol provides with function for converting traditional lat/lng coordinates to `h3` hash and overwise.
+
+Here is an example:
+
+```typescript
+import { latLngToCell, cellToLatLng } from '@windingtree/sdk/utils';
+
+const h3Index = latLngToCell(37.3615593, -122.0553238);
+// -> '87283472bffffff'
+
+const hexCenterCoordinates = cellToLatLng(h3Index);
+// -> [37.35171820183272, -122.05032565263946]
+```
+
 ### Registration
 
-### Owner credential
+The supplier must register its entity by sending a transaction to the protocol smart contract. Here is the registration function ABI:
 
-### Offers signer credentials
+```solidity
+function register(
+  bytes32 salt,
+  address owner,
+  address signer,
+  uint256 lifDeposit,
+  bytes permit
+) external;
+```
+
+> If the protocol network will support the LIF token as a native token (optional) the `register` function ABI will also have a `payable` modifier
+
+A unique identifier of the supplier will be calculated by the protocol smart contract as a `keccak256` hash of provided `salt` and the address of the transaction sender.
+
+The `owner` argument is the address of the supplier entity owner. After the registration, this account exclusively will be allowed to change the signer address and manage the LIF token deposit as well.
+
+The `signer` argument is the address that is delegated by the `owner` to sign offers.
+
+The `lifDeposit` argument is the amount of the LIF tokens that the `sender` wants to deposit into the account (in WEI). If a zero `lifDeposit` value is provided the processing of the tokens deposit in this transaction will be skipped.
+
+The `permit` argument is the EIP-712 signature with the allowance to the contract to spend a proper amount of tokens.
 
 ### LIF deposit
 
+This is a set of two smart contract functions for managing the LIF deposit funds of a supplier.
+
+Adding deposits:
+
+```solidity
+function lifDeposit(uint256 amount, bytes permit) external;
+```
+
+Deposits withdrawal:
+
+```solidity
+function lifDepositWithdraw(uint256 amount) external;
+```
+
+> These functions can be called by the supplier `owner` only.
+
+## Create the node
+
+More about the node configuration options is [here](./index.md#supplier-node).
+
+```typescript
+import { NodeOptions, createNode } from '@windingtree/sdk';
+
+const options: NodeOptions = {
+  /*...*/
+};
+
+const node = createNode(options);
+await node.start(); // Start the client
+await node.stop(); // Stop the client
+```
+
+## Subscription to node's events
+
+A node allows subscribing to the following event types.
+
+- `connect`: emitted when the node is connected to the coordination server
+- `disconnect`: emitted when the node is disconnected
+- `pause`: emitted when the coordination server moves in paused state
+- `heartbeat`: emitted every second, useful for performing utility functions
+- `request`: emitted on every incoming request
+
+```typescript
+node.subscribe('connect', () => {
+  console.log('Connected!');
+});
+
+node.subscribe('disconnect', () => {
+  console.log('Disconnected!');
+});
+
+node.subscribe('pause', ({ reason }) => {
+  console.log(`Server paused due to: ${reason}`);
+});
+```
+
 ## Subscribing to requests
+
+To start listening to requests the supplier must provide a list of `subjects` in the node configuration options. If this option has not been provided during the configuration step it will be possible to subscribe to requests later using the `addSubjects` method of the node and `removeSubjects` for removing subscriptions.
+
+```typescript
+import { latLngToCell } from '@windingtree/sdk/utils';
+
+const subject = latLngToCell(coordinates.lat, coordinates.lng);
+node.addSubjects([subject]);
+node.getSubjects();
+// -> ['87283472bffffff']
+
+node.removeSubjects([subject]);
+node.getSubjects();
+// -> null
+```
+
+To add a requests handler you should subscribe to the `request` event of the node.
+
+```typescript
+node.subscribe('request', async ({ data }: Request): Promise<void> => {
+  console.log(`Got the request #${data.id} with query: ${data.query}`);
+  // - validation of the request: expiration time, query parameters, etc
+  // - adding the request to the processing queue
+});
+```
 
 ## Requests processing
 
+It is recommended that all incoming requests that are passed validation should be added to the requests queue to be persisted there and properly processed. If the node will be reloaded, this requests queue will be restored and no one incoming request will be missed.
+
+> It is not mandatory to add requests to the queue. If you want, you can skip this step and process requests right in the `request` event handler. However, you should be aware that this approach can cause requests to drop between application restarts. Also, this approach will consume more system resources because all request handlers will be processed in system memory at the same time.
+
+Before start using the requests queue you should configure an asynchronous processing callback. You can do it using the `register` method of the `node.requestQueue`.
+
+```typescript
+interface RequestsQueueTask {
+  id: string;
+  status: 'REQUEST_TASK_PENDING' | 'REQUEST_TASK_PROCESSING' | 'REQUEST_TASK_FAILED' | 'REQUEST_TASK_DONE';
+  request: Request;
+  errors: Error[];
+}
+
+node.requestsQueue.register(async (task: RequestsQueueTask): Promise<void> => {
+  // ...do something with the request
+  // see "Building of offer" below
+});
+```
+
+To add a request to the queue you should use the `add` method of the `node.requestQueue`.
+
+```typescript
+const taskId = node.requestsQueue.add(request);
+const task = await node.requestsQueue.get(taskId);
+// -> RequestsQueueTask instance
+```
+
 ## Building of offer
 
+It is the idea to generate an offer on every valid request. Associated logic should be incorporated into the request queue handler as explained in the previous chapter.
+
 Every offer structure must follow the generic message data structure proposed by the protocol.
+
+Here is the types structure of an offer:
 
 ```typescript
 // Common message structure
@@ -27,18 +193,20 @@ interface GenericMessage {
   [key: string]: unknown;
 }
 
+// Generic offer is just an object with props
 type GenericOfferOptions = Record<string, unknown>;
 
+// Offered payment option
 interface PaymentOption {
   id: string; // Unique payment option Id
   price: string; // Asset price in WEI
   asset: string; // ERC20 asset contract address
 }
 
-interface RefundOption {
-  id: string; // Unique refund option Id
+// Offered cancellation option
+interface CancelOption {
   time: number; // Seconds before checkIn
-  penalty: number; // percents of total
+  penalty: number; // percents of total sum
 }
 
 interface UnsignedOffer {
@@ -133,7 +301,7 @@ interface MyOfferOptions {
 
 const myOfferValidator = (data: MyOffer): void => {
   // your validation logic
-  // - should validate a query data
+  // - should validate an offer data
   // - should throw an Error in case of mistakes
 };
 
@@ -170,12 +338,10 @@ const offer = node.buildOffer<CustomQueryType, MyOfferOptions>(
     // Cancellation options
     cancel: [
       {
-        id: '79528ee0-0300-4695-926e-065f485ce0c7',
         time: 86400 * 7 * 2, // two week before checkin
         penalty: 50 // 50% penalty
       },
       {
-        id: '9b0a55e2-c276-46c7-a310-0c4f6c056070',
         time: 86400 * 7, // one week before checkin
         penalty: 100 // 100% penalty (means "0")
       }
@@ -242,11 +408,31 @@ console.log(offer.toString());
 
 ## Sending of offer
 
-## Checking for a deal
+```typescript
+offer.publish();
+```
 
-## Processing a deal
+## Checking and processing a deal
 
-## Checking for refund
+```typescript
+offer.subscribe(async (tokenId: number): Promise<boolean> => {
+  console.log(`The deal # ${tokenId} is detected for offer ${offer.data.id}`);
+  // ...processing the availability
+  return false; // to remove the subscription
+});
+```
+
+## Checking for cancellation
+
+```typescript
+import { DEAL_CANCELLED } from '@windingtree/sdk';
+// Create the deal object
+const deal = await node.deal(chainId, tokenId);
+
+if (deal.status === DEAL_CANCELLED) {
+  console.log(`The deal #${tokenId} has been cancelled by the client`);
+}
+```
 
 ## Client checkin
 
