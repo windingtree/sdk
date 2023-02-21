@@ -1,14 +1,14 @@
 {
-  "name": "@windingtree/market-sdk",
+  "name": "@windingtree/sdk",
   "version": "0.0.0-semantic-release",
-  "description": "WindingTree market protocol SDK",
-  "repository": "git@github.com:kostysh/wtmp-sdk.git",
+  "description": "The WindingTree market protocol SDK",
+  "repository": "git@github.com:windingtree/sdk.git",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
   "contributors": [
     "Kostiantyn Smyrnov <kostysh@gmail.com>"
   ],
-  "bugs": "https://github.com/kostysh/wtmp-sdk/issues",
-  "homepage": "https://github.com/kostysh/wtmp-sdk#readme",
+  "bugs": "https://github.com/windingtree/sdk/issues",
+  "homepage": "https://github.com/windingtree/sdk#readme",
   "keywords": [
     "windingtree",
     "market",

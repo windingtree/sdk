@@ -1,3 +1,21 @@
-# wtmp-sdk
+# @windingtree/sdk
 
-WindingTree market protocol SDK
+The WindingTree market protocol SDK
+
+> To find the documentation of the SDK please follow the [https://windingtree.github.io/sdk](https://windingtree.github.io/sdk)
+
+## Setup
+
+```bash
+yarn add @windingtree/sdk ethers
+```
+
+## Testing
+
+```bash
+yarn test
+```
+
+## Contributing
+
+[Contribution guidelines](https://windingtree.github.io/sdk/#/docs/contribution)
