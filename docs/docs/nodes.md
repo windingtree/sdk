@@ -434,6 +434,94 @@ if (deal.status === DEAL_CANCELLED) {
 }
 ```
 
-## Client checkin
+## Checkin
 
-## Funds management
+To be able to withdraw funds from the deal the supplier should complete the `checkin` procedure. It is possible to do this in two ways:
+
+- Before the `checkin` date using the approval signature from the buyer
+- After the `checkin` date without any other conditions
+
+### With approval signature
+
+At reception, the supplier manager should ask the buyer to provide the signed check-in voucher. Usually, this voucher comes in the form of QR code which after decoding looks like:
+
+```json
+{
+  "payload": {
+    "chainId": 127,
+    "tokeId": 3,
+    "supplierId": "0x...",
+    "action": "check-in"
+  },
+  "signature": "0x..."
+}
+```
+
+This signature is the EIP-712 (typed) signature that represents the following domain and values:
+
+```typescript
+interface CheckInEip712Domain {
+  name: string; // Verifying contract name
+  version: string; // Verifying contract version
+  chainId: number; // L3 chain Id
+  verifyingContract: string; // Verifying contract address
+}
+
+interface CheckInEip712Types {
+  Checkin: [
+    {
+      name: 'tokenId';
+      type: 'uint256';
+    },
+    {
+      name: 'supplierId';
+      type: 'bytes32';
+    },
+  ];
+}
+
+interface CheckInEip712Values {
+  tokenId: number;
+  supplierId: string;
+}
+```
+
+Now, the supplier is able to check the signature validity and send the `check-in` transaction to the protocol smart contract.
+
+```typescript
+import { CheckInVoucher, DEAL_ACCEPTED } from '@windingtree/sdk';
+import { verifyCheckInVoucher, verifyCheckInSignature } from '@windingtree/sdk/utils';
+
+// Your custom QR scanning logic
+const getVoucher = async (): Promise<CheckInVoucher> => {
+  /* scan the QR code => rawVoucher */
+  const voucher = JSON.parse(rawVoucher) as CheckInVoucher;
+  verifyCheckInVoucher(voucher);
+  return voucher;
+};
+
+const { payload, signature } = await getVoucher();
+
+const deal = await node.getDeal(payload.chainId, payload.tokenId); // will throw if the deal not found
+
+if (deal.status !== DEAL_ACCEPTED) {
+  throw new Error('Invalid deal');
+}
+
+const owner = await deal.owner();
+
+const buyerAddress = verifyCheckInSignature(payload, signature);
+
+if (buyerAddress !== owner) {
+  throw new Error('Invalid signature');
+}
+
+await deal.checkIn(signature, (txHash) => {
+  console.log(`CheckIn transaction ${txhash} is pending`);
+}); // will throw if not succeeded
+
+console.log('Nice!');
+```
+
+When the check-in transaction is successful all the funds that are locked in the deal will be transferred to the supplier account.
+The deal will be updated and marked as checked-in.

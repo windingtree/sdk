@@ -227,6 +227,8 @@ request.subscribe<OfferData>(async ({ id, offer }, options) => {
 
 > The subscription will be automatically removed (unsubscribed) when the request expiration time is exhausted
 
+> Important! Suppliers can send multiple offers with different options and prices in response to the same request. The client should collect all of them in a special period of time and then propose to the user options to choose the best-fitted one.
+
 ## Sending of request
 
 ```typescript
@@ -344,7 +346,9 @@ interface Deal {
     | 'DEAL_CHECKED_IN';
   reason: string; // A reason of a current state change
   date: string; // Latest state change date
+  async owner(): Promise<string>;
   async signCheckIn(): Promise<DealAction<'check-in'>>; // Creates a check-in payload and signature
+  async checkIn(signature: string, (txHash: string) => void): Promise<void>;
   async cancel((txHash: string) => void): Promise<void>; // Makes the deal cancellation  (if it is possible)
   subscribe<CustomOfferType>(async function({ message: CustomOfferType }): Promise<void>, OffersSubscriptionOptions): () => void; // Return `unsubscribe` function for current subscription
   unsubscribe(): void; // Unsubscribe all subscriptions
@@ -404,9 +408,9 @@ Here is how the `reception` check-in type is implemented:
 
 ```json
 {
-  "chainId": <DEAL_CHAIN_ID>,
-  "tokeId": <DEAL_TOKEN_ID>,
-  "supplierId": "<SUPPLIER_ID>",
+  "chainId": _DEAL_CHAIN_ID_,
+  "tokeId": _DEAL_TOKEN_ID_,
+  "supplierId": "_SUPPLIER_ID_",
   "action": "check-in"
 }
 ```
@@ -447,9 +451,10 @@ unsubscribe();
 Here is an example of simple component that display a QR in the React-based application using the `qrcode.react` package:
 
 ```typescript
+import { CheckInVoucher } from '@windingtree/sdk';
 import { QRCodeSVG } from 'qrcode.react';
 
-export const MySignInQr = ({ payload, signature }) => {
+export const MySignInQr = ({ payload, signature }: CheckInVoucher) => {
   if (!payload || !signature) {
     return null;
   }
@@ -457,7 +462,7 @@ export const MySignInQr = ({ payload, signature }) => {
   return (
     <div>
       <QRCodeSVG
-        value={JSON.stringify({ payload, signature })}
+        value={JSON.stringify({ tokenId, signature })}
         size={256}
         bgColor="#ffffff"
         fgColor="#000000"
