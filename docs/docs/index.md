@@ -28,6 +28,23 @@ yarn add @windingtree/sdk ethers
 
 ## Configuration
 
+## Peer key generation
+
+The peer key is part of p2p security schema. It uses for peer identification and establishing secured connections between peers.
+
+```typescript
+import { generatePeerKey } from '@windingtree.sdk';
+
+await generatePeerKey();
+/*
+{
+  "id": "QmTu1X88PUpazc1Mf6bN77t43K1AA2nnKL1JnHwMiPmgfB",
+  "privKey": "CAASp...3xt0ZZWcAhpq0A=",
+  "pubKey": "CAASpgI...MBAAE="
+}
+*/
+```
+
 ### Coordination server
 
 ```typescript
@@ -37,14 +54,15 @@ interface NodeKeyJson {
   pubKey: string; // Public key
 }
 
+// Storage initializer configuration options
 interface StorageOptions {
   engine(options?: StorageEngineOptions): void; // A storage engine initialization callback
   options?: Record<string, unknown>; // Optional storage initialization options
 }
 
+// Peer configuration options
 interface PeerOptions {
   peerKey?: NodeKeyJson; // Peer key
-  serverAddress?: string; // The coordination server multiaddr. If not provided for a client node the address will be obtained from the smart contract
 }
 
 interface ServerOptions extends PeerOptions {
@@ -55,6 +73,22 @@ interface ServerOptions extends PeerOptions {
 ```
 
 > `storage` is optional. If this option is not provided the server will fall back to in-memory storage. This is not recommended in production.
+
+Here is an example of the coordination server configuration:
+
+```typescript
+import { ServerOptions, redisStorage } from '@windingtree/sdk';
+import { peerKey } from './config.js';
+
+const options: ServerOptions = {
+  address: '0.0.0.0',
+  port: 33333,
+  storage: {
+    engine: redisStorage,
+  },
+  peerKey,
+};
+```
 
 ### Supplier node
 
@@ -71,7 +105,12 @@ interface RequestQueueOptions {
   repeat: number; // Number of retries before the failing task will be marked as failed
 }
 
-interface NodeOptions extends PeerOptions {
+// Coordination server client configuration
+interface ServerClientOptions {
+  serverAddress?: string; // The coordination server multiaddr. If not provided for a client node the address will be obtained from the smart contract
+}
+
+interface NodeOptions extends PeerOptions, ServerClientOptions {
   chains: NetworkOptions[]; // Supported chains
   storage?: StorageOptions; // Optional the nodes' data storage
   signer: Wallet; // Ethers.js Wallet instance
@@ -124,7 +163,7 @@ interface BridgeOptions {
   };
 }
 
-interface ClientOptions extends PeerOptions {
+interface ClientOptions extends PeerOptions, ServerClientOptions {
   chains: NetworkOptions[]; // Supported chains
   bridges?: BridgeOptions[]; // Optional assets bridges configuration
   storage?: StorageOptions; // Optional data storage configuration

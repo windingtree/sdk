@@ -2,6 +2,7 @@
 
 - [Getting started](/)
 - [Protocol overview](/docs/protocol.md)
+- [Coordination server](/docs/coordinator.md)
 - [Clients flow](/docs/clients.md)
 - [Suppliers flow](/docs/nodes.md)
 - [Availability management](/docs/availability.md)
