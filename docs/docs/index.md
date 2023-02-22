@@ -216,7 +216,6 @@ const options: ClientOptions = {
 
 ## SDK development
 
-- WindingTree Discord server, developers channel: <LINK_TO_DISCORD_SERVER>
-- Proposals: <LINK_TO_PROPOSALS_SITE>
-- Bug tracker: <LINK_TO_GITHUB_ISSUES>
+- WindingTree Discord server, [developers channel](https://discord.com/channels/898350336069218334/956614058323370014)
+- Bug tracker: [https://github.com/windingtree/sdk/issues](https://github.com/windingtree/sdk/issues)
 - [Contribution](/docs/contribution.md)
