@@ -52,7 +52,7 @@ contract -. LIF fee .- dao
 
 ## L3 network
 
-The main idea that stays in the basement of scalability of the deals and the protocol financial management is a customizable and trustless EVM-compatible blockchain. The expected performance increase of this solution is 10-100X in comparison to known L2 solutions. We plan to use the LIF as a native token in this network which will open its potential and expand the range of use cases.
+The main idea that stays in the foundation of scalability of the deals and the protocol financial management is a customizable and trustless EVM-compatible blockchain. The expected performance increase of this solution is 10-100X in comparison to known L2 solutions. We plan to use the LIF as a native token in this network which will open its potential and expand the range of use cases.
 
 Tight collaboration with zkSync, one of the leading providers of Ethereum scalability solutions inspires us to succeed. In Q3 2023 we plan to integrate zkSync's HyperChain solution as L3 of the protocol.
 
