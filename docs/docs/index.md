@@ -116,8 +116,11 @@ interface NodeOptions extends PeerOptions, ServerClientOptions {
   signer: Wallet; // Ethers.js Wallet instance
   subjects?: string[]; // Subjects for subscription
   requestQueue?: RequestQueueOptions; // Request queue configuration
+  availabilityManager?: AvailabilityManagerApiOptions;
 }
 ```
+
+> To learn more about `availabilityManager` options please follow this [link](/docs/availability.md).
 
 Here is an example of a supplier node configuration:
 
