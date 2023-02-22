@@ -7,7 +7,7 @@ The WindingTree market protocol SDK
 ## Setup
 
 ```bash
-yarn add @windingtree/sdk ethers
+yarn
 ```
 
 ## Testing
