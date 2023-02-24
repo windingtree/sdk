@@ -80,6 +80,7 @@
     "lint-staged": "^13.1.2"
   },
   "dependencies": {
-    "debug": "^4.3.4"
+    "debug": "^4.3.4",
+    "ethers": "^6.0.8"
   }
 }
