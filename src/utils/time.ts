@@ -40,6 +40,9 @@ export const parseSeconds = (str: string | number): number => {
   switch (type) {
     case 'ms':
       parsed = value * ms;
+      if (parsed < 1) {
+        parsed = 0;
+      }
       break;
     case 's':
       parsed = value * s;
@@ -57,6 +60,7 @@ export const parseSeconds = (str: string | number): number => {
       parsed = value * y;
       break;
     default:
+      // Should not occur
       throw new Error('Unknown duration type');
   }
 
