@@ -1,9 +1,9 @@
 import { Signer, TypedDataField, getAddress, Signature } from 'ethers';
 import { verifyTypedData } from '@ethersproject/wallet';
 import { ContractConfig } from './contract.js';
-import { hashObject } from './utils/hash.js';
-import { uuid4 } from './utils/uid.js';
-import { parseSeconds } from './utils/time.js';
+import { hashObject } from './hash.js';
+import { uuid4 } from './uid.js';
+import { parseSeconds } from './time.js';
 
 // Common message structure
 export interface GenericMessage {

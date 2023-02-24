@@ -1,3 +1,3 @@
 export * as constants from './constants.js';
-export * from './contract.js';
-export * from './messages.js';
+export * from './utils/contract.js';
+export * from './utils/messages.js';
