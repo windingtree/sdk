@@ -24,12 +24,14 @@
   "exports": {
     ".": {
       "import": {
+        "default": "./lib/esm/index.mjs",
         "types": "./lib/esm/types/index.d.ts",
-        "default": "./lib/esm/index.mjs"
+        "utils": "./lib/esm/utils"
       },
       "require": {
+        "default": "./lib/cjs/index.js",
         "types": "./lib/cjs/types/index.d.ts",
-        "default": "./lib/cjs/index.js"
+        "utils": "./lib/cjs/utils"
       }
     }
   },
@@ -60,7 +62,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/node": "^18.13.0",
+    "@types/node": "^18.14.1",
     "@types/mocha": "^10.0.1",
     "@types/chai": "^4.3.4",
     "@types/debug": "^4.1.7",
@@ -70,13 +72,13 @@
     "typescript": "^4.9.5",
     "semantic-release": "^20.1.0",
     "eslint": "^8.34.0",
-    "@typescript-eslint/eslint-plugin": "^5.52.0",
-    "@typescript-eslint/parser": "^5.52.0",
+    "@typescript-eslint/eslint-plugin": "^5.53.0",
+    "@typescript-eslint/parser": "^5.53.0",
     "prettier": "^2.8.4",
     "husky": "^8.0.3",
     "git-cz": "^4.9.0",
-    "@commitlint/config-conventional": "^17.4.3",
-    "@commitlint/cli": "^17.4.3",
+    "@commitlint/config-conventional": "^17.4.4",
+    "@commitlint/cli": "^17.4.4",
     "lint-staged": "^13.1.2"
   },
   "dependencies": {
