@@ -209,6 +209,7 @@ interface CancelOption {
   penalty: number; // percents of total sum
 }
 
+// Offer payload
 interface UnsignedOffer {
   supplierId: string; // Unique supplier Id registered on the protocol contract
   chainId: number; // Target network chain Id
@@ -224,19 +225,21 @@ interface SignedOffer extends UnsignedOffer {
   signature: string; // EIP-712 TypedSignature(UnsignedOffer)
 }
 
+// Generic offer is just an object with props
+type GenericOfferOptions = Record<string, unknown>;
+
 interface BaseOfferData<OfferOptions extends GenericOfferOptions> {
-  supplierId: string; // Unique supplier Id registered on the protocol contract
   options: OfferOptions; // Supplier-specific offer options
   payment: PaymentOption[]; // Payment options
   cancel?: CancelOption[]; // Cancellation options
-  transferable: boolean; // makes the deal NFT transferable or not
 }
 
 interface OfferData<RequestQuery extends GenericQuery, OfferOptions extends GenericOfferOptions>
   extends GenericMessage,
-    BaseOfferData {
+    BaseOfferData<OfferOptions> {
   request: RequestData<RequestQuery>; // Copy of associated request
-  payload: SignedOffer;
+  offer: UnsignedOffer;
+  signature: string; // EIP-712 TypedSignature(UnsignedOffer)
 }
 ```
 
@@ -244,9 +247,8 @@ To build an offer you should use the `buildOffer` method of arrived `request` ob
 
 ```typescript
 request.buildOffer<BaseOfferData<CustomOfferOptions>>(
-  data: BaseOfferData<CustomOfferOptions>,
+  baseData: BaseOfferData<CustomOfferOptions>,
   expire: string,
-  nonce?: number,
   validator?: (data: BaseOfferData<CustomOfferOptions>) => void
 ): Offer<CustomRequestQuery, BaseOfferData<CustomOfferOptions>>
 ```
@@ -467,7 +469,7 @@ interface CheckInEip712Domain {
   verifyingContract: string; // Verifying contract address
 }
 
-interface CheckInEip712Types {
+const checkInEip712Types = {
   Checkin: [
     {
       name: 'tokenId';
