@@ -16,6 +16,14 @@ yarn
 yarn test
 ```
 
+## Tests coverage
+
+```bash
+yarn coverage
+```
+
+After finishing of tests code coverage script, you can find reports in `./coverage/index.html`
+
 ## Contributing
 
 [Contribution guidelines](https://windingtree.github.io/sdk/#/docs/contribution)

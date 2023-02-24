@@ -51,7 +51,8 @@
     "lint": "npx eslint . --ext .ts",
     "lint:fix": "npx eslint . --ext .ts --fix && npx prettier --write .",
     "prepare": "husky install",
-    "commit": "git-cz -S"
+    "commit": "git-cz -S",
+    "coverage": "c8 --all --exclude coverage --exclude lib --exclude test yarn test && c8 report --all --exclude coverage --exclude lib --exclude test -r html"
   },
   "release": {
     "branches": [
@@ -79,7 +80,8 @@
     "git-cz": "^4.9.0",
     "@commitlint/config-conventional": "^17.4.4",
     "@commitlint/cli": "^17.4.4",
-    "lint-staged": "^13.1.2"
+    "lint-staged": "^13.1.2",
+    "c8": "^7.13.0"
   },
   "dependencies": {
     "debug": "^4.3.4",
