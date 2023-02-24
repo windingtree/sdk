@@ -16,7 +16,7 @@ As a contributor, you are expected to fork this repository, work on your own for
 
 ```bash
 cd market-sdk
-git remote add upstream https://github.com/windingtree/market-sdk.git
+git remote add upstream https://github.com/windingtree/sdk.git
 git fetch upstream
 git pull --rebase upstream master
 ```
@@ -44,7 +44,7 @@ yarn test
 yarn lint
 ```
 
-5. Go to [github.com/windingtree/market-sdk/pulls](https://github.com/windingtree/market-sdk/pulls) in your web browser and issue a new pull request.
+5. Go to [github.com/windingtree/sdk/pulls](https://github.com/windingtree/sdk/pulls) in your web browser and issue a new pull request.
 
 ## PR template
 
