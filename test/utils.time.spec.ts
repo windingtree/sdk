@@ -31,5 +31,9 @@ describe('Utils.time', () => {
       expect(parseSeconds('1d')).to.eq(60 * 60 * 24);
       expect(parseSeconds('1y')).to.eq(60 * 60 * 24 * 365.25);
     });
+
+    it('should pass numbers', async () => {
+      expect(parseSeconds(1)).to.eq(1);
+    });
   });
 });

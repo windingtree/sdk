@@ -14,7 +14,7 @@ export interface DurationFormat {
 }
 
 export const validateDurationFormat = (str: string): DurationFormat => {
-  const match = /^((?:\d+)?\.?\d+) *(ms|s|m|h|d|y)?$/i.exec(str); // milliseconds|seconds|minutes|hours|days|years
+  const match = /^((?:\d+)?\.?\d+) *(ms|s|m|h|d|y)$/i.exec(str); // milliseconds|seconds|minutes|hours|days|years
 
   if (!match) {
     throw new Error('Unknown duration time format');
@@ -22,7 +22,7 @@ export const validateDurationFormat = (str: string): DurationFormat => {
 
   return {
     value: parseFloat(match[1]),
-    type: (match[2] || 's').toLocaleLowerCase() as AllowedDurationType,
+    type: match[2].toLocaleLowerCase() as AllowedDurationType,
   };
 };
 
@@ -59,6 +59,7 @@ export const parseSeconds = (str: string | number): number => {
     case 'y':
       parsed = value * y;
       break;
+    /* c8 ignore next 3 */
     default:
       // Should not occur
       throw new Error('Unknown duration type');
