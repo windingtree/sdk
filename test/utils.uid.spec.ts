@@ -1,8 +1,10 @@
-import 'mocha';
-import { expect } from 'chai';
-import { simpleUid, uuid4 } from '../src/utils/uid.js';
+import { expect } from './setup.js';
+import { Wallet } from 'ethers';
+import { simpleUid, uuid4, randomSalt, supplierId } from '../src/utils/uid.js';
 
 describe('Utils.uid', () => {
+  const bytes32RegExp = /^0x[a-fA-F0-9]{64}$/;
+
   describe('#simpleUid', () => {
     it('should throw if invalid length provided', async () => {
       expect(() => simpleUid(4)).to.throw('Length value must be between 5 and 14');
@@ -32,6 +34,20 @@ describe('Utils.uid', () => {
       for (const id of set) {
         expect(match.exec(id)).not.to.be.null;
       }
+    });
+  });
+
+  describe('#randomSalt', () => {
+    it('should generate bytes32-formatted random salt', async () => {
+      expect(bytes32RegExp.exec(randomSalt())).to.not.null;
+    });
+  });
+
+  describe('#supplierId', () => {
+    const owner = Wallet.createRandom();
+
+    it('should generate bytes32-formatted supplierId', async () => {
+      expect(bytes32RegExp.exec(supplierId(randomSalt(), owner.address))).to.not.null;
     });
   });
 });
