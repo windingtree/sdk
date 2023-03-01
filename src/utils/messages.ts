@@ -1,72 +1,118 @@
 import { Signer, TypedDataField, getAddress, Signature } from 'ethers';
 import { verifyTypedData } from '@ethersproject/wallet';
+import { z } from 'zod';
 import { ContractConfig } from './contract.js';
 import { hashObject } from './hash.js';
 import { uuid4 } from './uid.js';
 import { parseSeconds } from './time.js';
 
-// Common message structure
-export interface GenericMessage {
-  id: string; // Unique message Id
-  expire: number; // Expiration time in seconds
-  nonce?: number; // A number that reflects the version of the message
-  [key: string]: unknown;
-}
+// Basic message structure
+export const GenericMessageSchema = z
+  .object({
+    id: z.string(), // Unique message Id
+    expire: z.number(), // Expiration time in seconds
+    nonce: z.number().optional(), // A number that reflects the version of the message
+  })
+  .strict();
 
-export type GenericQuery = Record<string, unknown>;
+export type GenericMessage = z.infer<typeof GenericMessageSchema>;
+
+// Basic query is just an object with keys of unknown values
+export const GenericQuerySchema = z.object({});
+
+export type GenericQuery = z.infer<typeof GenericQuerySchema>;
 
 // Request data structure
-export interface RequestData<RequestQuery extends GenericQuery> extends GenericMessage {
-  query: RequestQuery; // Industry specific query type
-}
+export const createRequestDataSchema = <CustomRequestQuery extends GenericQuery>(
+  querySchema: z.ZodType<CustomRequestQuery>,
+) =>
+  GenericMessageSchema.extend({
+    query: querySchema,
+  }).strict();
+
+export type RequestData<CustomRequestQuery extends GenericQuery> = z.infer<
+  ReturnType<typeof createRequestDataSchema<CustomRequestQuery>>
+>;
+
+// Builds a request
+export const buildRequest = async <CustomRequestQuery extends GenericQuery>(
+  expire: string | number,
+  nonce: number,
+  query: CustomRequestQuery,
+  querySchema: z.ZodType<CustomRequestQuery>,
+): Promise<RequestData<CustomRequestQuery>> => {
+  const request = createRequestDataSchema<CustomRequestQuery>(querySchema);
+  return await request.parseAsync({
+    id: uuid4(),
+    expire: parseSeconds(expire),
+    nonce,
+    query,
+  });
+};
 
 // Offered payment option
-export interface PaymentOption {
-  id: string; // Unique payment option Id
-  price: string; // Asset price in WEI
-  asset: string; // ERC20 asset contract address
-}
+export const PaymentOption = z
+  .object({
+    id: z.string(), // Unique payment option Id
+    price: z.string(), // Asset price in WEI
+    asset: z.string(), // ERC20 asset contract address
+  })
+  .strict();
+
+export type PaymentOption = z.infer<typeof PaymentOption>;
 
 // Offered cancellation option
-export interface CancelOption {
-  time: number; // Seconds before checkIn
-  penalty: number; // percents of total sum
-}
+export const CancelOption = z
+  .object({
+    time: z.number(), // Seconds before checkIn
+    penalty: z.number(), // percents of total sum
+  })
+  .strict();
+
+export type CancelOption = z.infer<typeof CancelOption>;
 
 // Offer payload
-export interface UnsignedOffer {
-  supplierId: string; // Unique supplier Id registered on the protocol contract
-  chainId: number; // Target network chain Id
-  requestHash: string; // <keccak256(request.hash())>
-  optionsHash: string; // <keccak256(JSON.stringify(offer.options))>
-  paymentHash: string; // <keccak256(JSON.stringify(offer.payment))>
-  cancelHash: string; // <keccak256(JSON.stringify(offer.cancel(sorted by time DESC) || []))>
-  transferable: boolean; // makes the deal NFT transferable or not
-  checkIn: number; // check-in time in seconds
-}
+export const UnsignedOfferPayloadSchema = z
+  .object({
+    supplierId: z.string(), // Unique supplier Id registered on the protocol contract
+    chainId: z.number(), // Target network chain Id
+    requestHash: z.string(), // <keccak256(request.hash())>
+    optionsHash: z.string(), // <keccak256(JSON.stringify(offer.options))>
+    paymentHash: z.string(), // <keccak256(JSON.stringify(offer.payment))>
+    cancelHash: z.string(), // <keccak256(JSON.stringify(offer.cancel(sorted by time DESC) || []))>
+    transferable: z.boolean(), // makes the deal NFT transferable or not
+    checkIn: z.number(), // check-in time in seconds
+  })
+  .strict();
 
-export interface SignedOffer extends UnsignedOffer {
-  signature: string; // EIP-712 TypedSignature(UnsignedOffer)
-}
+export type UnsignedOfferPayload = z.infer<typeof UnsignedOfferPayloadSchema>;
 
 // Generic offer is just an object with props
-export type GenericOfferOptions = Record<string, unknown>;
+export const GenericOfferOptions = z.object({});
 
-// Base offer parameters
-export interface BaseOfferData<OfferOptions extends GenericOfferOptions> {
-  options: OfferOptions; // Supplier-specific offer options
-  payment: PaymentOption[]; // Payment options
-  cancel: CancelOption[]; // Cancellation options
-}
+export type GenericOfferOptions = z.infer<typeof GenericOfferOptions>;
 
 // Final offer data
-export interface OfferData<RequestQuery extends GenericQuery, OfferOptions extends GenericOfferOptions>
-  extends GenericMessage,
-    BaseOfferData<OfferOptions> {
-  request: RequestData<RequestQuery>; // Copy of associated request
-  offer: UnsignedOffer;
-  signature: string; // EIP-712 TypedSignature(UnsignedOffer)
-}
+export const createOfferDataSchema = <
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+>(
+  querySchema: z.ZodType<CustomRequestQuery>,
+  optionsSchema: z.ZodType<CustomOfferOptions>,
+) =>
+  GenericMessageSchema.extend({
+    request: createRequestDataSchema<CustomRequestQuery>(querySchema), // Copy of request
+    options: optionsSchema, // Offer options
+    payment: z.array(PaymentOption), // Payment options
+    cancel: z.array(CancelOption), // Cancellation options
+    payload: UnsignedOfferPayloadSchema, // Raw offer payload
+    signature: z.string(), // EIP-712 TypedSignature(UnsignedOffer)
+  }).strict();
+
+export type OfferData<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> = z.infer<ReturnType<typeof createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>>>;
 
 // EIP-712 types for offer
 export const offerEip712Types: Record<string, Array<TypedDataField>> = {
@@ -106,39 +152,33 @@ export const offerEip712Types: Record<string, Array<TypedDataField>> = {
   ],
 };
 
-// Builds a request
-export const buildRequest = async <RequestQuery extends GenericQuery>(
-  expire: string | number,
-  nonce: number,
-  query: RequestQuery,
-): Promise<RequestData<RequestQuery>> => ({
-  id: uuid4(),
-  expire: parseSeconds(expire),
-  nonce,
-  query,
-});
-
 // Builds an offer
-export const buildOffer = async <RequestQuery extends GenericQuery, OfferOptions extends GenericOfferOptions>(
+export const buildOffer = async <
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+>(
   contract: ContractConfig,
   signer: Signer,
   expire: string | number,
   supplierId: string,
-  request: RequestData<RequestQuery>,
-  baseData: BaseOfferData<OfferOptions>,
+  request: RequestData<CustomRequestQuery>,
+  options: CustomOfferOptions,
+  payment: PaymentOption[],
+  cancel: CancelOption[],
   checkIn: number,
   transferable = true,
-): Promise<OfferData<RequestQuery, OfferOptions>> => {
-  baseData.cancel = baseData.cancel ?? [];
+  querySchema: z.ZodType<CustomRequestQuery>,
+  optionsSchema: z.ZodType<CustomOfferOptions>,
+): Promise<OfferData<CustomRequestQuery, CustomOfferOptions>> => {
   expire = parseSeconds(expire);
 
-  const unsignedOffer: UnsignedOffer = {
+  const unsignedOfferPayload: UnsignedOfferPayload = {
     supplierId,
     chainId: Number(contract.chainId),
     requestHash: hashObject(request),
-    optionsHash: hashObject(baseData.options),
-    paymentHash: hashObject(baseData.payment),
-    cancelHash: hashObject(baseData.cancel),
+    optionsHash: hashObject(options),
+    paymentHash: hashObject(payment),
+    cancelHash: hashObject(cancel),
     checkIn,
     transferable,
   };
@@ -151,25 +191,29 @@ export const buildOffer = async <RequestQuery extends GenericQuery, OfferOptions
       verifyingContract: contract.address,
     },
     offerEip712Types,
-    unsignedOffer,
+    unsignedOfferPayload,
   );
 
-  return {
+  const offerSchema = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(querySchema, optionsSchema);
+
+  return await offerSchema.parseAsync({
     id: uuid4(),
     expire,
     nonce: 1,
     request,
-    ...baseData,
-    offer: unsignedOffer,
+    options,
+    payment,
+    cancel,
+    payload: unsignedOfferPayload,
     signature,
-  };
+  });
 };
 
 // Verify signed offer
-export const verifyOffer = <RequestQuery extends GenericQuery, OfferOptions extends GenericOfferOptions>(
+export const verifyOffer = <CustomRequestQuery extends GenericQuery, CustomOfferOptions extends GenericOfferOptions>(
   contract: ContractConfig,
   supplierAddress: string,
-  offer: OfferData<RequestQuery, OfferOptions>,
+  offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
 ): void => {
   supplierAddress = getAddress(supplierAddress);
   const recoveredAddress = verifyTypedData(
@@ -180,11 +224,11 @@ export const verifyOffer = <RequestQuery extends GenericQuery, OfferOptions exte
       verifyingContract: contract.address,
     },
     offerEip712Types,
-    offer.offer,
+    offer.payload,
     Signature.from(offer.signature),
   );
 
   if (recoveredAddress !== supplierAddress) {
-    throw new Error(`Invalid offer signer ${recoveredAddress}`);
+    throw new Error(`Invalid offer signer ${supplierAddress}`);
   }
 };
