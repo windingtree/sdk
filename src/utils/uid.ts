@@ -1,3 +1,5 @@
+import { solidityPackedKeccak256 } from 'ethers';
+
 // Generates simple unique Id
 export const simpleUid = (length = 14): string => {
   if (length < 5 || length > 14) {
@@ -19,3 +21,10 @@ export const uuid4 = (): string =>
     const v = c == 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(36);
   });
+
+// Random salt (bytes32)
+export const randomSalt = (): string => solidityPackedKeccak256(['string'], [simpleUid()]);
+
+// Supplier Id (bytes32)
+export const supplierId = (salt: string, address: string): string =>
+  solidityPackedKeccak256(['string', 'address'], [salt, address]);
