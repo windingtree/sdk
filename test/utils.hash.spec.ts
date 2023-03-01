@@ -1,5 +1,4 @@
-import 'mocha';
-import { expect } from 'chai';
+import { expect } from './setup.js';
 import { solidityPackedKeccak256 } from 'ethers';
 import { hashObject } from '../src/utils/hash.js';
 

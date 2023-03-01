@@ -1,5 +1,4 @@
-import 'mocha';
-import { expect } from 'chai';
+import { expect } from './setup.js';
 import { validateDurationFormat, parseSeconds } from '../src/utils/time.js';
 
 describe('Utils.time', () => {

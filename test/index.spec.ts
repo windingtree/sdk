@@ -1,5 +1,4 @@
-import 'mocha';
-import { expect } from 'chai';
+import { expect } from './setup.js';
 import { createLogger } from '../src/utils/logger.js';
 
 const logger = createLogger('test');

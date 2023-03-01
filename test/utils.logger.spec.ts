@@ -1,5 +1,4 @@
-import 'mocha';
-import { expect } from 'chai';
+import { expect } from './setup.js';
 import { createLogger, enable, disable } from '../src/utils/logger.js';
 
 describe('Utils.logger', () => {

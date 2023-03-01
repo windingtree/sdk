@@ -1,5 +1,4 @@
-import 'mocha';
-import { expect } from 'chai';
+import { expect } from './setup.js';
 import { decodeText, encodeText } from '../src/utils/text.js';
 
 describe('Utils.text', () => {
