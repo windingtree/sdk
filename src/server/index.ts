@@ -4,7 +4,7 @@ import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
-import { centerSub, CenterSub } from '../lib/pubsub.js';
+import { centerSub, CenterSub } from '../common/pubsub.js';
 import { decodeText } from '../utils/text.js';
 import { MemoryStorageOptions, optionsSchema as memoryStorageOptionsSchema } from '../storage/memory.js';
 import { NodeKeyJson, createServerOptionsSchema, ServerOptions } from './types.js';
