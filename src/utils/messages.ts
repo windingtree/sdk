@@ -88,9 +88,9 @@ export const UnsignedOfferPayloadSchema = z
 export type UnsignedOfferPayload = z.infer<typeof UnsignedOfferPayloadSchema>;
 
 // Generic offer is just an object with props
-export const GenericOfferOptions = z.object({});
+export const GenericOfferOptionsSchema = z.object({});
 
-export type GenericOfferOptions = z.infer<typeof GenericOfferOptions>;
+export type GenericOfferOptions = z.infer<typeof GenericOfferOptionsSchema>;
 
 // Final offer data
 export const createOfferDataSchema = <
