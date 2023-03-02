@@ -6,22 +6,37 @@ import { PeerId } from '@libp2p/interface-peer-id';
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
 import { Multiaddr } from '@multiformats/multiaddr';
 import { sha256 } from 'multiformats/hashes/sha2';
+import { z } from 'zod';
 import { outboundStreamDelay } from '../constants.js';
-import { GenericMessage } from '../utils/messages.js';
-import { CashedMessageEntry, MessagesCache } from './cache.js';
-import { createLogger } from '../utils/logger';
+import { Storage } from '../storage/index.js';
+import { GenericMessageSchema } from '../utils/messages.js';
+import { CachedMessage, CashedMessageEntry, MessagesCache } from './cache.js';
+import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('PubSub');
 
 export type ConnectionDirection = 'inbound' | 'outbound';
 
-export type MessageTransformer = <T extends GenericMessage>(data: BufferSource) => T;
+export const MessageTransformerSchema = z.function().args(z.instanceof(ArrayBuffer)).returns(GenericMessageSchema);
 
-export interface CenterSubOptions {
-  isClient: boolean;
-  directPeers: GossipsubOpts['directPeers'];
-  messageTransformer: MessageTransformer;
-}
+export type MessageTransformer = z.infer<typeof MessageTransformerSchema>;
+
+export const CenterSubOptionsSchema = z.object({
+  isClient: z.boolean().optional(),
+  // @todo Create a proper type for directPeers
+  directPeers: z
+    .array(
+      z.object({
+        id: z.any(),
+        addr: z.array(z.any()),
+      }),
+    )
+    .optional(),
+  messagesStorage: z.instanceof(Storage<CachedMessage>).optional(),
+  messageTransformer: MessageTransformerSchema,
+});
+
+export type CenterSubOptions = z.infer<typeof CenterSubOptionsSchema>;
 
 export interface MessageDetails {
   detail: Message;
@@ -29,21 +44,34 @@ export interface MessageDetails {
 
 export class CenterSub extends GossipSub {
   public readonly isClient: boolean;
-  private messages = new MessagesCache();
-  private seenPeerMessageCache = new Map<string, Set<string>>();
-  private messageTransformer?: MessageTransformer;
+  protected messages: MessagesCache;
+  protected seenPeerMessageCache = new Map<string, Set<string>>();
+  protected messageTransformer?: MessageTransformer;
+  protected options: CenterSubOptions;
 
-  constructor(components: GossipSubComponents, options: Partial<CenterSubOptions> = {}) {
+  constructor(components: GossipSubComponents, options: CenterSubOptions) {
+    options = CenterSubOptionsSchema.parse(options);
+
     const opts = {
       allowPublishToZeroPeers: true,
-      directPeers: options?.directPeers || [],
+      directPeers: (options.directPeers as unknown as GossipsubOpts['directPeers']) ?? [],
     };
+
     // A client node must be configured to be connected to the direct peers (servers)
     if (options.isClient && opts.directPeers.length === 0) {
       throw new Error('Address of the server must be provided with "directPeers" option');
     }
 
     super(components, opts);
+
+    if (!options.isClient && !options.messagesStorage) {
+      throw new Error('messageStorage option is required for server');
+    }
+
+    if (!options.isClient && options.messagesStorage) {
+      this.messages = new MessagesCache(options.messagesStorage);
+    }
+
     this['selectPeersToPublish'] = this.onSelectPeersToPublish;
     this['handleReceivedMessage'] = this.onHandleReceivedMessage;
     this['addPeer'] = this.onAddPeer;
@@ -100,7 +128,7 @@ export class CenterSub extends GossipSub {
       }
       const msgId = await sha256.encode(rpcMsg.data);
       const msgIdStr = this['msgIdToStrFn'](msgId) as string;
-      const transformed = this.messageTransformer<GenericMessage>(rpcMsg.data);
+      const transformed = this.messageTransformer(rpcMsg.data);
       this.messages.set(msgIdStr, rpcMsg.from.toString(), rpcMsg, transformed.expire, transformed.nonce);
     } catch (error) {
       logger.error(error);
@@ -109,7 +137,7 @@ export class CenterSub extends GossipSub {
 
   private async handlePeerConnect(peerId: PeerId): Promise<void> {
     try {
-      const missedMessages = this.messages.get();
+      const missedMessages = await this.messages.get();
       logger.trace('handlePeerConnect: missedMessages.length:', missedMessages.length);
       if (missedMessages.length > 0) {
         await this.publishToPeer(peerId, missedMessages);
@@ -172,8 +200,6 @@ export class CenterSub extends GossipSub {
   }
 }
 
-export function centerSub(
-  options?: Partial<CenterSubOptions>,
-): (components: GossipSubComponents) => PubSub<GossipsubEvents> {
+export function centerSub(options: CenterSubOptions): (components: GossipSubComponents) => PubSub<GossipsubEvents> {
   return (components: GossipSubComponents) => new CenterSub(components, options);
 }
