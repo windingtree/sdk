@@ -8,8 +8,8 @@ import { z } from 'zod';
 import { centerSub, CenterSub } from '../common/pubsub.js';
 import { decodeText } from '../utils/text.js';
 import { CachedMessage } from '../common/cache.js';
-import { Storage } from '../storage/index.js';
-import { createLogger } from '../utils/logger';
+import { Storage, StorageInitializer } from '../storage/abstract.js';
+import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Server');
 
@@ -32,12 +32,11 @@ export const PeerOptionsSchema = z
 
 export type PeerOptions = z.infer<typeof PeerOptionsSchema>;
 
-// Server options
+// Server options schema
 export const ServerOptionsSchema = PeerOptionsSchema.required()
   .extend({
     address: z.string().optional(), // Optional IP address of the server, defaults to '0.0.0.0'
-    port: z.number(), // libp2p listening port
-    messagesStorage: z.instanceof(Storage<CachedMessage>).optional(), // Messages storage
+    port: z.number(),
   })
   .strict();
 
@@ -46,20 +45,31 @@ export type ServerOptions = z.infer<typeof ServerOptionsSchema>;
 export class CoordinationServer {
   public port: number;
   protected nodeKeyJson: NodeKeyJson;
-  protected libp2p: Libp2p;
+  protected libp2p?: Libp2p;
   protected options: ServerOptions;
+  protected messagesStorageInit?: ReturnType<StorageInitializer>;
 
-  constructor(options: ServerOptions) {
+  constructor(options: ServerOptions, messagesStorageInit?: ReturnType<StorageInitializer>) {
     this.options = ServerOptionsSchema.parse(options);
+    this.messagesStorageInit = messagesStorageInit;
     this.port = this.options.port;
     this.nodeKeyJson = this.options.peerKey;
   }
 
   get multiaddrs() {
+    if (!this.libp2p) {
+      throw new Error('libp2p not initialized yet');
+    }
     return this.libp2p.getMultiaddrs();
   }
 
   async start(): Promise<void> {
+    let messagesStorage: Storage<CachedMessage> | undefined;
+
+    if (this.messagesStorageInit) {
+      messagesStorage = await this.messagesStorageInit<CachedMessage>();
+    }
+
     const config: Libp2pOptions = {
       addresses: {
         listen: [`/ip4/0.0.0.0/tcp/${this.port}/ws`],
@@ -67,14 +77,16 @@ export class CoordinationServer {
       transports: [webSockets({ filter: all })],
       streamMuxers: [mplex()],
       connectionEncryption: [noise()],
-      pubsub: centerSub({
-        messagesStorage: this.options.messagesStorage,
-        messageTransformer: <GenericMessage>(data: BufferSource) => {
-          const dataString = decodeText(data);
-          const dataObj = JSON.parse(dataString) as GenericMessage;
-          return dataObj;
+      pubsub: centerSub(
+        {
+          messageTransformer: <GenericMessage>(data: BufferSource) => {
+            const dataString = decodeText(data);
+            const dataObj = JSON.parse(dataString) as GenericMessage;
+            return dataObj;
+          },
         },
-      }),
+        messagesStorage,
+      ),
     };
     const peerId = await createFromJSON(this.nodeKeyJson);
     this.libp2p = await createLibp2p({ peerId, ...config });
@@ -104,6 +116,16 @@ export class CoordinationServer {
   }
 
   async stop(): Promise<void> {
+    if (!this.libp2p) {
+      throw new Error('libp2p not initialized yet');
+    }
     await this.libp2p.stop();
   }
 }
+
+export const createServer = (
+  options: ServerOptions,
+  messagesStorageInit?: ReturnType<StorageInitializer>,
+): CoordinationServer => {
+  return new CoordinationServer(options, messagesStorageInit);
+};

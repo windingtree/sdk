@@ -1,6 +1,6 @@
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
 import { z } from 'zod';
-import { Storage } from '../storage/index.js';
+import { Storage } from '../storage/abstract.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('MessagesCache');

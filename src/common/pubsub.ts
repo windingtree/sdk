@@ -3,12 +3,13 @@ import { ToSendGroupCount } from '@chainsafe/libp2p-gossipsub/metrics';
 import { PeerIdStr, TopicStr } from '@chainsafe/libp2p-gossipsub/types';
 import { PubSub, Message } from '@libp2p/interface-pubsub';
 import { PeerId } from '@libp2p/interface-peer-id';
+import type { Connection } from '@libp2p/interface-connection';
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
 import { Multiaddr } from '@multiformats/multiaddr';
 import { sha256 } from 'multiformats/hashes/sha2';
 import { z } from 'zod';
 import { outboundStreamDelay } from '../constants.js';
-import { Storage } from '../storage/index.js';
+import { Storage } from '../storage/abstract.js';
 import { GenericMessageSchema } from '../utils/messages.js';
 import { CachedMessage, CashedMessageEntry, MessagesCache } from './cache.js';
 import { createLogger } from '../utils/logger.js';
@@ -32,7 +33,6 @@ export const CenterSubOptionsSchema = z.object({
       }),
     )
     .optional(),
-  messagesStorage: z.instanceof(Storage<CachedMessage>).optional(),
   messageTransformer: MessageTransformerSchema,
 });
 
@@ -44,12 +44,12 @@ export interface MessageDetails {
 
 export class CenterSub extends GossipSub {
   public readonly isClient: boolean;
-  protected messages: MessagesCache;
+  protected messages: MessagesCache | undefined;
   protected seenPeerMessageCache = new Map<string, Set<string>>();
   protected messageTransformer?: MessageTransformer;
   protected options: CenterSubOptions;
 
-  constructor(components: GossipSubComponents, options: CenterSubOptions) {
+  constructor(components: GossipSubComponents, options: CenterSubOptions, messagesStorage?: Storage<CachedMessage>) {
     options = CenterSubOptionsSchema.parse(options);
 
     const opts = {
@@ -63,20 +63,21 @@ export class CenterSub extends GossipSub {
     }
 
     super(components, opts);
+    this.options = options;
 
-    if (!options.isClient && !options.messagesStorage) {
-      throw new Error('messageStorage option is required for server');
+    if (!this.options.isClient && !messagesStorage) {
+      throw new Error('Invalid messages storage');
     }
 
-    if (!options.isClient && options.messagesStorage) {
-      this.messages = new MessagesCache(options.messagesStorage);
+    if (!this.options.isClient && messagesStorage) {
+      this.messages = new MessagesCache(messagesStorage);
     }
 
     this['selectPeersToPublish'] = this.onSelectPeersToPublish;
     this['handleReceivedMessage'] = this.onHandleReceivedMessage;
     this['addPeer'] = this.onAddPeer;
 
-    this.isClient = !!options.isClient;
+    this.isClient = !!this.options.isClient;
     this.messageTransformer = options.messageTransformer;
     this.addEventListener('gossipsub:heartbeat', this.handleHeartbeat.bind(this));
     components.connectionManager.addEventListener('peer:disconnect', this.handlePeerDisconnect.bind(this));
@@ -108,7 +109,7 @@ export class CenterSub extends GossipSub {
 
   private handleHeartbeat(): void {
     try {
-      if (!this.isClient) {
+      if (!this.isClient && this.messages) {
         this.messages.prune();
       }
     } catch (error) {
@@ -118,6 +119,10 @@ export class CenterSub extends GossipSub {
 
   private async cacheMessage(rpcMsg: RPC.IMessage): Promise<void> {
     try {
+      if (!this.messages) {
+        logger.trace('Messages storage not initialized');
+        return;
+      }
       if (!rpcMsg.from || !rpcMsg.data) {
         logger.trace('Anonymous message');
         return;
@@ -137,6 +142,10 @@ export class CenterSub extends GossipSub {
 
   private async handlePeerConnect(peerId: PeerId): Promise<void> {
     try {
+      if (!this.messages) {
+        logger.trace('Messages storage not initialized');
+        return;
+      }
       const missedMessages = await this.messages.get();
       logger.trace('handlePeerConnect: missedMessages.length:', missedMessages.length);
       if (missedMessages.length > 0) {
@@ -157,7 +166,7 @@ export class CenterSub extends GossipSub {
     }
   }
 
-  private async handlePeerDisconnect({ detail }): Promise<void> {
+  private async handlePeerDisconnect({ detail }: CustomEvent<Connection>): Promise<void> {
     try {
       const id = detail.id.toString();
       this.seenPeerMessageCache.delete(id);
@@ -200,6 +209,9 @@ export class CenterSub extends GossipSub {
   }
 }
 
-export function centerSub(options: CenterSubOptions): (components: GossipSubComponents) => PubSub<GossipsubEvents> {
-  return (components: GossipSubComponents) => new CenterSub(components, options);
-}
+export const centerSub = (
+  options: CenterSubOptions,
+  messagesStorage?: Storage<CachedMessage>,
+): ((components: GossipSubComponents) => PubSub<GossipsubEvents>) => {
+  return (components: GossipSubComponents) => new CenterSub(components, options, messagesStorage);
+};

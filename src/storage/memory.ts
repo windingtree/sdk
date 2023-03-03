@@ -1,8 +1,26 @@
-import { Storage, StorageInitializer } from './index.js';
+import { z } from 'zod';
+import { Storage } from './abstract.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('MemoryStorage');
+
+// Storage options
+export const MemoryStorageOptionsSchema = z.object({
+  entries: z.array(z.tuple([z.string(), z.any()])).optional(),
+});
+
+export type MemoryStorageOptions = z.infer<typeof MemoryStorageOptionsSchema>;
 
 // In-memory key-value storage implementation
-export class MemoryStorage<CustomValueType> implements Storage<CustomValueType> {
-  private db: Map<string, CustomValueType> = new Map();
+export class MemoryStorage<CustomValueType> extends Storage<CustomValueType> {
+  private db: Map<string, CustomValueType>;
+
+  constructor(options?: MemoryStorageOptions) {
+    super();
+    options = MemoryStorageOptionsSchema.parse(options);
+    this.db = new Map<string, CustomValueType>(options?.entries);
+    logger.trace('Memory storage initialized');
+  }
 
   async set(key: string, value: CustomValueType) {
     this.db.set(key, value);
@@ -21,7 +39,9 @@ export class MemoryStorage<CustomValueType> implements Storage<CustomValueType> 
   }
 }
 
-// Storage initializer
-export const initStorage: StorageInitializer = async <CustomValueType>() => {
-  return new MemoryStorage<CustomValueType>();
-};
+// Storage configuration
+export const init =
+  <CustomStorageOptions extends MemoryStorageOptions>(options?: CustomStorageOptions) =>
+  async <CustomValueType>() => {
+    return new MemoryStorage<CustomValueType>(options);
+  };
