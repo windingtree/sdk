@@ -1,10 +1,10 @@
 import { Signer, TypedDataField, getAddress, Signature } from 'ethers';
 import { verifyTypedData } from '@ethersproject/wallet';
 import { z } from 'zod';
-import { ContractConfig } from './contract.js';
-import { hashObject } from './hash.js';
-import { uuid4 } from './uid.js';
-import { parseSeconds } from './time.js';
+import { ContractConfig } from '../utils/contract.js';
+import { hashObject } from '../utils/hash.js';
+import { uuid4 } from '../utils/uid.js';
+import { parseSeconds } from '../utils/time.js';
 
 // Basic message structure
 export const GenericMessageSchema = z

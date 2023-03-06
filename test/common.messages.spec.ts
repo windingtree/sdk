@@ -5,22 +5,22 @@ import { ContractConfig } from '../src/utils/contract.js';
 import { randomSalt, supplierId as spId, uuid4 } from '../src/utils/uid.js';
 import {
   GenericQuerySchema,
-  GenericOfferOptions,
+  GenericOfferOptionsSchema,
   RequestData,
   OfferData,
   buildRequest,
   buildOffer,
   verifyOffer,
-} from '../src/utils/messages.js';
+} from '../src/common/messages.js';
 
-describe('Utils.messages', () => {
+describe('Common.messages', () => {
   const CustomQuerySchema = GenericQuerySchema.extend({
     guests: z.number(),
     rooms: z.number(),
   });
   type CustomQuery = z.infer<typeof CustomQuerySchema>;
 
-  const CustomOfferOptionsSchema = GenericOfferOptions.extend({
+  const CustomOfferOptionsSchema = GenericOfferOptionsSchema.extend({
     room: z.string(),
     checkIn: z.string(),
     checkOut: z.string(),
