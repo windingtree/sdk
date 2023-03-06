@@ -138,9 +138,9 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
     });
 
     await this.libp2p.start();
+    this.dispatchEvent(new CustomEvent<void>('start'));
     logger.trace('🚀 Started at:', new Date().toISOString());
     logger.trace('Listened for peers at:', this.multiaddrs);
-    this.dispatchEvent(new CustomEvent<void>('start'));
   }
 
   async stop(): Promise<void> {
@@ -149,6 +149,7 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
     }
     await this.libp2p.stop();
     this.dispatchEvent(new CustomEvent<void>('stop'));
+    logger.trace('👋 Stopped at:', new Date().toISOString());
   }
 }
 
