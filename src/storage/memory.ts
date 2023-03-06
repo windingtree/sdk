@@ -17,7 +17,7 @@ export class MemoryStorage<CustomValueType> extends Storage<CustomValueType> {
 
   constructor(options?: MemoryStorageOptions) {
     super();
-    options = MemoryStorageOptionsSchema.parse(options);
+    options = MemoryStorageOptionsSchema.parse(options ?? {});
     this.db = new Map<string, CustomValueType>(options?.entries);
     logger.trace('Memory storage initialized');
   }

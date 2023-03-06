@@ -4,6 +4,7 @@ import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
+import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { z } from 'zod';
 import { centerSub, CenterSub } from '../common/pubsub.js';
 import { decodeText } from '../utils/text.js';
@@ -42,18 +43,43 @@ export const ServerOptionsSchema = PeerOptionsSchema.required()
 
 export type ServerOptions = z.infer<typeof ServerOptionsSchema>;
 
-export class CoordinationServer {
+export interface CoordinationServerEvents {
+  /**
+   * @example
+   *
+   * ```js
+   * server.addEventListener('start', () => {
+   *    // ... started
+   * })
+   * ```
+   */
+  start: CustomEvent<void>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * server.addEventListener('stop', () => {
+   *    // ... stopped
+   * })
+   * ```
+   */
+  stop: CustomEvent<void>;
+}
+
+export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
   public port: number;
-  protected nodeKeyJson: NodeKeyJson;
+  protected peerKey: NodeKeyJson;
   protected libp2p?: Libp2p;
   protected options: ServerOptions;
   protected messagesStorageInit?: ReturnType<StorageInitializer>;
 
   constructor(options: ServerOptions, messagesStorageInit?: ReturnType<StorageInitializer>) {
+    super();
     this.options = ServerOptionsSchema.parse(options);
     this.messagesStorageInit = messagesStorageInit;
     this.port = this.options.port;
-    this.nodeKeyJson = this.options.peerKey;
+    this.peerKey = this.options.peerKey;
   }
 
   get multiaddrs() {
@@ -71,6 +97,7 @@ export class CoordinationServer {
     }
 
     const config: Libp2pOptions = {
+      start: false,
       addresses: {
         listen: [`/ip4/0.0.0.0/tcp/${this.port}/ws`],
       },
@@ -88,7 +115,7 @@ export class CoordinationServer {
         messagesStorage,
       ),
     };
-    const peerId = await createFromJSON(this.nodeKeyJson);
+    const peerId = await createFromJSON(this.peerKey);
     this.libp2p = await createLibp2p({ peerId, ...config });
 
     this.libp2p.addEventListener('peer:discovery', async ({ detail }) => {
@@ -113,6 +140,7 @@ export class CoordinationServer {
     await this.libp2p.start();
     logger.trace('🚀 Started at:', new Date().toISOString());
     logger.trace('Listened for peers at:', this.multiaddrs);
+    this.dispatchEvent(new CustomEvent<void>('start'));
   }
 
   async stop(): Promise<void> {
@@ -120,6 +148,7 @@ export class CoordinationServer {
       throw new Error('libp2p not initialized yet');
     }
     await this.libp2p.stop();
+    this.dispatchEvent(new CustomEvent<void>('stop'));
   }
 }
 

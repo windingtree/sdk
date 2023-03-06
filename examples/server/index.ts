@@ -14,10 +14,17 @@ const main = async (): Promise<void> => {
   };
   const server = createServer(options, memoryStorage.init());
 
+  server.addEventListener('start', () => {
+    console.log('🚀 Server started at', new Date().toISOString());
+  });
+
+  server.addEventListener('stop', () => {
+    console.log('👋 Server stopped at:', new Date().toISOString());
+  });
+
   // Graceful Shutdown handler
   const shutdown = async () => {
     await server.stop();
-    console.log('👋 Server shutdown at:', new Date().toISOString());
     process.exit(0);
   };
 

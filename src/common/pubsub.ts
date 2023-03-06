@@ -10,7 +10,7 @@ import { sha256 } from 'multiformats/hashes/sha2';
 import { z } from 'zod';
 import { outboundStreamDelay } from '../constants.js';
 import { Storage } from '../storage/abstract.js';
-import { GenericMessageSchema } from '../utils/messages.js';
+import { GenericMessageSchema } from '../common/messages.js';
 import { CachedMessage, CashedMessageEntry, MessagesCache } from './cache.js';
 import { createLogger } from '../utils/logger.js';
 
