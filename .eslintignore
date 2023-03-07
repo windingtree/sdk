@@ -5,3 +5,4 @@ dist
 src/proto/*.ts
 _docker
 lib
+coverage

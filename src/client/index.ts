@@ -129,17 +129,25 @@ export class Client extends EventEmitter<ClientEvents> {
       this.dispatchEvent(new CustomEvent<void>('heartbeat'));
     });
 
-    this.libp2p.addEventListener('peer:connect', async ({ detail }) => {
-      if (detail.remotePeer.equals(this.serverPeerId)) {
-        this.dispatchEvent(new CustomEvent<void>('connected'));
-        logger.trace('🔗 Client connected to server at:', new Date().toISOString());
+    this.libp2p.addEventListener('peer:connect', ({ detail }) => {
+      try {
+        if (detail.remotePeer.equals(this.serverPeerId)) {
+          this.dispatchEvent(new CustomEvent<void>('connected'));
+          logger.trace('🔗 Client connected to server at:', new Date().toISOString());
+        }
+      } catch (error) {
+        logger.error(error);
       }
     });
 
-    this.libp2p.addEventListener('peer:disconnect', async ({ detail }) => {
-      if (detail.remotePeer.equals(this.serverPeerId)) {
-        this.dispatchEvent(new CustomEvent<void>('disconnected'));
-        logger.trace('🔌 Client disconnected from server at:', new Date().toISOString());
+    this.libp2p.addEventListener('peer:disconnect', ({ detail }) => {
+      try {
+        if (detail.remotePeer.equals(this.serverPeerId)) {
+          this.dispatchEvent(new CustomEvent<void>('disconnected'));
+          logger.trace('🔌 Client disconnected from server at:', new Date().toISOString());
+        }
+      } catch (error) {
+        logger.error(error);
       }
     });
 

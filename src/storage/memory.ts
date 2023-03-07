@@ -22,14 +22,17 @@ export class MemoryStorage<CustomValueType> extends Storage<CustomValueType> {
     logger.trace('Memory storage initialized');
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async set(key: string, value: CustomValueType) {
     this.db.set(key, value);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async get(key: string) {
     return this.db.get(key);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async delete(key: string) {
     return this.db.delete(key);
   }
@@ -42,6 +45,7 @@ export class MemoryStorage<CustomValueType> extends Storage<CustomValueType> {
 // Storage configuration
 export const init =
   <CustomStorageOptions extends MemoryStorageOptions>(options?: CustomStorageOptions) =>
+  // eslint-disable-next-line @typescript-eslint/require-await
   async <CustomValueType>() => {
     return new MemoryStorage<CustomValueType>(options);
   };

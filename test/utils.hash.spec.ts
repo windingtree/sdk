@@ -7,7 +7,7 @@ describe('Utils.hash', () => {
     test: 'value',
   };
 
-  it('should hash the object', async () => {
+  it('should hash the object', () => {
     expect(hashObject(obj)).to.be.eq(solidityPackedKeccak256(['string'], [JSON.stringify(obj)]));
   });
 });

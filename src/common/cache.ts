@@ -26,16 +26,16 @@ export class MessagesCache {
     this.cache = storage;
   }
 
-  prune(): void {
+  async prune(): Promise<void> {
     const now = Math.ceil(Date.now() / 1000);
     for (const [id, message] of this.cache.entries()) {
       if (message.expire < now) {
-        this.cache.delete(id);
+        await this.cache.delete(id);
       }
     }
   }
 
-  async get(): Promise<CashedMessageEntry[]> {
+  get(): CashedMessageEntry[] {
     const messages: CashedMessageEntry[] = [];
     for (const [id, entry] of this.cache.entries()) {
       messages.push({
@@ -64,7 +64,7 @@ export class MessagesCache {
         data,
         nonce,
       };
-      this.cache.set(messageId, message);
+      await this.cache.set(messageId, message);
       logger.trace('set:', messageId);
     } catch (error) {
       logger.error(error);

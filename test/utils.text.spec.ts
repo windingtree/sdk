@@ -5,7 +5,7 @@ describe('Utils.text', () => {
   describe('#decodeText', () => {
     const text = 'test';
 
-    it('should decode text', async () => {
+    it('should decode text', () => {
       const encoded = new TextEncoder().encode(text);
       expect(decodeText(encoded)).to.eq(text);
     });
@@ -15,7 +15,7 @@ describe('Utils.text', () => {
     const text = 'test';
     const encoded = new TextEncoder().encode(text);
 
-    it('should encode text', async () => {
+    it('should encode text', () => {
       expect(encodeText(text)).to.deep.eq(encoded);
     });
   });

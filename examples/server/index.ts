@@ -23,9 +23,13 @@ const main = async (): Promise<void> => {
   });
 
   // Graceful Shutdown handler
-  const shutdown = async () => {
-    await server.stop();
-    process.exit(0);
+  const shutdown = () => {
+    const stopHandler = async () => {
+      await server.stop();
+    };
+    stopHandler()
+      .catch(console.log)
+      .finally(() => process.exit(0));
   };
 
   process.once('SIGTERM', shutdown);

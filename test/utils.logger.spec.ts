@@ -15,7 +15,7 @@ describe('Utils.logger', () => {
     const log = createLogger('enable');
     disable();
 
-    it('should enable logger', async () => {
+    it('should enable logger', () => {
       expect(log.enabled).to.be.false;
       enable('enable');
       expect(log.enabled).to.be.true;
@@ -25,7 +25,7 @@ describe('Utils.logger', () => {
   describe('#disable', () => {
     const log = createLogger('disable');
 
-    it('should disable logger', async () => {
+    it('should disable logger', () => {
       disable();
       expect(log.enabled).to.be.false;
     });

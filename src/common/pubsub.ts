@@ -71,9 +71,9 @@ export class CenterSub extends GossipSub {
       this.messages = new MessagesCache(messagesStorage);
     }
 
-    this['selectPeersToPublish'] = this.onSelectPeersToPublish;
-    this['handleReceivedMessage'] = this.onHandleReceivedMessage;
-    this['addPeer'] = this.onAddPeer;
+    this['selectPeersToPublish'] = this.onSelectPeersToPublish.bind(this);
+    this['handleReceivedMessage'] = this.onHandleReceivedMessage.bind(this);
+    this['addPeer'] = this.onAddPeer.bind(this);
 
     this.isClient = !!this.options.isClient;
     this.messageTransformer = this.options.messageTransformer
@@ -83,7 +83,7 @@ export class CenterSub extends GossipSub {
     components.connectionManager.addEventListener('peer:disconnect', this.handlePeerDisconnect.bind(this));
   }
 
-  private async publishToPeer(peerId: PeerId, messages: CashedMessageEntry[]): Promise<void> {
+  private publishToPeer(peerId: PeerId, messages: CashedMessageEntry[]): void {
     const id = peerId.toString();
     logger.trace('publishToPeer: peerId:', id);
 
@@ -97,7 +97,8 @@ export class CenterSub extends GossipSub {
       return;
     }
 
-    const sent = this['sendRpc'](id, { messages: messages.map((m) => m.data) });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const sent = this['sendRpc'](id, { messages: messages.map((m) => m.data) }) as boolean;
     const sentMsgIds = messages.map((m) => {
       if (sent) {
         const peerCache = this.seenPeerMessageCache.get(id) || new Set<string>();
@@ -108,12 +109,8 @@ export class CenterSub extends GossipSub {
   }
 
   private handleHeartbeat(): void {
-    try {
-      if (!this.isClient && this.messages) {
-        this.messages.prune();
-      }
-    } catch (error) {
-      logger.error(error);
+    if (!this.isClient && this.messages) {
+      this.messages.prune().catch(logger.error);
     }
   }
 
@@ -132,24 +129,25 @@ export class CenterSub extends GossipSub {
         return;
       }
       const msgId = await sha256.encode(rpcMsg.data);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const msgIdStr = this['msgIdToStrFn'](msgId) as string;
       const transformed = this.messageTransformer(rpcMsg.data);
-      this.messages.set(msgIdStr, rpcMsg.from.toString(), rpcMsg, transformed.expire, transformed.nonce);
+      await this.messages.set(msgIdStr, rpcMsg.from.toString(), rpcMsg, transformed.expire, transformed.nonce);
     } catch (error) {
       logger.error(error);
     }
   }
 
-  private async handlePeerConnect(peerId: PeerId): Promise<void> {
+  private handlePeerConnect(peerId: PeerId): void {
     try {
       if (!this.messages) {
         logger.trace('Messages storage not initialized');
         return;
       }
-      const missedMessages = await this.messages.get();
+      const missedMessages = this.messages.get();
       logger.trace('handlePeerConnect: missedMessages.length:', missedMessages.length);
       if (missedMessages.length > 0) {
-        await this.publishToPeer(peerId, missedMessages);
+        this.publishToPeer(peerId, missedMessages);
       }
     } catch (error) {
       logger.error(error);
@@ -159,6 +157,7 @@ export class CenterSub extends GossipSub {
   private onAddPeer(peerId: PeerId, direction: Direction, addr: Multiaddr): void {
     const id = peerId.toString();
     const hasPeer = this.peers.has(id);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     super['addPeer'](peerId, direction, addr);
     if (!hasPeer && direction === 'inbound') {
       // We need to wait for the outbound stream to be opened
@@ -166,7 +165,7 @@ export class CenterSub extends GossipSub {
     }
   }
 
-  private async handlePeerDisconnect({ detail }: CustomEvent<Connection>): Promise<void> {
+  private handlePeerDisconnect({ detail }: CustomEvent<Connection>): void {
     try {
       const id = detail.id.toString();
       this.seenPeerMessageCache.delete(id);
@@ -179,11 +178,12 @@ export class CenterSub extends GossipSub {
     // We subscribe a server to every incoming topic
     // to guarantee that every message will be processed.
     if (!this.isClient) {
-      if (!this['subscriptions'].has(rpcMsg.topic)) {
+      if (!(this['subscriptions'] as Set<TopicStr>).has(rpcMsg.topic)) {
         this.subscribe(rpcMsg.topic);
       }
       await this.cacheMessage(rpcMsg);
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     await super['handleReceivedMessage'](from, rpcMsg);
   }
 
@@ -197,15 +197,20 @@ export class CenterSub extends GossipSub {
     // through the directly connected nodes (even if they have not subscribed
     // on a topic before).
     if (this.isClient) {
-      const peersInTopic: Set<string> = this['topics'].get(topic) || new Set<string>();
+      const peersInTopic: Set<string> =
+        (this['topics'] as Map<TopicStr, Set<PeerIdStr>>).get(topic) || new Set<string>();
       for (const peer of this.direct) {
         if (!peersInTopic.has(peer)) {
           peersInTopic.add(peer);
         }
       }
-      this['topics'].set(topic, peersInTopic);
+      (this['topics'] as Map<TopicStr, Set<PeerIdStr>>).set(topic, peersInTopic);
     }
-    return super['selectPeersToPublish'](topic);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    return super['selectPeersToPublish'](topic) as {
+      tosend: Set<PeerIdStr>;
+      tosendCount: ToSendGroupCount;
+    };
   }
 }
 

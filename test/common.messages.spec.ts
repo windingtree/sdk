@@ -103,14 +103,14 @@ describe('Common.messages', () => {
       offer = await createOffer(request);
     });
 
-    it('should throw if wrong signer provided', async () => {
+    it('should throw if wrong signer provided', () => {
       const unknownSigner = Wallet.createRandom();
       expect(() => verifyOffer(contractConfig, unknownSigner.address, offer)).to.throw(
         `Invalid offer signer ${unknownSigner.address}`,
       );
     });
 
-    it('should verify an offer', async () => {
+    it('should verify an offer', () => {
       expect(() => verifyOffer(contractConfig, signer.address, offer)).to.not.throws;
     });
   });
