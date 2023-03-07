@@ -3,20 +3,19 @@ import { ToSendGroupCount } from '@chainsafe/libp2p-gossipsub/metrics';
 import { PeerIdStr, TopicStr } from '@chainsafe/libp2p-gossipsub/types';
 import { PubSub, Message } from '@libp2p/interface-pubsub';
 import { PeerId } from '@libp2p/interface-peer-id';
-import type { Connection } from '@libp2p/interface-connection';
+import type { Connection, Direction } from '@libp2p/interface-connection';
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
 import { Multiaddr } from '@multiformats/multiaddr';
 import { sha256 } from 'multiformats/hashes/sha2';
 import { z } from 'zod';
 import { outboundStreamDelay } from '../constants.js';
 import { Storage } from '../storage/abstract.js';
-import { GenericMessageSchema } from '../common/messages.js';
+import { GenericMessageSchema, GenericMessage } from '../common/messages.js';
+import { decodeText } from '../utils/text.js';
 import { CachedMessage, CashedMessageEntry, MessagesCache } from './cache.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('PubSub');
-
-export type ConnectionDirection = 'inbound' | 'outbound';
 
 export const MessageTransformerSchema = z.function().args(z.instanceof(ArrayBuffer)).returns(GenericMessageSchema);
 
@@ -24,16 +23,15 @@ export type MessageTransformer = z.infer<typeof MessageTransformerSchema>;
 
 export const CenterSubOptionsSchema = z.object({
   isClient: z.boolean().optional(),
-  // @todo Create a proper type for directPeers
   directPeers: z
     .array(
       z.object({
-        id: z.any(),
-        addr: z.array(z.any()),
+        id: z.any().nullable(),
+        addrs: z.any(),
       }),
     )
     .optional(),
-  messageTransformer: MessageTransformerSchema,
+  messageTransformer: MessageTransformerSchema.optional(),
 });
 
 export type CenterSubOptions = z.infer<typeof CenterSubOptionsSchema>;
@@ -46,7 +44,7 @@ export class CenterSub extends GossipSub {
   public readonly isClient: boolean;
   protected messages: MessagesCache | undefined;
   protected seenPeerMessageCache = new Map<string, Set<string>>();
-  protected messageTransformer?: MessageTransformer;
+  protected messageTransformer: MessageTransformer;
   protected options: CenterSubOptions;
 
   constructor(components: GossipSubComponents, options: CenterSubOptions, messagesStorage?: Storage<CachedMessage>) {
@@ -78,7 +76,9 @@ export class CenterSub extends GossipSub {
     this['addPeer'] = this.onAddPeer;
 
     this.isClient = !!this.options.isClient;
-    this.messageTransformer = options.messageTransformer;
+    this.messageTransformer = this.options.messageTransformer
+      ? this.options.messageTransformer
+      : (message) => JSON.parse(decodeText(message)) as GenericMessage;
     this.addEventListener('gossipsub:heartbeat', this.handleHeartbeat.bind(this));
     components.connectionManager.addEventListener('peer:disconnect', this.handlePeerDisconnect.bind(this));
   }
@@ -156,7 +156,7 @@ export class CenterSub extends GossipSub {
     }
   }
 
-  private onAddPeer(peerId: PeerId, direction: ConnectionDirection, addr: Multiaddr): void {
+  private onAddPeer(peerId: PeerId, direction: Direction, addr: Multiaddr): void {
     const id = peerId.toString();
     const hasPeer = this.peers.has(id);
     super['addPeer'](peerId, direction, addr);
@@ -213,5 +213,5 @@ export const centerSub = (
   options: CenterSubOptions,
   messagesStorage?: Storage<CachedMessage>,
 ): ((components: GossipSubComponents) => PubSub<GossipsubEvents>) => {
-  return (components: GossipSubComponents) => new CenterSub(components, options, messagesStorage);
+  return (components: GossipSubComponents) => new CenterSub(components, options ?? {}, messagesStorage);
 };

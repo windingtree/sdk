@@ -104,34 +104,10 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
       transports: [webSockets({ filter: all })],
       streamMuxers: [mplex()],
       connectionEncryption: [noise()],
-      pubsub: centerSub(
-        {
-          messageTransformer: <GenericMessage>(data: BufferSource) => {
-            const dataString = decodeText(data);
-            const dataObj = JSON.parse(dataString) as GenericMessage;
-            return dataObj;
-          },
-        },
-        messagesStorage,
-      ),
+      pubsub: centerSub({}, messagesStorage),
     };
     const peerId = await createFromJSON(this.peerKey);
     this.libp2p = await createLibp2p({ peerId, ...config });
-
-    this.libp2p.addEventListener('peer:discovery', async ({ detail }) => {
-      const id = detail.id.toString();
-      logger.trace('Peer discovery:', id);
-    });
-
-    this.libp2p.addEventListener('peer:connect', async ({ detail }) => {
-      const id = detail.id.toString();
-      logger.trace('Peer connected:', id);
-    });
-
-    this.libp2p.addEventListener('peer:disconnect', async ({ detail }) => {
-      const id = detail.id.toString();
-      logger.trace('Peer disconnected:', id);
-    });
 
     (this.libp2p.pubsub as CenterSub).addEventListener('message', ({ detail }) => {
       logger.trace(`Message: ${decodeText(detail.data)} on topic ${detail.topic}`);
@@ -139,7 +115,7 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
 
     await this.libp2p.start();
     this.dispatchEvent(new CustomEvent<void>('start'));
-    logger.trace('🚀 Started at:', new Date().toISOString());
+    logger.trace('🚀 Server started at:', new Date().toISOString());
     logger.trace('Listened for peers at:', this.multiaddrs);
   }
 
@@ -149,7 +125,7 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
     }
     await this.libp2p.stop();
     this.dispatchEvent(new CustomEvent<void>('stop'));
-    logger.trace('👋 Stopped at:', new Date().toISOString());
+    logger.trace('👋 Server stopped at:', new Date().toISOString());
   }
 }
 
