@@ -1,6 +1,5 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { createLibp2p, Libp2pOptions, Libp2p } from 'libp2p';
-import { PublishResult } from '@libp2p/interface-pubsub';
 import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
 import { webSockets } from '@libp2p/websockets';
@@ -9,9 +8,13 @@ import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
-import { z } from 'zod';
+import { z, ZodType } from 'zod';
 import { centerSub, CenterSub } from '../common/pubsub.js';
-import { decodeText, encodeText } from '../utils/text.js';
+import { GenericQuery } from '../common/messages.js';
+import { Request, RawRequest } from '../common/request.js';
+import { RequestsRegistry } from './requestsRegistry.js';
+import { decodeText } from '../utils/text.js';
+import { StorageInitializer } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Client');
@@ -22,7 +25,7 @@ export const ClientOptionsSchema = z.object({
 
 export type ClientOptions = z.infer<typeof ClientOptionsSchema>;
 
-export interface ClientEvents {
+export interface ClientEvents<CustomRequestQuery extends GenericQuery> {
   /**
    * @example
    *
@@ -77,15 +80,33 @@ export interface ClientEvents {
    * ```
    */
   disconnected: CustomEvent<void>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * request.addEventListener('requests', () => {
+   *    // ... registry updated
+   * })
+   * ```
+   */
+  requests: CustomEvent<Required<Request<CustomRequestQuery>>[]>;
 }
 
-export class Client extends EventEmitter<ClientEvents> {
-  protected libp2p?: Libp2p;
-  protected options: ClientOptions;
-  protected serverMultiaddr: Multiaddr;
-  protected serverPeerId: PeerId;
+export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitter<ClientEvents<CustomRequestQuery>> {
+  libp2p?: Libp2p;
+  options: ClientOptions;
+  serverMultiaddr: Multiaddr;
+  serverPeerId: PeerId;
+  querySchema: z.ZodType<CustomRequestQuery>;
+  private requestsRegistry?: RequestsRegistry<CustomRequestQuery>;
+  private storageInitializer: StorageInitializer;
 
-  constructor(options: ClientOptions) {
+  constructor(
+    options: ClientOptions,
+    storageInitializer: StorageInitializer,
+    querySchema: z.ZodType<CustomRequestQuery>,
+  ) {
     super();
     this.options = ClientOptionsSchema.parse(options);
     this.serverMultiaddr = multiaddr(this.options.serverAddress);
@@ -96,6 +117,13 @@ export class Client extends EventEmitter<ClientEvents> {
     }
 
     this.serverPeerId = peerIdFromString(serverPeerIdString);
+
+    if (!(querySchema instanceof ZodType)) {
+      throw new Error('QuerySchema option of Request must be instance of ZodType');
+    }
+
+    this.querySchema = querySchema;
+    this.storageInitializer = storageInitializer;
   }
 
   get connected(): boolean {
@@ -155,6 +183,18 @@ export class Client extends EventEmitter<ClientEvents> {
       logger.trace(`Message: ${decodeText(detail.data)} on topic ${detail.topic}`);
     });
 
+    this.requestsRegistry = new RequestsRegistry<CustomRequestQuery>(
+      this,
+      await this.storageInitializer<RawRequest<CustomRequestQuery>[]>(),
+    );
+    this.requestsRegistry.addEventListener('change', ({ detail }) => {
+      this.dispatchEvent(
+        new CustomEvent<Required<Request<CustomRequestQuery>>[]>('requests', {
+          detail,
+        }),
+      );
+    });
+
     await this.libp2p.start();
     this.dispatchEvent(new CustomEvent<void>('start'));
     logger.trace('🚀 Client started at:', new Date().toISOString());
@@ -164,19 +204,75 @@ export class Client extends EventEmitter<ClientEvents> {
     if (!this.libp2p) {
       throw new Error('libp2p not initialized yet');
     }
+
     await this.libp2p.stop();
     this.dispatchEvent(new CustomEvent<void>('stop'));
     logger.trace('👋 Client stopped at:', new Date().toISOString());
   }
 
-  async publish(topic: string, message: string): Promise<PublishResult> {
-    if (!this.libp2p) {
-      throw new Error('libp2p not initialized yet');
+  async buildRequest(
+    topic: string,
+    expire: string | number,
+    nonce: number,
+    query: CustomRequestQuery,
+  ): Promise<Request<CustomRequestQuery>> {
+    if (!this.libp2p || !this.requestsRegistry) {
+      throw new Error('Client not initialized yet');
     }
-    return await this.libp2p.pubsub.publish(topic, encodeText(message));
+
+    const request = new Request(this.libp2p.pubsub as CenterSub, this.querySchema);
+    await request.build(topic, expire, nonce, query);
+    this.requestsRegistry.set(request);
+
+    return request;
+  }
+
+  _getRequests(): Required<Request<CustomRequestQuery>>[] {
+    if (!this.requestsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return this.requestsRegistry.getAll();
+  }
+
+  _getRequest(id: string): Request<CustomRequestQuery> | undefined {
+    if (!this.requestsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return this.requestsRegistry.get(id);
+  }
+
+  _deleteRequest(id: string): boolean {
+    if (!this.requestsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return this.requestsRegistry.delete(id);
+  }
+
+  _clearRequests(): void {
+    if (!this.requestsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return this.requestsRegistry.clear();
+  }
+
+  get requests() {
+    return {
+      get: this._getRequest.bind(this),
+      getAll: this._getRequests.bind(this),
+      delete: this._deleteRequest.bind(this),
+      clear: this._clearRequests.bind(this),
+    };
   }
 }
 
-export const createClient = (options: ClientOptions): Client => {
-  return new Client(options);
+export const createClient = <CustomRequestQuery extends GenericQuery>(
+  options: ClientOptions,
+  storageInit: StorageInitializer,
+  querySchema: z.ZodType<CustomRequestQuery>,
+): Client<CustomRequestQuery> => {
+  return new Client(options, storageInit, querySchema);
 };
