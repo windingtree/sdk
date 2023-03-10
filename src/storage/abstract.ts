@@ -6,7 +6,10 @@ export abstract class Storage<CustomValueType> {
   abstract entries(): IterableIterator<[string, CustomValueType]>;
 }
 
-// Storage initializer function type
-export type StorageInitializer = <CustomStorageOptions extends object = object>(
+// Storage initializer callback function type
+export type StorageInitializerFunction = <CustomStorageOptions extends object = object>(
   options?: CustomStorageOptions,
 ) => <CustomValueType>() => Promise<Storage<CustomValueType>>;
+
+// Storage initializer type
+export type StorageInitializer = ReturnType<StorageInitializerFunction>;
