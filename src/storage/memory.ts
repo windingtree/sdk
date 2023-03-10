@@ -46,6 +46,6 @@ export class MemoryStorage<CustomValueType> extends Storage<CustomValueType> {
 export const init =
   <CustomStorageOptions extends MemoryStorageOptions>(options?: CustomStorageOptions) =>
   // eslint-disable-next-line @typescript-eslint/require-await
-  async <CustomValueType>() => {
+  async <CustomValueType>(): Promise<MemoryStorage<CustomValueType>> => {
     return new MemoryStorage<CustomValueType>(options);
   };
