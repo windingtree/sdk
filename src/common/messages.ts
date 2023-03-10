@@ -4,14 +4,14 @@ import { z } from 'zod';
 import { ContractConfig } from '../utils/contract.js';
 import { hashObject } from '../utils/hash.js';
 import { uuid4 } from '../utils/uid.js';
-import { parseSeconds } from '../utils/time.js';
+import { nowSec, parseSeconds } from '../utils/time.js';
 
 // Basic message structure
 export const GenericMessageSchema = z
   .object({
     id: z.string(), // Unique message Id
     expire: z.number(), // Expiration time in seconds
-    nonce: z.number().optional(), // A number that reflects the version of the message
+    nonce: z.number(), // A number that reflects the version of the message
   })
   .strict();
 
@@ -40,11 +40,29 @@ export const buildRequest = async <CustomRequestQuery extends GenericQuery>(
   nonce: number,
   query: CustomRequestQuery,
   querySchema: z.ZodType<CustomRequestQuery>,
+  idOverride?: string,
 ): Promise<RequestData<CustomRequestQuery>> => {
   const request = createRequestDataSchema<CustomRequestQuery>(querySchema);
   return await request.parseAsync({
-    id: uuid4(),
-    expire: parseSeconds(expire),
+    id: idOverride ?? uuid4(),
+    expire: typeof expire === 'number' ? parseSeconds(expire) : nowSec() + parseSeconds(expire),
+    nonce,
+    query,
+  });
+};
+
+// Builds a request (synchronous version)
+export const buildRequestSync = <CustomRequestQuery extends GenericQuery>(
+  expire: string | number,
+  nonce: number,
+  query: CustomRequestQuery,
+  querySchema: z.ZodType<CustomRequestQuery>,
+  idOverride?: string,
+): RequestData<CustomRequestQuery> => {
+  const request = createRequestDataSchema<CustomRequestQuery>(querySchema);
+  return request.parse({
+    id: idOverride ?? uuid4(),
+    expire: typeof expire === 'number' ? parseSeconds(expire) : nowSec() + parseSeconds(expire),
     nonce,
     query,
   });
