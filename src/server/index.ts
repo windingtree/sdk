@@ -69,12 +69,12 @@ export interface CoordinationServerEvents {
 
 export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
   public port: number;
-  protected peerKey: NodeKeyJson;
-  protected libp2p?: Libp2p;
-  protected options: ServerOptions;
-  protected messagesStorageInit?: ReturnType<StorageInitializer>;
+  private peerKey: NodeKeyJson;
+  private libp2p?: Libp2p;
+  private options: ServerOptions;
+  private messagesStorageInit?: StorageInitializer;
 
-  constructor(options: ServerOptions, messagesStorageInit?: ReturnType<StorageInitializer>) {
+  constructor(options: ServerOptions, messagesStorageInit?: StorageInitializer) {
     super();
     this.options = ServerOptionsSchema.parse(options);
     this.messagesStorageInit = messagesStorageInit;
@@ -129,9 +129,6 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
   }
 }
 
-export const createServer = (
-  options: ServerOptions,
-  messagesStorageInit?: ReturnType<StorageInitializer>,
-): CoordinationServer => {
+export const createServer = (options: ServerOptions, messagesStorageInit?: StorageInitializer): CoordinationServer => {
   return new CoordinationServer(options, messagesStorageInit);
 };
