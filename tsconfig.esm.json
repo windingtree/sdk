@@ -3,5 +3,6 @@
   "compilerOptions": {
     "outDir": "./lib/esm",
     "declarationDir": "./lib/esm/types"
-  }
+  },
+  "exclude": ["./examples", "./test"]
 }

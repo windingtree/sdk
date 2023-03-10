@@ -52,7 +52,9 @@
     "lint:fix": "npx eslint . --ext .ts --fix && npx prettier --write .",
     "prepare": "husky install",
     "commit": "git-cz -S",
-    "coverage": "c8 --all --exclude coverage --exclude lib --exclude test yarn test && c8 report --all --exclude coverage --exclude lib --exclude test -r html"
+    "coverage": "c8 --all --exclude coverage --exclude lib --exclude test yarn test && c8 report --all --exclude coverage --exclude lib --exclude test -r html",
+    "example:server": "node --experimental-specifier-resolution=node --loader ts-node/esm ./examples/server/index.ts",
+    "example:client": "yarn --cwd ./examples/client dev"
   },
   "release": {
     "branches": [
@@ -68,6 +70,7 @@
     "@types/chai": "^4.3.4",
     "@types/debug": "^4.1.7",
     "@types/chai-as-promised": "^7.1.5",
+    "@types/luxon": "^3.2.0",
     "mocha": "^10.2.0",
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
@@ -93,6 +96,7 @@
     "@chainsafe/libp2p-noise": "^11.0.1",
     "@chainsafe/libp2p-gossipsub": "^6.2.0",
     "@libp2p/mplex": "^7.1.1",
-    "@libp2p/websockets": "^5.0.4"
+    "@libp2p/websockets": "^5.0.4",
+    "luxon": "^3.3.0"
   }
 }

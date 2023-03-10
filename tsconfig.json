@@ -15,6 +15,5 @@
     "module": "ESNext",
     "moduleResolution": "NodeNext"
   },
-  "files": ["./src/index.ts"],
-  "include": ["./examples/**/*.ts", "./test/**/*.ts"]
+  "include": ["./src/**/*.ts", "./examples/**/*.ts", "./test/**/*.ts"]
 }
