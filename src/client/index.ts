@@ -220,7 +220,10 @@ export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitte
       throw new Error('Client not initialized yet');
     }
 
-    const request = new Request(this.libp2p.pubsub as CenterSub, this.querySchema);
+    const request = new Request({
+      pubsub: this.libp2p.pubsub as CenterSub,
+      querySchema: this.querySchema,
+    });
     await request.build(topic, expire, nonce, query);
     this.requestsRegistry.set(request);
 
