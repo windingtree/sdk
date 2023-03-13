@@ -69,7 +69,11 @@ export class RequestsRegistry<CustomRequestQuery extends GenericQuery> extends E
 
       for (const record of rawRecords) {
         try {
-          const request = new Request(this.client.libp2p.pubsub as CenterSub, this.client.querySchema, record);
+          const request = new Request({
+            pubsub: this.client.libp2p.pubsub as CenterSub,
+            querySchema: this.client.querySchema,
+          });
+          await request.buildRaw(record);
 
           if (!request.data) {
             throw new Error('Invalid request');
