@@ -27,9 +27,9 @@ describe('Common.messages', () => {
   });
   type CustomOfferOptions = z.infer<typeof CustomOfferOptionsSchema>;
 
-  const createRequest = () =>
+  const createRequest = (expire: number | string = 1) =>
     buildRequest<CustomQuery>(
-      1,
+      expire,
       1,
       {
         guests: 2,
@@ -47,12 +47,14 @@ describe('Common.messages', () => {
     address: signer.address,
   };
 
-  const createOffer = (request: RequestData<CustomQuery>) =>
+  const createOffer = (request: RequestData<CustomQuery>, expire: number | string = 1) =>
     buildOffer<CustomQuery, CustomOfferOptions>(
       contractConfig,
       signer,
-      1,
+      CustomQuerySchema,
+      CustomOfferOptionsSchema,
       supplierId,
+      expire,
       request,
       {
         room: 'big',
@@ -74,8 +76,6 @@ describe('Common.messages', () => {
       ],
       1,
       true,
-      CustomQuerySchema,
-      CustomOfferOptionsSchema,
     );
 
   let request: RequestData<CustomQuery>;
@@ -87,12 +87,62 @@ describe('Common.messages', () => {
   describe('#buildRequest', () => {
     it('should build a request', async () => {
       await expect(createRequest()).to.not.rejected;
+      await expect(createRequest('1h')).to.not.rejected;
     });
   });
 
   describe('#buildOffer', () => {
     it('should build an offer', async () => {
       await expect(createOffer(request)).to.not.rejected;
+      await expect(createOffer(request, '30s')).to.not.rejected;
+    });
+
+    describe('Offer restoration', () => {
+      let offer: OfferData<CustomQuery, CustomOfferOptions>;
+
+      before(async () => {
+        offer = await createOffer(request);
+      });
+
+      it('should restore an offer from raw data', async () => {
+        const fromRaw = await buildOffer<CustomQuery, CustomOfferOptions>(
+          contractConfig,
+          undefined,
+          CustomQuerySchema,
+          CustomOfferOptionsSchema,
+          supplierId,
+          offer.expire,
+          offer.request,
+          offer.options,
+          offer.payment,
+          offer.cancel,
+          offer.payload.checkIn,
+          offer.payload.transferable,
+          offer.id,
+          offer.signature,
+        );
+        expect(fromRaw).to.deep.eq(offer);
+      });
+
+      it('should throw is signatureOverride not been provided', async () => {
+        await expect(
+          buildOffer<CustomQuery, CustomOfferOptions>(
+            contractConfig,
+            undefined,
+            CustomQuerySchema,
+            CustomOfferOptionsSchema,
+            supplierId,
+            offer.expire,
+            offer.request,
+            offer.options,
+            offer.payment,
+            offer.cancel,
+            offer.payload.checkIn,
+            offer.payload.transferable,
+            offer.id,
+          ),
+        ).to.rejectedWith('Either signer or signatureOverride must be provided');
+      });
     });
   });
 
