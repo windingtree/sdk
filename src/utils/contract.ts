@@ -1,8 +1,14 @@
-import { BigNumberish } from 'ethers';
+import { z } from 'zod';
 
-export interface ContractConfig {
-  name: string;
-  version: string;
-  chainId: BigNumberish;
-  address: string;
-}
+export const bigNumberishSchema = z.bigint().or(z.number()).or(z.string());
+
+export const ContractConfigSchema = z
+  .object({
+    name: z.string(),
+    version: z.string(),
+    chainId: bigNumberishSchema,
+    address: z.string(),
+  })
+  .strict();
+
+export type ContractConfig = z.infer<typeof ContractConfigSchema>;
