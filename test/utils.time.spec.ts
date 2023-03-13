@@ -1,5 +1,5 @@
 import { expect } from './setup.js';
-import { validateDurationFormat, parseSeconds } from '../src/utils/time.js';
+import { validateDurationFormat, parseSeconds, millisToSec, nowSec, isExpired } from '../src/utils/time.js';
 
 describe('Utils.time', () => {
   describe('#validateDurationFormat', () => {
@@ -33,6 +33,31 @@ describe('Utils.time', () => {
 
     it('should pass numbers', () => {
       expect(parseSeconds(1)).to.eq(1);
+    });
+  });
+
+  describe('#millisToSec', () => {
+    it('should convert millis to seconds', () => {
+      expect(millisToSec(1000)).to.eq(1);
+    });
+
+    it('should round sec value', () => {
+      expect(millisToSec(100)).to.eq(0);
+      expect(millisToSec(1567)).to.eq(2);
+    });
+  });
+
+  describe('#nowSec', () => {
+    it('should return valid time', () => {
+      expect(nowSec()).to.be.gt(new Date('1970-01-01T00:00:00Z').getSeconds());
+    });
+  });
+
+  describe('#isExpired', () => {
+    it('should detect expired time', () => {
+      const now = nowSec();
+      expect(isExpired(now + 2000)).to.be.false;
+      expect(isExpired(now - 1)).to.be.true;
     });
   });
 });
