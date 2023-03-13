@@ -778,10 +778,10 @@
     private-ip "^3.0.0"
     uint8arraylist "^2.3.2"
 
-"@libp2p/websockets@^5.0.4":
-  version "5.0.4"
-  resolved "https://registry.yarnpkg.com/@libp2p/websockets/-/websockets-5.0.4.tgz#aeb456c3088dd31fa3df92e62abe315f944eac2d"
-  integrity sha512-DOSP/UupSkd8eYOFoGDb3TPzdrogE8k5N7Yi95vU3mvjK9q1EUI0ZhIUwUCafkoUEYTV8OVlGj5EjJXEY15aTw==
+"@libp2p/websockets@^5.0.5":
+  version "5.0.5"
+  resolved "https://registry.yarnpkg.com/@libp2p/websockets/-/websockets-5.0.5.tgz#be2ac6e4306e0f6261bb093bd2b9bf1bc49cd640"
+  integrity sha512-gp6OI/2cBBkbUKw7XougNC8/XZe1fe5eSngWDSE99/wGykwDzyKPnYikUAGhJ4X1VuBDAjogZuJp7PtDif1QPQ==
   dependencies:
     "@libp2p/interface-connection" "^3.0.2"
     "@libp2p/interface-transport" "^2.0.0"
@@ -796,6 +796,7 @@
     p-defer "^4.0.0"
     p-timeout "^6.0.0"
     wherearewe "^2.0.1"
+    ws "^8.12.1"
 
 "@multiformats/mafmt@^11.0.2", "@multiformats/mafmt@^11.0.3":
   version "11.1.0"
@@ -6365,7 +6366,7 @@ ws@8.5.0:
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.5.0.tgz#bfb4be96600757fe5382de12c670dab984a1ed4f"
   integrity sha512-BWX0SWVgLPzYwF8lTzEy1egjhS4S4OEAHfsO8o65WOVsrnSRGaSiUaa9e0ggGlkMTtBlmOpEXiie9RUcBO86qg==
 
-ws@^8.4.0:
+ws@^8.12.1, ws@^8.4.0:
   version "8.12.1"
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.12.1.tgz#c51e583d79140b5e42e39be48c934131942d4a8f"
   integrity sha512-1qo+M9Ba+xNhPB+YTWUlK6M17brTut5EXbcBaMRN5pH5dFrXz7lzz1ChFSUq3bOUl8yEvSenhHmYUNJxFzdJew==
