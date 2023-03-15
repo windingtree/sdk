@@ -9,7 +9,7 @@ import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
 import { AbstractProvider } from 'ethers';
-import { z, ZodType } from 'zod';
+import { z } from 'zod';
 import { centerSub, CenterSub } from '../common/pubsub.js';
 import {
   createOfferDataSchema,
@@ -18,34 +18,20 @@ import {
   OfferData,
   RequestData,
 } from '../common/messages.js';
+import { ClientOptions, createClientOptionsSchema } from '../common/options.js';
 import { Request, RawRequest } from '../common/request.js';
 import { RequestsRegistry } from './requestsRegistry.js';
 import { decodeText } from '../utils/text.js';
-import { ContractConfig, ContractConfigSchema } from '../utils/contract.js';
+import { ContractConfig } from '../utils/contract.js';
 import { StorageInitializer } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Client');
 
-export const createClientOptionsSchema = <
+export interface ClientEvents<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
->() =>
-  z.object({
-    querySchema: z.instanceof(ZodType<CustomRequestQuery>),
-    offerOptionsSchema: z.instanceof(ZodType<CustomOfferOptions>),
-    contractConfig: ContractConfigSchema,
-    serverAddress: z.string(),
-    libp2p: z.object({}).catchall(z.any()).optional(),
-    provider: z.instanceof(AbstractProvider).optional(),
-  });
-
-export type ClientOptions<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
-> = z.infer<ReturnType<typeof createClientOptionsSchema<CustomRequestQuery, CustomOfferOptions>>>;
-
-export interface ClientEvents<CustomRequestQuery extends GenericQuery, CustomOfferOptions extends GenericOfferOptions> {
+> {
   /**
    * @example
    *
@@ -128,7 +114,10 @@ export class Client<
   private requestsRegistry?: RequestsRegistry<CustomRequestQuery, CustomOfferOptions>;
   private storageInitializer: StorageInitializer;
 
-  constructor(options: ClientOptions<CustomRequestQuery, CustomOfferOptions>, storageInitializer: StorageInitializer) {
+  constructor(
+    options: ClientOptions<CustomRequestQuery, CustomOfferOptions>,
+    storageInitializer: StorageInitializer,
+  ) {
     super();
 
     options = createClientOptionsSchema<CustomRequestQuery, CustomOfferOptions>().parse(options);
@@ -209,13 +198,17 @@ export class Client<
           throw new Error('Requests registry not initialized yet');
         }
 
-        let offer = JSON.parse(decodeText(detail.data)) as OfferData<CustomRequestQuery, CustomOfferOptions>;
+        let offer = JSON.parse(decodeText(detail.data)) as OfferData<
+          CustomRequestQuery,
+          CustomOfferOptions
+        >;
 
         // Check is the message is an offer
         offer = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
           this.querySchema,
           this.offerOptionsSchema,
         ).parse(offer);
+        logger.trace('Offer received:', offer);
 
         // Verify the offer
         // @todo Implement offer verification
@@ -326,7 +319,10 @@ export class Client<
   }
 }
 
-export const createClient = <CustomRequestQuery extends GenericQuery, CustomOfferOptions extends GenericOfferOptions>(
+export const createClient = <
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+>(
   options: ClientOptions<CustomRequestQuery, CustomOfferOptions>,
   storageInit: StorageInitializer,
 ): Client<CustomRequestQuery, CustomOfferOptions> => {
