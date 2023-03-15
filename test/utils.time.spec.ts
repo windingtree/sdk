@@ -1,5 +1,11 @@
 import { expect } from './setup.js';
-import { validateDurationFormat, parseSeconds, millisToSec, nowSec, isExpired } from '../src/utils/time.js';
+import {
+  validateDurationFormat,
+  parseSeconds,
+  millisToSec,
+  nowSec,
+  isExpired,
+} from '../src/utils/time.js';
 
 describe('Utils.time', () => {
   describe('#validateDurationFormat', () => {

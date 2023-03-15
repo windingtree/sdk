@@ -53,7 +53,9 @@
           renderer: {
             code: function (code, lang) {
               if (lang === 'mermaid') {
-                return '<div class="mermaid">' + mermaid.render('mermaid-svg-' + num++, code) + '</div>';
+                return (
+                  '<div class="mermaid">' + mermaid.render('mermaid-svg-' + num++, code) + '</div>'
+                );
               }
               return this.origin.code.apply(this, arguments);
             },

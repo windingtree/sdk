@@ -373,7 +373,9 @@ const tokenId = await deal.subscribe(({ tokenId, supplier, status, reason }: Dea
       console.log(`The deal #${tokenId} has been confirmed by the supplier ${supplier}`);
       break;
     case DEAL_REJECTED:
-      console.log(`The deal #${tokenId} has been rejected by the supplier ${supplier} with the reason ${reason}`);
+      console.log(
+        `The deal #${tokenId} has been rejected by the supplier ${supplier} with the reason ${reason}`,
+      );
       break;
     case DEAL_CANCELLED:
       console.log(`The deal #${tokenId} has been cancelled by the client`);

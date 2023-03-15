@@ -157,7 +157,11 @@ Before start using the requests queue you should configure an asynchronous proce
 ```typescript
 interface RequestsQueueTask {
   id: string;
-  status: 'REQUEST_TASK_PENDING' | 'REQUEST_TASK_PROCESSING' | 'REQUEST_TASK_FAILED' | 'REQUEST_TASK_DONE';
+  status:
+    | 'REQUEST_TASK_PENDING'
+    | 'REQUEST_TASK_PROCESSING'
+    | 'REQUEST_TASK_FAILED'
+    | 'REQUEST_TASK_DONE';
   request: Request;
   errors: Error[];
 }
