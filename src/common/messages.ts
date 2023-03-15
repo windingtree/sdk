@@ -219,7 +219,10 @@ export const buildOffer = async <
     throw new Error('Either signer or signatureOverride must be provided');
   }
 
-  const offerSchema = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(querySchema, optionsSchema);
+  const offerSchema = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
+    querySchema,
+    optionsSchema,
+  );
 
   return await offerSchema.parseAsync({
     id: idOverride ?? uuid4(),
@@ -235,7 +238,10 @@ export const buildOffer = async <
 };
 
 // Verify signed offer
-export const verifyOffer = <CustomRequestQuery extends GenericQuery, CustomOfferOptions extends GenericOfferOptions>(
+export const verifyOffer = <
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+>(
   contract: ContractConfig,
   supplierAddress: string,
   offer: OfferData<CustomRequestQuery, CustomOfferOptions>,

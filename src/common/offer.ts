@@ -19,7 +19,10 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Offer');
 
-export interface RawOffer<CustomRequestQuery extends GenericQuery, CustomOfferOptions extends GenericOfferOptions> {
+export interface RawOffer<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> {
   data: OfferData<CustomRequestQuery, CustomOfferOptions>;
   published?: number;
 }
@@ -42,7 +45,9 @@ export const createOfferInitOptionsSchema = <
 export type OfferInitOptions<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
-> = z.infer<ReturnType<typeof createOfferInitOptionsSchema<CustomRequestQuery, CustomOfferOptions>>>;
+> = z.infer<
+  ReturnType<typeof createOfferInitOptionsSchema<CustomRequestQuery, CustomOfferOptions>>
+>;
 
 export interface OfferEvents {
   /**
@@ -224,7 +229,10 @@ export class Offer<
     this.dispatchEvent(new CustomEvent<void>('changed'));
     logger.trace('Offer data:', this.data);
 
-    if (this.published && !isExpired((this.data.request as RequestData<CustomRequestQuery>).expire)) {
+    if (
+      this.published &&
+      !isExpired((this.data.request as RequestData<CustomRequestQuery>).expire)
+    ) {
       this.publish().catch(logger.trace);
     }
   }
@@ -241,7 +249,10 @@ export class Offer<
       }
 
       if (!this.published || rePublish) {
-        await this.pubsub.publish((this.data.request as RequestData<CustomRequestQuery>).id, encodeText(this.toJSON()));
+        await this.pubsub.publish(
+          (this.data.request as RequestData<CustomRequestQuery>).id,
+          encodeText(this.toJSON()),
+        );
       }
 
       this.subscriptionTimeout = setTimeout(() => {

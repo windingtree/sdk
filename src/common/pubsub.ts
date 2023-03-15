@@ -1,4 +1,9 @@
-import { GossipSub, GossipSubComponents, GossipsubEvents, GossipsubOpts } from '@chainsafe/libp2p-gossipsub';
+import {
+  GossipSub,
+  GossipSubComponents,
+  GossipsubEvents,
+  GossipsubOpts,
+} from '@chainsafe/libp2p-gossipsub';
 import { ToSendGroupCount } from '@chainsafe/libp2p-gossipsub/metrics';
 import { PeerIdStr, TopicStr } from '@chainsafe/libp2p-gossipsub/types';
 import { PubSub, Message } from '@libp2p/interface-pubsub';
@@ -17,7 +22,10 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('PubSub');
 
-export const MessageTransformerSchema = z.function().args(z.instanceof(ArrayBuffer)).returns(GenericMessageSchema);
+export const MessageTransformerSchema = z
+  .function()
+  .args(z.instanceof(ArrayBuffer))
+  .returns(GenericMessageSchema);
 
 export type MessageTransformer = z.infer<typeof MessageTransformerSchema>;
 
@@ -47,7 +55,11 @@ export class CenterSub extends GossipSub {
   protected messageTransformer: MessageTransformer;
   protected options: CenterSubOptions;
 
-  constructor(components: GossipSubComponents, options: CenterSubOptions, messagesStorage?: Storage<CachedMessage>) {
+  constructor(
+    components: GossipSubComponents,
+    options: CenterSubOptions,
+    messagesStorage?: Storage<CachedMessage>,
+  ) {
     options = CenterSubOptionsSchema.parse(options);
 
     const opts = {
@@ -80,7 +92,10 @@ export class CenterSub extends GossipSub {
       ? this.options.messageTransformer
       : (message) => JSON.parse(decodeText(message)) as GenericMessage;
     this.addEventListener('gossipsub:heartbeat', this.handleHeartbeat.bind(this));
-    components.connectionManager.addEventListener('peer:disconnect', this.handlePeerDisconnect.bind(this));
+    components.connectionManager.addEventListener(
+      'peer:disconnect',
+      this.handlePeerDisconnect.bind(this),
+    );
   }
 
   private publishToPeer(peerId: PeerId, messages: CashedMessageEntry[]): void {
@@ -132,7 +147,13 @@ export class CenterSub extends GossipSub {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const msgIdStr = this['msgIdToStrFn'](msgId) as string;
       const transformed = this.messageTransformer(rpcMsg.data);
-      await this.messages.set(msgIdStr, rpcMsg.from.toString(), rpcMsg, transformed.expire, transformed.nonce);
+      await this.messages.set(
+        msgIdStr,
+        rpcMsg.from.toString(),
+        rpcMsg,
+        transformed.expire,
+        transformed.nonce,
+      );
     } catch (error) {
       logger.error(error);
     }
@@ -218,5 +239,6 @@ export const centerSub = (
   options: CenterSubOptions,
   messagesStorage?: Storage<CachedMessage>,
 ): ((components: GossipSubComponents) => PubSub<GossipsubEvents>) => {
-  return (components: GossipSubComponents) => new CenterSub(components, options ?? {}, messagesStorage);
+  return (components: GossipSubComponents) =>
+    new CenterSub(components, options ?? {}, messagesStorage);
 };

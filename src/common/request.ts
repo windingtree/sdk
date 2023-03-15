@@ -1,7 +1,13 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { AbstractProvider } from 'ethers';
 import { z, ZodType } from 'zod';
-import { GenericQuery, RequestData, createRequestDataSchema, buildRequest, GenericOfferOptions } from './messages.js';
+import {
+  GenericQuery,
+  RequestData,
+  createRequestDataSchema,
+  buildRequest,
+  GenericOfferOptions,
+} from './messages.js';
 import { Offer, RawOffer } from './offer.js';
 import { CenterSub } from './pubsub.js';
 import { encodeText } from '../utils/text.js';
@@ -26,7 +32,10 @@ export const createRawRequestSchema = <CustomRequestQuery extends GenericQuery>(
     .strict();
 
 // Request with metadata
-export interface RawRequest<CustomRequestQuery extends GenericQuery, CustomOfferOptions extends GenericOfferOptions> {
+export interface RawRequest<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> {
   data: RequestData<CustomRequestQuery>;
   topic: string;
   offers: RawOffer<CustomRequestQuery, CustomOfferOptions>[];
@@ -51,7 +60,9 @@ export const createRequestInitOptionsSchema = <
 export type RequestInitOptions<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
-> = z.infer<ReturnType<typeof createRequestInitOptionsSchema<CustomRequestQuery, CustomOfferOptions>>>;
+> = z.infer<
+  ReturnType<typeof createRequestInitOptionsSchema<CustomRequestQuery, CustomOfferOptions>>
+>;
 
 export interface RequestEvents<
   CustomRequestQuery extends GenericQuery,
@@ -154,7 +165,9 @@ export class Request<
   constructor(options: RequestInitOptions<CustomRequestQuery, CustomOfferOptions>) {
     super();
 
-    options = createRequestInitOptionsSchema<CustomRequestQuery, CustomOfferOptions>().parse(options);
+    options = createRequestInitOptionsSchema<CustomRequestQuery, CustomOfferOptions>().parse(
+      options,
+    );
 
     this.pubsub = options.pubsub;
     this.contractConfig = options.contractConfig;

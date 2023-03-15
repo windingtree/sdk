@@ -46,7 +46,13 @@ export class MessagesCache {
     return messages;
   }
 
-  async set(messageId: string, peerId: string, data: RPC.IMessage, expire: number, nonce = 1): Promise<void> {
+  async set(
+    messageId: string,
+    peerId: string,
+    data: RPC.IMessage,
+    expire: number,
+    nonce = 1,
+  ): Promise<void> {
     try {
       let message = await this.cache.get(messageId);
       if (message) {
