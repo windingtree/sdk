@@ -1,39 +1,25 @@
+import {
+  RequestQuerySchema,
+  RequestQuery,
+  OfferOptionsSchema,
+  OfferOptions,
+  contractConfig,
+  serverAddress,
+} from '../../common/types.js';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { z } from 'zod';
 import { createClient, Client, ClientOptions, Request } from '../../../src/index.js';
 import { localStorage } from '../../../src/storage/index.js';
 import { isExpired } from '../../../src/utils/time.js';
 
-const defaultExpire = '5s'; // 5 sec
+const defaultExpire = '15s'; // 5 sec
 
 const defaultTopic = 'hello';
-
-const RequestQuerySchema = z
-  .object({
-    greeting: z.string(),
-  })
-  .strict();
-
-type RequestQuery = z.infer<typeof RequestQuerySchema>;
-
-const OfferOptionsSchema = z
-  .object({
-    date: z.string(),
-  })
-  .catchall(z.any());
-
-type OfferOptions = z.infer<typeof OfferOptionsSchema>;
 
 const options: ClientOptions<RequestQuery, OfferOptions> = {
   querySchema: RequestQuerySchema,
   offerOptionsSchema: OfferOptionsSchema,
-  contractConfig: {
-    name: 'WtMarket',
-    version: '1',
-    chainId: '1',
-    address: '0x0',
-  },
-  serverAddress: '/ip4/127.0.0.1/tcp/33333/ws/p2p/QmcXbDrzUU5ERqRaronWmAJXwe6c7AEkS7qdcsjgEuWPCf',
+  contractConfig,
+  serverAddress,
 };
 
 interface FormValues {
@@ -86,7 +72,11 @@ export const RequestForm = ({ connected, subscribed, onSubmit, onCancel }: Reque
             <strong>Request:</strong>
           </div>
           <div>
-            <input value={message} onChange={(e) => setMessage(e.target.value)} disabled={subscribed} />
+            <input
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              disabled={subscribed}
+            />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', marginTop: 10 }}>
             <div>
@@ -253,7 +243,12 @@ export const App = () => {
           <div>✅ Subscribed to: {query.current?.data?.id}</div>
         </>
       )}
-      <RequestForm connected={connected} subscribed={subscribed} onSubmit={sendRequest} onCancel={cancelRequest} />
+      <RequestForm
+        connected={connected}
+        subscribed={subscribed}
+        onSubmit={sendRequest}
+        onCancel={cancelRequest}
+      />
       <Requests
         requests={requests}
         onClear={() => {
