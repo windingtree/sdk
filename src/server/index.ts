@@ -5,7 +5,7 @@ import { mplex } from '@libp2p/mplex';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { z } from 'zod';
+import { NodeKeyJson, ServerOptions, ServerOptionsSchema } from '../common/options.js';
 import { centerSub, CenterSub } from '../common/pubsub.js';
 import { decodeText } from '../utils/text.js';
 import { CachedMessage } from '../common/cache.js';
@@ -13,35 +13,6 @@ import { Storage, StorageInitializer } from '../storage/abstract.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Server');
-
-export const NodeKeyJsonSchema = z
-  .object({
-    id: z.string(), // Peer Id
-    privKey: z.string(), // Private key
-    pubKey: z.string(), // Public key
-  })
-  .strict();
-
-export type NodeKeyJson = z.infer<typeof NodeKeyJsonSchema>;
-
-// Peer configuration options
-export const PeerOptionsSchema = z
-  .object({
-    peerKey: NodeKeyJsonSchema.optional(), // Peer key
-  })
-  .strict();
-
-export type PeerOptions = z.infer<typeof PeerOptionsSchema>;
-
-// Server options schema
-export const ServerOptionsSchema = PeerOptionsSchema.required()
-  .extend({
-    address: z.string().optional(), // Optional IP address of the server, defaults to '0.0.0.0'
-    port: z.number(),
-  })
-  .strict();
-
-export type ServerOptions = z.infer<typeof ServerOptionsSchema>;
 
 export interface CoordinationServerEvents {
   /**
@@ -129,6 +100,9 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
   }
 }
 
-export const createServer = (options: ServerOptions, messagesStorageInit?: StorageInitializer): CoordinationServer => {
+export const createServer = (
+  options: ServerOptions,
+  messagesStorageInit?: StorageInitializer,
+): CoordinationServer => {
   return new CoordinationServer(options, messagesStorageInit);
 };
