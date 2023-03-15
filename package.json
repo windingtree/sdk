@@ -54,7 +54,8 @@
     "commit": "git-cz -S",
     "coverage": "c8 --all --exclude coverage --exclude lib --exclude test yarn test && c8 report --all --exclude coverage --exclude lib --exclude test -r html",
     "example:server": "node --experimental-specifier-resolution=node --loader ts-node/esm ./examples/server/index.ts",
-    "example:client": "yarn --cwd ./examples/client dev"
+    "example:client": "yarn --cwd ./examples/client dev",
+    "example:node": "node --experimental-specifier-resolution=node --loader ts-node/esm ./examples/node/index.ts"
   },
   "release": {
     "branches": [
