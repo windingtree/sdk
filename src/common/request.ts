@@ -1,10 +1,13 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { AbstractProvider } from 'ethers';
 import { z, ZodType } from 'zod';
-import { GenericQuery, RequestData, createRequestDataSchema, buildRequest } from './messages.js';
+import { GenericQuery, RequestData, createRequestDataSchema, buildRequest, GenericOfferOptions } from './messages.js';
+import { Offer, RawOffer } from './offer.js';
 import { CenterSub } from './pubsub.js';
 import { encodeText } from '../utils/text.js';
 import { hashObject } from '../utils/hash.js';
 import { isExpired, nowSec } from '../utils/time.js';
+import { ContractConfig, ContractConfigSchema } from '../utils/contract.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Request');
@@ -23,27 +26,37 @@ export const createRawRequestSchema = <CustomRequestQuery extends GenericQuery>(
     .strict();
 
 // Request with metadata
-export interface RawRequest<CustomRequestQuery extends GenericQuery> {
+export interface RawRequest<CustomRequestQuery extends GenericQuery, CustomOfferOptions extends GenericOfferOptions> {
   data: RequestData<CustomRequestQuery>;
   topic: string;
-  offers: string[];
+  offers: RawOffer<CustomRequestQuery, CustomOfferOptions>[];
   published?: number;
   received?: number;
 }
 
-export const createRequestInitOptionsSchema = <CustomRequestQuery extends GenericQuery>() =>
+export const createRequestInitOptionsSchema = <
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+>() =>
   z
     .object({
-      pubsub: z.instanceof(CenterSub),
       querySchema: z.instanceof(ZodType<CustomRequestQuery>),
+      offerOptionsSchema: z.instanceof(ZodType<CustomOfferOptions>),
+      contractConfig: ContractConfigSchema,
+      pubsub: z.instanceof(CenterSub),
+      provider: z.instanceof(AbstractProvider).optional(),
     })
     .strict();
 
-export type RequestInitOptions<CustomRequestQuery extends GenericQuery> = z.infer<
-  ReturnType<typeof createRequestInitOptionsSchema<CustomRequestQuery>>
->;
+export type RequestInitOptions<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> = z.infer<ReturnType<typeof createRequestInitOptionsSchema<CustomRequestQuery, CustomOfferOptions>>>;
 
-export interface RequestEvents {
+export interface RequestEvents<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> {
   /**
    * @example
    *
@@ -109,33 +122,52 @@ export interface RequestEvents {
    * ```
    */
   changed: CustomEvent<void>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * request.addEventListener('changed', () => {
+   *    // ... changed
+   * })
+   * ```
+   */
+  offer: CustomEvent<Offer<CustomRequestQuery, CustomOfferOptions>>;
 }
 
-export class Request<CustomRequestQuery extends GenericQuery> extends EventEmitter<RequestEvents> {
-  private pubsub: CenterSub;
+export class Request<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> extends EventEmitter<RequestEvents<CustomRequestQuery, CustomOfferOptions>> {
   private querySchema: z.ZodType<CustomRequestQuery>;
+  private offerOptionsSchema: z.ZodType<CustomOfferOptions>;
+  private contractConfig: ContractConfig;
+  private pubsub: CenterSub;
+  private provider?: AbstractProvider;
   private subscriptionTimeout?: NodeJS.Timeout;
   data?: RequestData<CustomRequestQuery>; // Request message content
   topic?: string;
-  offers: Set<string>; // Offers Ids
+  offers: Set<Offer<CustomRequestQuery, CustomOfferOptions>>; // Offers
   published?: number; // Time in milliseconds
   received?: number; // Time in milliseconds
 
-  constructor(options: RequestInitOptions<CustomRequestQuery>) {
+  constructor(options: RequestInitOptions<CustomRequestQuery, CustomOfferOptions>) {
     super();
 
-    options = createRequestInitOptionsSchema<CustomRequestQuery>().parse(options);
+    options = createRequestInitOptionsSchema<CustomRequestQuery, CustomOfferOptions>().parse(options);
 
     this.pubsub = options.pubsub;
+    this.contractConfig = options.contractConfig;
     this.querySchema = options.querySchema;
-    this.offers = new Set<string>();
+    this.offerOptionsSchema = options.offerOptionsSchema;
+    this.offers = new Set<Offer<CustomRequestQuery, CustomOfferOptions>>();
   }
 
   get subscribed(): boolean {
     return !!this.subscriptionTimeout;
   }
 
-  toJSON(): string {
+  toJSON() {
     if (!this.data) {
       throw new Error('Request not initialized yet');
     }
@@ -143,7 +175,7 @@ export class Request<CustomRequestQuery extends GenericQuery> extends EventEmitt
     return JSON.stringify(this.data);
   }
 
-  toRaw(): RawRequest<CustomRequestQuery> {
+  toRaw(): RawRequest<CustomRequestQuery, CustomOfferOptions> {
     if (!this.data || !this.topic) {
       throw new Error('Request not initialized yet');
     }
@@ -153,11 +185,11 @@ export class Request<CustomRequestQuery extends GenericQuery> extends EventEmitt
       topic: this.topic,
       published: this.published,
       received: this.received,
-      offers: Array.from(this.offers),
+      offers: Array.from(this.offers).map((o) => o.toRaw()),
     };
   }
 
-  toHash(): string {
+  toHash() {
     if (!this.data) {
       throw new Error('Request not initialized yet');
     }
@@ -177,9 +209,25 @@ export class Request<CustomRequestQuery extends GenericQuery> extends EventEmitt
     logger.trace('Request data:', this.data);
   }
 
-  async buildRaw(rawRequest: RawRequest<CustomRequestQuery>) {
+  async buildRaw(rawRequest: RawRequest<CustomRequestQuery, CustomOfferOptions>) {
     this.topic = rawRequest.topic;
-    this.offers = new Set<string>(rawRequest.offers);
+    this.offers = new Set<Offer<CustomRequestQuery, CustomOfferOptions>>(
+      await Promise.all(
+        rawRequest.offers.map(async (ro) => {
+          const offer = new Offer({
+            passive: true,
+            pubsub: this.pubsub,
+            provider: this.provider,
+            contractConfig: this.contractConfig,
+            querySchema: this.querySchema,
+            offerOptionsSchema: this.offerOptionsSchema,
+            supplierId: ro.data.payload.supplierId,
+          });
+          await offer.buildRaw(ro);
+          return offer;
+        }),
+      ),
+    );
     this.published = rawRequest.published;
     this.received = rawRequest.received;
 
@@ -199,7 +247,7 @@ export class Request<CustomRequestQuery extends GenericQuery> extends EventEmitt
     }
   }
 
-  async publish(rePublish = false): Promise<void> {
+  async publish(rePublish = false) {
     try {
       if (!this.data || !this.topic) {
         throw new Error('Request not initialized yet');
@@ -227,7 +275,7 @@ export class Request<CustomRequestQuery extends GenericQuery> extends EventEmitt
     }
   }
 
-  cancel(): void {
+  cancel() {
     try {
       if (!this.data) {
         throw new Error('Request not initialized yet');
@@ -242,6 +290,27 @@ export class Request<CustomRequestQuery extends GenericQuery> extends EventEmitt
     } catch (error) {
       logger.error(error);
       throw error;
+    }
+  }
+
+  addOffer(offer: Offer<CustomRequestQuery, CustomOfferOptions>) {
+    try {
+      if (!this.data) {
+        throw new Error('Request not initialized yet');
+      }
+
+      if (!offer.verifyRequestId(this.data.id)) {
+        throw new Error('Invalid request');
+      }
+
+      this.offers.add(offer);
+      this.dispatchEvent(
+        new CustomEvent<Offer<CustomRequestQuery, CustomOfferOptions>>('offer', {
+          detail: offer,
+        }),
+      );
+    } catch (error) {
+      logger.error(error);
     }
   }
 }
