@@ -31,7 +31,7 @@ export const createOfferInitOptionsSchema = <
   z.object({
     passive: z.boolean().default(false),
     pubsub: z.instanceof(CenterSub),
-    provider: z.instanceof(AbstractProvider),
+    provider: z.instanceof(AbstractProvider).optional(),
     contractConfig: ContractConfigSchema,
     signer: z.instanceof(AbstractSigner).optional(),
     querySchema: z.instanceof(ZodType<CustomRequestQuery>),
@@ -116,7 +116,7 @@ export class Offer<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 > extends EventEmitter<OfferEvents> {
-  private passive: boolean; // Should check Deals or not
+  private passive: boolean; // Should to check Deals or not
   private pubsub: CenterSub;
   private supplierId?: string;
   private contractConfig: ContractConfig;
@@ -276,5 +276,14 @@ export class Offer<
       logger.error(error);
       throw error;
     }
+  }
+
+  verifyRequestId(requestId: string) {
+    if (!this.data) {
+      throw new Error('Offer not initialized yet');
+    }
+
+    // @todo Add validation of request by hash
+    return (this.data.request as RequestData<CustomRequestQuery>).id === requestId;
   }
 }
