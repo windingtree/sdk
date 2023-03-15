@@ -77,4 +77,4 @@ export const millisToSec = (time: number) => Math.round(time / 1000);
 export const nowSec = () => Math.round(DateTime.now().toSeconds());
 
 // Checks expiration time
-export const isExpired = (expire: number): boolean => nowSec() > expire;
+export const isExpired = (expire: number): boolean => nowSec() + 1 > expire;
