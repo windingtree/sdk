@@ -34,6 +34,7 @@ export class RequestsRegistry<
   private storage?: Storage<RawRequest<CustomRequestQuery, CustomOfferOptions>[]>;
   private storageKey: string;
 
+  // @todo Refactor a RequestsRegistry arguments into options (with validation schema)
   constructor(
     client: Client<CustomRequestQuery, CustomOfferOptions>,
     storage: Storage<RawRequest<CustomRequestQuery, CustomOfferOptions>[]>,
@@ -73,7 +74,7 @@ export class RequestsRegistry<
 
       for (const record of rawRecords) {
         try {
-          const request = new Request({
+          const request = new Request<CustomRequestQuery, CustomOfferOptions>({
             querySchema: this.client.querySchema,
             offerOptionsSchema: this.client.offerOptionsSchema,
             contractConfig: this.client.contractConfig,
@@ -136,7 +137,9 @@ export class RequestsRegistry<
   }
 
   getAll(): Required<Request<CustomRequestQuery, CustomOfferOptions>>[] {
-    return Array.from(this.requests.values()) as Required<Request<CustomRequestQuery, CustomOfferOptions>>[];
+    return Array.from(this.requests.values()) as Required<
+      Request<CustomRequestQuery, CustomOfferOptions>
+    >[];
   }
 
   delete(id: string): boolean {
