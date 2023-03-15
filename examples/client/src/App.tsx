@@ -1,12 +1,8 @@
-import { useState, useEffect, useCallback, useRef, useReducer } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { z } from 'zod';
 import { createClient, Client, ClientOptions, Request } from '../../../src/index.js';
 import { localStorage } from '../../../src/storage/index.js';
 import { isExpired } from '../../../src/utils/time.js';
-
-const options: ClientOptions = {
-  serverAddress: '/ip4/127.0.0.1/tcp/33333/ws/p2p/QmcXbDrzUU5ERqRaronWmAJXwe6c7AEkS7qdcsjgEuWPCf',
-};
 
 const defaultExpire = '5s'; // 5 sec
 
@@ -19,6 +15,26 @@ const RequestQuerySchema = z
   .strict();
 
 type RequestQuery = z.infer<typeof RequestQuerySchema>;
+
+const OfferOptionsSchema = z
+  .object({
+    date: z.string(),
+  })
+  .catchall(z.any());
+
+type OfferOptions = z.infer<typeof OfferOptionsSchema>;
+
+const options: ClientOptions<RequestQuery, OfferOptions> = {
+  querySchema: RequestQuerySchema,
+  offerOptionsSchema: OfferOptionsSchema,
+  contractConfig: {
+    name: 'WtMarket',
+    version: '1',
+    chainId: '1',
+    address: '0x0',
+  },
+  serverAddress: '/ip4/127.0.0.1/tcp/33333/ws/p2p/QmcXbDrzUU5ERqRaronWmAJXwe6c7AEkS7qdcsjgEuWPCf',
+};
 
 interface FormValues {
   topic: string;
@@ -33,7 +49,7 @@ interface RequestFormProps {
 }
 
 interface RequestsProps {
-  requests: Required<Request<RequestQuery>>[];
+  requests: Required<Request<RequestQuery, OfferOptions>>[];
   onClear(): void;
 }
 
@@ -142,23 +158,22 @@ export const Requests = ({ requests, onClear }: RequestsProps) => {
 };
 
 export const App = () => {
-  const client = useRef<Client<RequestQuery> | undefined>();
-  const query = useRef<Request<RequestQuery> | undefined>();
+  const client = useRef<Client<RequestQuery, OfferOptions> | undefined>();
+  const query = useRef<Request<RequestQuery, OfferOptions> | undefined>();
   const [connected, setConnected] = useState<boolean>(false);
   const [subscribed, setSubscribed] = useState<boolean>(false);
-  const [requests, setRequests] = useState<Required<Request<RequestQuery>>[]>([]);
+  const [requests, setRequests] = useState<Required<Request<RequestQuery, OfferOptions>>[]>([]);
   const [error, setError] = useState<string | undefined>();
 
   useEffect(() => {
     const startClient = async () => {
       try {
         setError(undefined);
-        client.current = createClient<RequestQuery>(
+        client.current = createClient<RequestQuery, OfferOptions>(
           options,
           localStorage.init({
             session: true,
           }),
-          RequestQuerySchema,
         );
 
         client.current.addEventListener('start', () => {
@@ -180,7 +195,7 @@ export const App = () => {
         });
 
         client.current.addEventListener('requests', ({ detail }) => {
-          setTimeout(() => setRequests(detail), 500);
+          setRequests(detail);
         });
 
         await client.current.start();
