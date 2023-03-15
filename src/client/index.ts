@@ -8,24 +8,44 @@ import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
+import { AbstractProvider } from 'ethers';
 import { z, ZodType } from 'zod';
 import { centerSub, CenterSub } from '../common/pubsub.js';
-import { GenericQuery } from '../common/messages.js';
+import {
+  createOfferDataSchema,
+  GenericOfferOptions,
+  GenericQuery,
+  OfferData,
+  RequestData,
+} from '../common/messages.js';
 import { Request, RawRequest } from '../common/request.js';
 import { RequestsRegistry } from './requestsRegistry.js';
 import { decodeText } from '../utils/text.js';
+import { ContractConfig, ContractConfigSchema } from '../utils/contract.js';
 import { StorageInitializer } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Client');
 
-export const ClientOptionsSchema = z.object({
-  serverAddress: z.string(),
-});
+export const createClientOptionsSchema = <
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+>() =>
+  z.object({
+    querySchema: z.instanceof(ZodType<CustomRequestQuery>),
+    offerOptionsSchema: z.instanceof(ZodType<CustomOfferOptions>),
+    contractConfig: ContractConfigSchema,
+    serverAddress: z.string(),
+    libp2p: z.object({}).catchall(z.any()).optional(),
+    provider: z.instanceof(AbstractProvider).optional(),
+  });
 
-export type ClientOptions = z.infer<typeof ClientOptionsSchema>;
+export type ClientOptions<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> = z.infer<ReturnType<typeof createClientOptionsSchema<CustomRequestQuery, CustomOfferOptions>>>;
 
-export interface ClientEvents<CustomRequestQuery extends GenericQuery> {
+export interface ClientEvents<CustomRequestQuery extends GenericQuery, CustomOfferOptions extends GenericOfferOptions> {
   /**
    * @example
    *
@@ -90,26 +110,35 @@ export interface ClientEvents<CustomRequestQuery extends GenericQuery> {
    * })
    * ```
    */
-  requests: CustomEvent<Required<Request<CustomRequestQuery>>[]>;
+  requests: CustomEvent<Required<Request<CustomRequestQuery, CustomOfferOptions>>[]>;
 }
 
-export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitter<ClientEvents<CustomRequestQuery>> {
+export class Client<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> extends EventEmitter<ClientEvents<CustomRequestQuery, CustomOfferOptions>> {
   libp2p?: Libp2p;
-  options: ClientOptions;
   serverMultiaddr: Multiaddr;
   serverPeerId: PeerId;
   querySchema: z.ZodType<CustomRequestQuery>;
-  private requestsRegistry?: RequestsRegistry<CustomRequestQuery>;
+  offerOptionsSchema: z.ZodType<CustomOfferOptions>;
+  contractConfig: ContractConfig;
+  provider?: AbstractProvider;
+  private libp2pInit: Libp2pOptions;
+  private requestsRegistry?: RequestsRegistry<CustomRequestQuery, CustomOfferOptions>;
   private storageInitializer: StorageInitializer;
 
-  constructor(
-    options: ClientOptions,
-    storageInitializer: StorageInitializer,
-    querySchema: z.ZodType<CustomRequestQuery>,
-  ) {
+  constructor(options: ClientOptions<CustomRequestQuery, CustomOfferOptions>, storageInitializer: StorageInitializer) {
     super();
-    this.options = ClientOptionsSchema.parse(options);
-    this.serverMultiaddr = multiaddr(this.options.serverAddress);
+
+    options = createClientOptionsSchema<CustomRequestQuery, CustomOfferOptions>().parse(options);
+
+    this.querySchema = options.querySchema;
+    this.offerOptionsSchema = options.offerOptionsSchema;
+    this.contractConfig = options.contractConfig;
+    this.libp2pInit = (options.libp2p ?? {}) as Libp2pOptions;
+    this.provider = options.provider;
+    this.serverMultiaddr = multiaddr(options.serverAddress);
     const serverPeerIdString = this.serverMultiaddr.getPeerId();
 
     if (!serverPeerIdString) {
@@ -117,12 +146,6 @@ export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitte
     }
 
     this.serverPeerId = peerIdFromString(serverPeerIdString);
-
-    if (!(querySchema instanceof ZodType)) {
-      throw new Error('QuerySchema option of Request must be instance of ZodType');
-    }
-
-    this.querySchema = querySchema;
     this.storageInitializer = storageInitializer;
   }
 
@@ -149,7 +172,7 @@ export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitte
           },
         ],
       }),
-      ...this.options,
+      ...this.libp2pInit,
     };
     this.libp2p = await createLibp2p(config);
 
@@ -180,16 +203,44 @@ export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitte
     });
 
     this.libp2p.pubsub.addEventListener('message', ({ detail }) => {
-      logger.trace(`Message: ${decodeText(detail.data)} on topic ${detail.topic}`);
+      logger.trace(`Message on topic ${detail.topic}`);
+      try {
+        if (!this.requestsRegistry) {
+          throw new Error('Requests registry not initialized yet');
+        }
+
+        let offer = JSON.parse(decodeText(detail.data)) as OfferData<CustomRequestQuery, CustomOfferOptions>;
+
+        // Check is the message is an offer
+        offer = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
+          this.querySchema,
+          this.offerOptionsSchema,
+        ).parse(offer);
+
+        // Verify the offer
+        // @todo Implement offer verification
+
+        // Fetch associated request from the requests registry
+        const requestId = (offer.request as RequestData<CustomRequestQuery>).id;
+        const request = this.requestsRegistry.get(requestId);
+
+        if (!request) {
+          throw new Error(`Request #${requestId} not found in the registry`);
+        }
+
+        // Save the offer to the offers set of request
+      } catch (error) {
+        logger.error(error);
+      }
     });
 
-    this.requestsRegistry = new RequestsRegistry<CustomRequestQuery>(
+    this.requestsRegistry = new RequestsRegistry<CustomRequestQuery, CustomOfferOptions>(
       this,
-      await this.storageInitializer<RawRequest<CustomRequestQuery>[]>(),
+      await this.storageInitializer<RawRequest<CustomRequestQuery, CustomOfferOptions>[]>(),
     );
     this.requestsRegistry.addEventListener('change', ({ detail }) => {
       this.dispatchEvent(
-        new CustomEvent<Required<Request<CustomRequestQuery>>[]>('requests', {
+        new CustomEvent<Required<Request<CustomRequestQuery, CustomOfferOptions>>[]>('requests', {
           detail,
         }),
       );
@@ -215,7 +266,7 @@ export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitte
     expire: string | number,
     nonce: number,
     query: CustomRequestQuery,
-  ): Promise<Request<CustomRequestQuery>> {
+  ): Promise<Request<CustomRequestQuery, CustomOfferOptions>> {
     if (!this.libp2p || !this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -223,6 +274,9 @@ export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitte
     const request = new Request({
       pubsub: this.libp2p.pubsub as CenterSub,
       querySchema: this.querySchema,
+      offerOptionsSchema: this.offerOptionsSchema,
+      contractConfig: this.contractConfig,
+      provider: this.provider,
     });
     await request.build(topic, expire, nonce, query);
     this.requestsRegistry.set(request);
@@ -230,7 +284,7 @@ export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitte
     return request;
   }
 
-  _getRequests(): Required<Request<CustomRequestQuery>>[] {
+  _getRequests(): Required<Request<CustomRequestQuery, CustomOfferOptions>>[] {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -238,7 +292,7 @@ export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitte
     return this.requestsRegistry.getAll();
   }
 
-  _getRequest(id: string): Request<CustomRequestQuery> | undefined {
+  _getRequest(id: string): Request<CustomRequestQuery, CustomOfferOptions> | undefined {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -272,10 +326,9 @@ export class Client<CustomRequestQuery extends GenericQuery> extends EventEmitte
   }
 }
 
-export const createClient = <CustomRequestQuery extends GenericQuery>(
-  options: ClientOptions,
+export const createClient = <CustomRequestQuery extends GenericQuery, CustomOfferOptions extends GenericOfferOptions>(
+  options: ClientOptions<CustomRequestQuery, CustomOfferOptions>,
   storageInit: StorageInitializer,
-  querySchema: z.ZodType<CustomRequestQuery>,
-): Client<CustomRequestQuery> => {
-  return new Client(options, storageInit, querySchema);
+): Client<CustomRequestQuery, CustomOfferOptions> => {
+  return new Client(options, storageInit);
 };

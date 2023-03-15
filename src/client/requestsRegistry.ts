@@ -1,14 +1,17 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { Client } from '../index.js';
-import { GenericQuery } from '../common/messages.js';
+import { GenericOfferOptions, GenericQuery } from '../common/messages.js';
 import { Request, RawRequest } from '../common/request.js';
+import { CenterSub } from '../common/pubsub.js';
 import { Storage } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
-import { CenterSub } from '../common/pubsub.js';
 
 const logger = createLogger('RequestsRegistry');
 
-export interface RequestEvents<CustomRequestQuery extends GenericQuery> {
+export interface RequestEvents<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> {
   /**
    * @example
    *
@@ -18,21 +21,22 @@ export interface RequestEvents<CustomRequestQuery extends GenericQuery> {
    * })
    * ```
    */
-  change: CustomEvent<Required<Request<CustomRequestQuery>>[]>;
+  change: CustomEvent<Required<Request<CustomRequestQuery, CustomOfferOptions>>[]>;
 }
 
 // Requests manager
-export class RequestsRegistry<CustomRequestQuery extends GenericQuery> extends EventEmitter<
-  RequestEvents<CustomRequestQuery>
-> {
-  private requests: Map<string, Request<CustomRequestQuery>>; // id => Request
-  private client: Client<CustomRequestQuery>;
-  private storage?: Storage<RawRequest<CustomRequestQuery>[]>;
+export class RequestsRegistry<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> extends EventEmitter<RequestEvents<CustomRequestQuery, CustomOfferOptions>> {
+  private requests: Map<string, Request<CustomRequestQuery, CustomOfferOptions>>; // id => Request
+  private client: Client<CustomRequestQuery, CustomOfferOptions>;
+  private storage?: Storage<RawRequest<CustomRequestQuery, CustomOfferOptions>[]>;
   private storageKey: string;
 
   constructor(
-    client: Client<CustomRequestQuery>,
-    storage: Storage<RawRequest<CustomRequestQuery>[]>,
+    client: Client<CustomRequestQuery, CustomOfferOptions>,
+    storage: Storage<RawRequest<CustomRequestQuery, CustomOfferOptions>[]>,
     prefix = 'requestsRegistry',
   ) {
     super();
@@ -41,7 +45,7 @@ export class RequestsRegistry<CustomRequestQuery extends GenericQuery> extends E
       throw new Error('Invalid client reference');
     }
     this.client = client;
-    this.requests = new Map<string, Request<CustomRequestQuery>>();
+    this.requests = new Map<string, Request<CustomRequestQuery, CustomOfferOptions>>();
     this.storageKey = `${prefix}_records`;
     this.storage = storage;
     this._storageUp().catch(logger.error);
@@ -49,7 +53,7 @@ export class RequestsRegistry<CustomRequestQuery extends GenericQuery> extends E
 
   private emitChange(): void {
     this.dispatchEvent(
-      new CustomEvent<Required<Request<CustomRequestQuery>>[]>('change', {
+      new CustomEvent<Required<Request<CustomRequestQuery, CustomOfferOptions>>[]>('change', {
         detail: this.getAll(),
       }),
     );
@@ -70,8 +74,11 @@ export class RequestsRegistry<CustomRequestQuery extends GenericQuery> extends E
       for (const record of rawRecords) {
         try {
           const request = new Request({
-            pubsub: this.client.libp2p.pubsub as CenterSub,
             querySchema: this.client.querySchema,
+            offerOptionsSchema: this.client.offerOptionsSchema,
+            contractConfig: this.client.contractConfig,
+            pubsub: this.client.libp2p.pubsub as CenterSub,
+            provider: this.client.provider,
           });
           await request.buildRaw(record);
 
@@ -104,7 +111,7 @@ export class RequestsRegistry<CustomRequestQuery extends GenericQuery> extends E
     this.emitChange();
   }
 
-  set(request: Request<CustomRequestQuery>) {
+  set(request: Request<CustomRequestQuery, CustomOfferOptions>) {
     if (!request.data || !request.data.id) {
       throw new Error('Invalid request');
     }
@@ -124,12 +131,12 @@ export class RequestsRegistry<CustomRequestQuery extends GenericQuery> extends E
     this._storageDown();
   }
 
-  get(id: string): Request<CustomRequestQuery> | undefined {
+  get(id: string): Request<CustomRequestQuery, CustomOfferOptions> | undefined {
     return this.requests.get(id);
   }
 
-  getAll(): Required<Request<CustomRequestQuery>>[] {
-    return Array.from(this.requests.values()) as Required<Request<CustomRequestQuery>>[];
+  getAll(): Required<Request<CustomRequestQuery, CustomOfferOptions>>[] {
+    return Array.from(this.requests.values()) as Required<Request<CustomRequestQuery, CustomOfferOptions>>[];
   }
 
   delete(id: string): boolean {
