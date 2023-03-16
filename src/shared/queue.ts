@@ -125,7 +125,8 @@ export class Queue extends EventEmitter<QueueEvents> {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.hashKey = options.hashKey!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    (this.concurrentJobsNumber = options.concurrentJobsNumber!), (this.keys = new Set<string>());
+    this.concurrentJobsNumber = options.concurrentJobsNumber!;
+    this.keys = new Set<string>();
     this.liveJobs = new Set<string>();
     this.jobHandlers = new Map<string, JobHandler>();
   }
