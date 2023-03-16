@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { Request } from '../common/request.js';
 import { GenericOfferOptions, GenericQuery } from '../common/messages.js';
 import { CenterSub, centerSub } from '../common/pubsub.js';
-import { RequestManager, RequestEventPayload } from './requestsManager.js';
+import { RequestManager, RequestEventPayload } from './requestManager.js';
 import { decodeText } from '../utils/text.js';
 import { ContractConfig } from '../utils/contract.js';
 import { NodeOptions, createNodeOptionsSchema } from '../common/options.js';

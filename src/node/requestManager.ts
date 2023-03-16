@@ -60,6 +60,7 @@ export class RequestManager<CustomRequestQuery extends GenericQuery> extends Eve
     }
 
     if (!this.cache.has(requestData.id)) {
+      // New request
       this.cache.set(requestData.id, requestData);
       this.cacheTopic.set(requestData.id, topic);
       setTimeout(() => {
@@ -80,6 +81,14 @@ export class RequestManager<CustomRequestQuery extends GenericQuery> extends Eve
           logger.error(error);
         }
       }, this.noncePeriod * 1000);
+    } else {
+      // Known request
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const knownRequest = this.cache.get(requestData.id)!;
+
+      if (knownRequest.nonce < requestData.nonce) {
+        this.cache.set(requestData.id, requestData);
+      }
     }
   }
 }
