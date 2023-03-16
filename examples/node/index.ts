@@ -30,6 +30,10 @@ const main = async (): Promise<void> => {
     console.log('🚀 Node started at', new Date().toISOString());
   });
 
+  node.addEventListener('connected', () => {
+    console.log('🔗 Node connected to server at:', new Date().toISOString());
+  });
+
   node.addEventListener('stop', () => {
     console.log('👋 Node stopped at:', new Date().toISOString());
   });

@@ -19,7 +19,7 @@ import {
   RequestData,
 } from '../shared/messages.js';
 import { ClientOptions, createClientOptionsSchema } from '../shared/options.js';
-import { Request, RawRequest } from '../shared/request.js';
+import { Request } from '../shared/request.js';
 import { RequestsRegistry } from './requestsRegistry.js';
 import { decodeText } from '../utils/text.js';
 import { ContractConfig } from '../utils/contract.js';
@@ -229,7 +229,7 @@ export class Client<
 
     this.requestsRegistry = new RequestsRegistry<CustomRequestQuery, CustomOfferOptions>(
       this,
-      await this.storageInitializer<RawRequest<CustomRequestQuery, CustomOfferOptions>[]>(),
+      await this.storageInitializer(),
     );
     this.requestsRegistry.addEventListener('change', ({ detail }) => {
       this.dispatchEvent(

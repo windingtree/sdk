@@ -31,13 +31,13 @@ export class RequestsRegistry<
 > extends EventEmitter<RequestEvents<CustomRequestQuery, CustomOfferOptions>> {
   private requests: Map<string, Request<CustomRequestQuery, CustomOfferOptions>>; // id => Request
   private client: Client<CustomRequestQuery, CustomOfferOptions>;
-  private storage?: Storage<RawRequest<CustomRequestQuery, CustomOfferOptions>[]>;
+  private storage?: Storage;
   private storageKey: string;
 
   // @todo Refactor a RequestsRegistry arguments into options (with validation schema)
   constructor(
     client: Client<CustomRequestQuery, CustomOfferOptions>,
-    storage: Storage<RawRequest<CustomRequestQuery, CustomOfferOptions>[]>,
+    storage: Storage,
     prefix = 'requestsRegistry',
   ) {
     super();
@@ -45,6 +45,11 @@ export class RequestsRegistry<
     if (!(client instanceof Client)) {
       throw new Error('Invalid client reference');
     }
+
+    if (!(storage instanceof Storage)) {
+      throw new Error('Invalid storage reference');
+    }
+
     this.client = client;
     this.requests = new Map<string, Request<CustomRequestQuery, CustomOfferOptions>>();
     this.storageKey = `${prefix}_records`;
@@ -65,7 +70,9 @@ export class RequestsRegistry<
       throw new Error('Invalid requests registry storage');
     }
 
-    const rawRecords = await this.storage.get(this.storageKey);
+    const rawRecords = await this.storage.get<RawRequest<CustomRequestQuery, CustomOfferOptions>[]>(
+      this.storageKey,
+    );
 
     if (rawRecords) {
       if (!this.client.libp2p) {

@@ -20,15 +20,15 @@ export interface CashedMessageEntry {
 }
 
 export class MessagesCache {
-  protected cache: Storage<CachedMessage>;
+  protected cache: Storage;
 
-  constructor(storage: Storage<CachedMessage>) {
+  constructor(storage: Storage) {
     this.cache = storage;
   }
 
   async prune(): Promise<void> {
     const now = Math.ceil(Date.now() / 1000);
-    for (const [id, message] of this.cache.entries()) {
+    for (const [id, message] of this.cache.entries<CachedMessage>()) {
       if (message.expire < now) {
         await this.cache.delete(id);
       }
@@ -37,7 +37,7 @@ export class MessagesCache {
 
   get(): CashedMessageEntry[] {
     const messages: CashedMessageEntry[] = [];
-    for (const [id, entry] of this.cache.entries()) {
+    for (const [id, entry] of this.cache.entries<CachedMessage>()) {
       messages.push({
         id,
         data: entry.data,
@@ -54,7 +54,7 @@ export class MessagesCache {
     nonce = 1,
   ): Promise<void> {
     try {
-      let message = await this.cache.get(messageId);
+      let message = await this.cache.get<CachedMessage>(messageId);
       if (message) {
         if (message.peerId !== peerId) {
           throw new Error(`Invalid message peerId: ${peerId} while expected: ${message.peerId}`);

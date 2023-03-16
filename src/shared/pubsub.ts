@@ -17,7 +17,7 @@ import { outboundStreamDelay } from '../constants.js';
 import { Storage } from '../storage/abstract.js';
 import { GenericMessageSchema, GenericMessage } from '../shared/messages.js';
 import { decodeText } from '../utils/text.js';
-import { CachedMessage, CashedMessageEntry, MessagesCache } from './cache.js';
+import { CashedMessageEntry, MessagesCache } from './cache.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('PubSub');
@@ -58,7 +58,7 @@ export class CenterSub extends GossipSub {
   constructor(
     components: GossipSubComponents,
     options: CenterSubOptions,
-    messagesStorage?: Storage<CachedMessage>,
+    messagesStorage?: Storage,
   ) {
     options = CenterSubOptionsSchema.parse(options);
 
@@ -237,7 +237,7 @@ export class CenterSub extends GossipSub {
 
 export const centerSub = (
   options: CenterSubOptions,
-  messagesStorage?: Storage<CachedMessage>,
+  messagesStorage?: Storage,
 ): ((components: GossipSubComponents) => PubSub<GossipsubEvents>) => {
   return (components: GossipSubComponents) =>
     new CenterSub(components, options ?? {}, messagesStorage);

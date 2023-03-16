@@ -8,7 +8,6 @@ import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { NodeKeyJson, ServerOptions, ServerOptionsSchema } from '../shared/options.js';
 import { centerSub, CenterSub } from '../shared/pubsub.js';
 import { decodeText } from '../utils/text.js';
-import { CachedMessage } from '../shared/cache.js';
 import { Storage, StorageInitializer } from '../storage/abstract.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -61,10 +60,10 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
   }
 
   async start(): Promise<void> {
-    let messagesStorage: Storage<CachedMessage> | undefined;
+    let messagesStorage: Storage | undefined;
 
     if (this.messagesStorageInit) {
-      messagesStorage = await this.messagesStorageInit<CachedMessage>();
+      messagesStorage = await this.messagesStorageInit();
     }
 
     const config: Libp2pOptions = {

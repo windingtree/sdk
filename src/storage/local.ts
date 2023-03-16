@@ -20,7 +20,7 @@ export const LocalStorageOptionsSchema = z.object({
 export type LocalStorageOptions = z.infer<typeof LocalStorageOptionsSchema>;
 
 // In-memory key-value storage implementation
-export class LocalStorage<CustomValueType> extends Storage<CustomValueType> {
+export class LocalStorage extends Storage {
   db: WindowStorage;
 
   constructor(options?: LocalStorageOptions) {
@@ -30,24 +30,24 @@ export class LocalStorage<CustomValueType> extends Storage<CustomValueType> {
     logger.trace('Local storage initialized');
   }
 
-  serialize(value: CustomValueType) {
+  serialize<ValueType>(value: ValueType) {
     return JSON.stringify(value);
   }
 
-  deserialize(value: string) {
-    return JSON.parse(value) as CustomValueType;
+  deserialize<ValueType>(value: string) {
+    return JSON.parse(value) as ValueType;
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async set(key: string, value: CustomValueType) {
+  async set<ValueType>(key: string, value: ValueType) {
     this.db.setItem(key, this.serialize(value));
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async get(key: string) {
+  async get<ValueType>(key: string) {
     const value = this.db.getItem(key);
     if (value !== null) {
-      return this.deserialize(value);
+      return this.deserialize<ValueType>(value);
     }
   }
 
@@ -57,11 +57,11 @@ export class LocalStorage<CustomValueType> extends Storage<CustomValueType> {
     return this.db.getItem(key) === null;
   }
 
-  entries(): IterableIterator<[string, CustomValueType]> {
+  entries<ValueType>(): IterableIterator<[string, ValueType]> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const source = this;
 
-    function* entriesIterator(): IterableIterator<[string, CustomValueType]> {
+    function* entriesIterator(): IterableIterator<[string, ValueType]> {
       let index = 0;
 
       while (index < source.db.length) {
@@ -87,8 +87,8 @@ export class LocalStorage<CustomValueType> extends Storage<CustomValueType> {
 
 // Storage configuration
 export const init =
-  <CustomStorageOptions extends LocalStorageOptions>(options?: CustomStorageOptions) =>
+  (options?: LocalStorageOptions) =>
   // eslint-disable-next-line @typescript-eslint/require-await
-  async <CustomValueType>(): Promise<LocalStorage<CustomValueType>> => {
-    return new LocalStorage<CustomValueType>(options);
+  async (): Promise<LocalStorage> => {
+    return new LocalStorage(options);
   };
