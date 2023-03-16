@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AbstractProvider } from 'ethers';
-import { GenericOfferOptions, GenericQuery } from '../common/messages.js';
+import { GenericOfferOptions, GenericQuery } from '../shared/messages.js';
 import { ContractConfigSchema } from '../utils/contract.js';
 import { parseSeconds } from '../utils/time.js';
 import { noncePeriod } from '../constants.js';

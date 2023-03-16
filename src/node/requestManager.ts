@@ -1,13 +1,13 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { z } from 'zod';
-import { RequestData, GenericQuery, createRequestDataSchema } from '../common/messages.js';
-import { RequestManagerOptions, createRequestManagerOptionsSchema } from '../common/options.js';
+import { RequestData, GenericQuery, createRequestDataSchema } from '../shared/messages.js';
+import { RequestManagerOptions, createRequestManagerOptionsSchema } from '../shared/options.js';
 import { isExpired, nowSec } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('RequestManager');
 
-export interface RequestEventPayload<CustomRequestQuery extends GenericQuery> {
+export interface RequestEvent<CustomRequestQuery extends GenericQuery> {
   topic: string;
   data: RequestData<CustomRequestQuery>;
 }
@@ -22,7 +22,7 @@ export interface RequestManagerEvents<CustomRequestQuery extends GenericQuery> {
    * })
    * ```
    */
-  request: CustomEvent<RequestEventPayload<CustomRequestQuery>>;
+  request: CustomEvent<RequestEvent<CustomRequestQuery>>;
 }
 
 export class RequestManager<CustomRequestQuery extends GenericQuery> extends EventEmitter<

@@ -10,21 +10,18 @@ import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
 import { AbstractProvider } from 'ethers';
 import { z } from 'zod';
-import { Request } from '../common/request.js';
-import { GenericOfferOptions, GenericQuery } from '../common/messages.js';
-import { CenterSub, centerSub } from '../common/pubsub.js';
-import { RequestManager, RequestEventPayload } from './requestManager.js';
+import { Request } from '../shared/request.js';
+import { GenericOfferOptions, GenericQuery, RequestData } from '../shared/messages.js';
+import { CenterSub, centerSub } from '../shared/pubsub.js';
+import { RequestManager, RequestEvent } from './requestManager.js';
 import { decodeText } from '../utils/text.js';
 import { ContractConfig } from '../utils/contract.js';
-import { NodeOptions, createNodeOptionsSchema } from '../common/options.js';
+import { NodeOptions, createNodeOptionsSchema } from '../shared/options.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Node');
 
-export interface NodeEvents<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
-> {
+export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
   /**
    * @example
    *
@@ -79,12 +76,24 @@ export interface NodeEvents<
    * ```
    */
   disconnected: CustomEvent<void>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * client.addEventListener('request', ({ detail }) => {
+   *    // detail.topic
+   *    // detail.data
+   * })
+   * ```
+   */
+  request: CustomEvent<RequestEvent<CustomRequestQuery>>;
 }
 
 export class Node<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
-> extends EventEmitter<NodeEvents<CustomRequestQuery, CustomOfferOptions>> {
+> extends EventEmitter<NodeEvents<CustomRequestQuery>> {
   libp2p?: Libp2p;
   serverMultiaddr: Multiaddr;
   serverPeerId: PeerId;
@@ -157,29 +166,39 @@ export class Node<
     logger.trace('Node is disabled');
   }
 
-  handleRequest(event: CustomEvent<RequestEventPayload<CustomRequestQuery>>) {
-    const handler = async () => {
+  handleRequest(event: CustomEvent<RequestEvent<CustomRequestQuery>>) {
+    try {
       if (!this.libp2p) {
         throw new Error('libp2p not initialized yet');
       }
 
-      const request = new Request<CustomRequestQuery, CustomOfferOptions>({
-        querySchema: this.querySchema,
-        offerOptionsSchema: this.offerOptionsSchema,
-        contractConfig: this.contractConfig,
-        pubsub: this.libp2p.pubsub as CenterSub,
-        provider: this.provider,
-      });
-      await request.buildRaw({
-        ...event.detail,
-        offers: [],
-        received: Date.now(),
-      });
-      logger.trace('Handle request:', request.data);
+      this.dispatchEvent(new CustomEvent<RequestEvent<CustomRequestQuery>>('request', event));
+    } catch (error) {
+      logger.error(error);
+    }
+  }
 
-      // @todo Add request to the queue
-    };
-    handler().catch(logger.error);
+  async buildRequest(topic: string, requestData: RequestData<CustomRequestQuery>) {
+    if (!this.libp2p) {
+      throw new Error('libp2p not initialized yet');
+    }
+
+    const request = new Request<CustomRequestQuery, CustomOfferOptions>({
+      querySchema: this.querySchema,
+      offerOptionsSchema: this.offerOptionsSchema,
+      contractConfig: this.contractConfig,
+      pubsub: this.libp2p.pubsub as CenterSub,
+      provider: this.provider,
+    });
+
+    await request.buildRaw({
+      data: requestData,
+      topic,
+      offers: [],
+      received: Date.now(),
+    });
+
+    logger.trace('Handle request:', request.data);
   }
 
   async start(): Promise<void> {

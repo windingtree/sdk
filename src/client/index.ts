@@ -10,16 +10,16 @@ import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
 import { AbstractProvider } from 'ethers';
 import { z } from 'zod';
-import { centerSub, CenterSub } from '../common/pubsub.js';
+import { centerSub, CenterSub } from '../shared/pubsub.js';
 import {
   createOfferDataSchema,
   GenericOfferOptions,
   GenericQuery,
   OfferData,
   RequestData,
-} from '../common/messages.js';
-import { ClientOptions, createClientOptionsSchema } from '../common/options.js';
-import { Request, RawRequest } from '../common/request.js';
+} from '../shared/messages.js';
+import { ClientOptions, createClientOptionsSchema } from '../shared/options.js';
+import { Request, RawRequest } from '../shared/request.js';
 import { RequestsRegistry } from './requestsRegistry.js';
 import { decodeText } from '../utils/text.js';
 import { ContractConfig } from '../utils/contract.js';

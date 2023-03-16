@@ -34,6 +34,10 @@ const main = async (): Promise<void> => {
     console.log('👋 Node stopped at:', new Date().toISOString());
   });
 
+  node.addEventListener('request', ({ detail }) => {
+    console.log(`📨 Request on topic #${detail.topic}:`, detail.data);
+  });
+
   // Graceful Shutdown handler
   const shutdown = () => {
     const stopHandler = async () => {

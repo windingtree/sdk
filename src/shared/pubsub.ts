@@ -15,7 +15,7 @@ import { sha256 } from 'multiformats/hashes/sha2';
 import { z } from 'zod';
 import { outboundStreamDelay } from '../constants.js';
 import { Storage } from '../storage/abstract.js';
-import { GenericMessageSchema, GenericMessage } from '../common/messages.js';
+import { GenericMessageSchema, GenericMessage } from '../shared/messages.js';
 import { decodeText } from '../utils/text.js';
 import { CachedMessage, CashedMessageEntry, MessagesCache } from './cache.js';
 import { createLogger } from '../utils/logger.js';

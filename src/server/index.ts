@@ -5,10 +5,10 @@ import { mplex } from '@libp2p/mplex';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { NodeKeyJson, ServerOptions, ServerOptionsSchema } from '../common/options.js';
-import { centerSub, CenterSub } from '../common/pubsub.js';
+import { NodeKeyJson, ServerOptions, ServerOptionsSchema } from '../shared/options.js';
+import { centerSub, CenterSub } from '../shared/pubsub.js';
 import { decodeText } from '../utils/text.js';
-import { CachedMessage } from '../common/cache.js';
+import { CachedMessage } from '../shared/cache.js';
 import { Storage, StorageInitializer } from '../storage/abstract.js';
 import { createLogger } from '../utils/logger.js';
 

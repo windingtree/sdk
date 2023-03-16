@@ -11,7 +11,7 @@ import {
   buildRequest,
   buildOffer,
   verifyOffer,
-} from '../src/common/messages.js';
+} from '../src/shared/messages.js';
 
 describe('Common.messages', () => {
   const CustomQuerySchema = GenericQuerySchema.extend({

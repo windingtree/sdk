@@ -1,8 +1,8 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { Client } from '../index.js';
-import { GenericOfferOptions, GenericQuery } from '../common/messages.js';
-import { Request, RawRequest } from '../common/request.js';
-import { CenterSub } from '../common/pubsub.js';
+import { GenericOfferOptions, GenericQuery } from '../shared/messages.js';
+import { Request, RawRequest } from '../shared/request.js';
+import { CenterSub } from '../shared/pubsub.js';
 import { Storage } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
 
