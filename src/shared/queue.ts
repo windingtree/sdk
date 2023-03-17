@@ -26,21 +26,22 @@ export const JobOptionsSchema = z
 
 export type JobOptions = z.infer<typeof JobOptionsSchema>;
 
-export enum JobStates {
+export enum JobStatuses {
   PENDING,
   STARTED,
   DONE,
   FAILED,
 }
 
-export const JobStateSchema = z.nativeEnum(JobStates);
+export const JobStatusSchema = z.nativeEnum(JobStatuses);
 
-export type JobState = z.infer<typeof JobStateSchema>;
+export type JobStatus = z.infer<typeof JobStatusSchema>;
 
-export const JobResultSchema = z
+export const JobStateSchema = z
   .object({
-    state: JobStateSchema,
+    status: JobStatusSchema,
     attempts: z.number().int().nonnegative(),
+    scheduled: z.number().int().nonnegative().optional(),
     errors: z.array(
       z.object({
         time: z.number(),
@@ -50,28 +51,18 @@ export const JobResultSchema = z
   })
   .strict();
 
-export type JobResult = z.infer<typeof JobResultSchema>;
+export type JobState = z.infer<typeof JobStateSchema>;
 
 export interface Job<JobDataType = unknown> {
+  id: string;
   data: JobDataType;
   options: JobOptions;
-  result: JobResult;
+  state: JobState;
 }
 
 export type JobHandler = <JobDataType = unknown>(data: JobDataType) => Promise<void>;
 
 export interface QueueEvents {
-  /**
-   * @example
-   *
-   * ```js
-   * request.addEventListener('start', () => {
-   *    // ... started
-   * })
-   * ```
-   */
-  start: CustomEvent<void>;
-
   /**
    * @example
    *
@@ -107,156 +98,165 @@ export interface QueueEvents {
 }
 
 export class Queue extends EventEmitter<QueueEvents> {
-  started: boolean;
   private keys: Set<string>;
   private jobHandlers: Map<string, JobHandler>;
   private storage: Storage;
   private hashKey: string;
   private concurrentJobsNumber: number;
   private liveJobs: Set<string>;
+  private processing: boolean;
 
   constructor(options: QueueOptions) {
     super();
 
     options = QueueOptionsSchema.parse(options);
 
-    this.started = false;
-    this.storage = options.storage;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.hashKey = options.hashKey!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.concurrentJobsNumber = options.concurrentJobsNumber!;
+    this.storage = options.storage;
     this.keys = new Set<string>();
     this.liveJobs = new Set<string>();
     this.jobHandlers = new Map<string, JobHandler>();
+    this.processing = false;
+    this._init().catch(logger.error);
   }
 
-  private _saveKeys() {
-    this.storage.set(this.hashKey, JSON.stringify(Array.from(this.keys))).catch(logger.error);
-  }
-
-  private _saveJobId(id: string) {
-    this.keys.add(id);
-    this._saveKeys();
-  }
-
-  private _pickKeys(): string[] {
-    // @todo Review this calculation again
-    const size = this.concurrentJobsNumber - this.liveJobs.size;
-    let cursor = 0;
-    const chosenKeys = [];
-
-    for (const key of this.keys.values()) {
-      if (cursor >= size) {
-        break;
-      }
-      if (!this.liveJobs.has(key)) {
-        chosenKeys.push(key);
-        cursor++;
-      }
-    }
-
-    return chosenKeys;
-  }
-
-  private _process() {
-    const jobKeys = this._pickKeys();
-
-    if (jobKeys.length > 0) {
-      for (const key of jobKeys) {
-        try {
-          const handler = async () => {
-            const callback = this.jobHandlers.get(key);
-
-            if (!callback) {
-              throw new Error(`Unable to find handler for job #${key}`);
-            }
-
-            const job = await this.getJob<Job>(key);
-
-            job.result = JobResultSchema.parse({
-              ...job.result,
-              state: JobStates.STARTED,
-            });
-            await this.storage.set(key, job);
-
-            await Promise.resolve(callback(job.data));
-
-            job.result = JobResultSchema.parse({
-              ...job.result,
-              state: JobStates.DONE,
-            });
-            await this.storage.set(key, job);
-
-            this.liveJobs.delete(key);
-            this.keys.delete(key);
-            this._saveKeys();
-            this.dispatchEvent(
-              new CustomEvent<string>('done', {
-                detail: key,
-              }),
-            );
-          };
-
-          handler()
-            .catch(async (error) => {
-              logger.error(error);
-
-              const job = await this.getJob<Job>(key);
-
-              job.result = JobResultSchema.parse({
-                ...job.result,
-                errors: [...(job.result.errors ?? []), (error as Error).stack],
-              });
-
-              if (
-                job.options.repeat &&
-                job.options.repeat > 0 &&
-                job.result.attempts < job.options.repeat
-              ) {
-                job.result.state = JobStates.PENDING;
-                job.result.attempts++;
-                await this.storage.set(key, job);
-                setTimeout(() => {
-                  this.liveJobs.delete(key);
-                  this._process();
-                }, job.options.delay ?? delayQueueJob);
-                this.dispatchEvent(
-                  new CustomEvent<string>('error', {
-                    detail: key,
-                  }),
-                );
-              } else {
-                this.liveJobs.delete(key);
-                this.keys.delete(key);
-                job.result.state = JobStates.FAILED;
-                await this.storage.set(key, job);
-                this.dispatchEvent(
-                  new CustomEvent<string>('fail', {
-                    detail: key,
-                  }),
-                );
-              }
-            })
-            .catch(logger.error)
-            .finally(this._process.bind(this));
-        } catch (error) {
-          logger.error(error);
-        }
-      }
-    }
-  }
-
-  async start() {
+  private async _init() {
     const rawJobKeys = await this.storage.get<string>(this.hashKey);
 
     if (rawJobKeys) {
       const jobKeys = JSON.parse(rawJobKeys) as string[];
       new Set<string>(jobKeys);
     }
+  }
 
-    this.started = true;
-    this.dispatchEvent(new CustomEvent<void>('start'));
+  private _saveKeys() {
+    this.storage.set(this.hashKey, JSON.stringify(Array.from(this.keys))).catch(logger.error);
+  }
+
+  private _addJobId(id: string) {
+    this.keys.add(id);
+    this._saveKeys();
+  }
+
+  private async _pickJobs(): Promise<Job[]> {
+    const size = this.concurrentJobsNumber - this.liveJobs.size;
+    const jobs: Job[] = [];
+
+    for (const key of this.keys.values()) {
+      if (jobs.length === size) {
+        break;
+      }
+
+      if (!this.liveJobs.has(key)) {
+        const job = await this.storage.get<Job>(key);
+
+        if (!job) {
+          throw new Error(`Job #${key} not found`);
+        }
+
+        if (
+          job.state.status !== JobStatuses.PENDING ||
+          (job.state.scheduled && job.state.scheduled > Date.now())
+        ) {
+          continue;
+        }
+
+        jobs.push(job);
+      }
+    }
+
+    return jobs;
+  }
+
+  private async _doJob(job: Job): Promise<void> {
+    try {
+      const callback = this.jobHandlers.get(job.id);
+
+      if (!callback) {
+        throw new Error(`Handler for job #${job.id} not found`);
+      }
+
+      job.state = JobStateSchema.parse({
+        ...job.state,
+        status: JobStatuses.STARTED,
+      });
+      await this.storage.set(job.id, job);
+
+      await Promise.resolve(callback(job.data));
+
+      job.state = JobStateSchema.parse({
+        ...job.state,
+        status: JobStatuses.DONE,
+      });
+      await this.storage.set(job.id, job);
+
+      this.liveJobs.delete(job.id);
+      this.keys.delete(job.id);
+      this._saveKeys();
+      this.dispatchEvent(
+        new CustomEvent<string>('done', {
+          detail: job.id,
+        }),
+      );
+    } catch (error) {
+      logger.error(error);
+
+      job.state = JobStateSchema.parse({
+        ...job.state,
+        errors: [...(job.state.errors ?? []), (error as Error).stack],
+      });
+
+      if (job.options.repeat && job.options.repeat > 0 && job.state.attempts < job.options.repeat) {
+        job.state = JobStateSchema.parse({
+          ...job.state,
+          status: JobStatuses.PENDING,
+          attempts: job.state.attempts + 1,
+          scheduled: Date.now() + (job.options.delay ?? delayQueueJob),
+        });
+        await this.storage.set(job.id, job);
+        this.liveJobs.delete(job.id);
+        this.dispatchEvent(
+          new CustomEvent<string>('error', {
+            detail: job.id,
+          }),
+        );
+      } else {
+        job.state = JobStateSchema.parse({
+          ...job.state,
+          status: JobStatuses.FAILED,
+        });
+        await this.storage.set(job.id, job);
+        this.liveJobs.delete(job.id);
+        this.keys.delete(job.id);
+        this.dispatchEvent(
+          new CustomEvent<string>('fail', {
+            detail: job.id,
+          }),
+        );
+      }
+    }
+
+    this._process().catch(logger.error);
+  }
+
+  private async _process() {
+    if (this.processing) {
+      return;
+    }
+
+    this.processing = true;
+    const jobs = await this._pickJobs();
+
+    if (jobs.length > 0) {
+      for (const job of jobs) {
+        this._doJob(job).catch(logger.error);
+      }
+    }
+
+    this.processing = false;
   }
 
   addJobHandler(name: string, callback: JobHandler) {
@@ -269,16 +269,17 @@ export class Queue extends EventEmitter<QueueEvents> {
     }
 
     const jobId = simpleUid();
-    this._saveJobId(jobId);
+    this._addJobId(jobId);
     this.storage
       .set<Job>(jobId, {
+        id: jobId,
         data,
         options: JobOptionsSchema.parse(options ?? {}),
-        result: {
-          state: JobStates.PENDING,
+        state: JobStateSchema.parse({
+          status: JobStatuses.PENDING,
           attempts: 1,
           errors: [],
-        },
+        }),
       })
       .then(this._process.bind(this))
       .catch(logger.error);
