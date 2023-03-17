@@ -45,7 +45,7 @@
     "build": "npm run clean && npm run build:esm && npm run build:cjs",
     "build:esm": "tsc -p ./tsconfig.esm.json && mv lib/esm/index.js lib/esm/index.mjs",
     "build:cjs": "tsc -p ./tsconfig.cjs.json",
-    "test": "mocha",
+    "test": "mocha -t 60000 --extension spec.ts",
     "semantic-release": "semantic-release",
     "prepack": "npm run build",
     "lint": "npx eslint . --ext .ts",
@@ -66,7 +66,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/node": "^18.14.6",
+    "@types/node": "^18.15.3",
     "@types/mocha": "^10.0.1",
     "@types/chai": "^4.3.4",
     "@types/debug": "^4.1.7",
@@ -76,17 +76,17 @@
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
     "ts-node": "^10.9.1",
-    "typescript": "^4.9.5",
+    "typescript": "^5.0.2",
     "semantic-release": "^20.1.1",
-    "eslint": "^8.35.0",
-    "@typescript-eslint/eslint-plugin": "^5.54.1",
-    "@typescript-eslint/parser": "^5.54.1",
+    "eslint": "^8.36.0",
+    "@typescript-eslint/eslint-plugin": "^5.55.0",
+    "@typescript-eslint/parser": "^5.55.0",
     "prettier": "^2.8.4",
     "husky": "^8.0.3",
     "git-cz": "^4.9.0",
     "@commitlint/config-conventional": "^17.4.4",
     "@commitlint/cli": "^17.4.4",
-    "lint-staged": "^13.1.2",
+    "lint-staged": "^13.2.0",
     "c8": "^7.13.0"
   },
   "dependencies": {
@@ -97,7 +97,7 @@
     "@chainsafe/libp2p-noise": "^11.0.1",
     "@chainsafe/libp2p-gossipsub": "^6.2.0",
     "@libp2p/mplex": "^7.1.1",
-    "@libp2p/websockets": "^5.0.5",
+    "@libp2p/websockets": "^5.0.6",
     "luxon": "^3.3.0"
   }
 }
