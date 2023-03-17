@@ -55,14 +55,28 @@ export type JobState = z.infer<typeof JobStateSchema>;
 
 export interface Job<JobDataType = unknown> {
   id: string;
+  name: string;
   data: JobDataType;
   options: JobOptions;
   state: JobState;
 }
 
-export type JobHandler = <JobDataType = unknown>(data: JobDataType) => Promise<void>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type JobHandler<JobDataType = any> = (data: Job<JobDataType>) => Promise<void>;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface QueueEvents {
+  /**
+   * @example
+   *
+   * ```js
+   * request.addEventListener('job', ({ detail: job }) => {
+   *    // job added
+   * })
+   * ```
+   */
+  job: CustomEvent<Job>;
+
   /**
    * @example
    *
@@ -139,14 +153,17 @@ export class Queue extends EventEmitter<QueueEvents> {
   private _addJobId(id: string) {
     this.keys.add(id);
     this._saveKeys();
+    logger.trace(`Added job Id #${id}`);
   }
 
   private async _pickJobs(): Promise<Job[]> {
     const size = this.concurrentJobsNumber - this.liveJobs.size;
     const jobs: Job[] = [];
+    logger.trace(`Picking #${size} jobs. Keys size #${this.keys.size}`);
 
     for (const key of this.keys.values()) {
       if (jobs.length === size) {
+        logger.trace(`Picked enough #${jobs.length}`);
         break;
       }
 
@@ -157,14 +174,18 @@ export class Queue extends EventEmitter<QueueEvents> {
           throw new Error(`Job #${key} not found`);
         }
 
-        if (
-          job.state.status !== JobStatuses.PENDING ||
-          (job.state.scheduled && job.state.scheduled > Date.now())
-        ) {
+        if (job.state.status !== JobStatuses.PENDING) {
+          logger.trace(`Job #${job.id} skipped with state:`, job.state);
+          continue;
+        }
+
+        if (job.state.scheduled && job.state.scheduled > Date.now()) {
+          logger.trace(`Scheduled job #${job.id} skipped with state:`, job.state);
           continue;
         }
 
         jobs.push(job);
+        logger.trace(`Job #${job.id} picked with state:`, job.state);
       }
     }
 
@@ -173,7 +194,7 @@ export class Queue extends EventEmitter<QueueEvents> {
 
   private async _doJob(job: Job): Promise<void> {
     try {
-      const callback = this.jobHandlers.get(job.id);
+      const callback = this.jobHandlers.get(job.name);
 
       if (!callback) {
         throw new Error(`Handler for job #${job.id} not found`);
@@ -184,14 +205,16 @@ export class Queue extends EventEmitter<QueueEvents> {
         status: JobStatuses.STARTED,
       });
       await this.storage.set(job.id, job);
+      logger.trace(`Job #${job.id} started`, job);
 
-      await Promise.resolve(callback(job.data));
+      await Promise.resolve(callback(job));
 
       job.state = JobStateSchema.parse({
         ...job.state,
         status: JobStatuses.DONE,
       });
       await this.storage.set(job.id, job);
+      logger.trace(`Job #${job.id} done`, job);
 
       this.liveJobs.delete(job.id);
       this.keys.delete(job.id);
@@ -206,7 +229,13 @@ export class Queue extends EventEmitter<QueueEvents> {
 
       job.state = JobStateSchema.parse({
         ...job.state,
-        errors: [...(job.state.errors ?? []), (error as Error).stack],
+        errors: [
+          ...(job.state.errors ?? []),
+          {
+            time: Date.now(),
+            error: (error as Error).stack,
+          },
+        ],
       });
 
       if (job.options.repeat && job.options.repeat > 0 && job.state.attempts < job.options.repeat) {
@@ -218,11 +247,16 @@ export class Queue extends EventEmitter<QueueEvents> {
         });
         await this.storage.set(job.id, job);
         this.liveJobs.delete(job.id);
+        logger.trace(`Job #${job.id} errored`, job);
         this.dispatchEvent(
           new CustomEvent<string>('error', {
             detail: job.id,
           }),
         );
+        setTimeout(() => {
+          this._process().catch(logger.error);
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        }, job.state.scheduled! - Date.now());
       } else {
         job.state = JobStateSchema.parse({
           ...job.state,
@@ -231,6 +265,7 @@ export class Queue extends EventEmitter<QueueEvents> {
         await this.storage.set(job.id, job);
         this.liveJobs.delete(job.id);
         this.keys.delete(job.id);
+        logger.trace(`Job #${job.id} failed`, job);
         this.dispatchEvent(
           new CustomEvent<string>('fail', {
             detail: job.id,
@@ -244,11 +279,13 @@ export class Queue extends EventEmitter<QueueEvents> {
 
   private async _process() {
     if (this.processing) {
+      logger.trace('Ignore _process');
       return;
     }
 
     this.processing = true;
     const jobs = await this._pickJobs();
+    logger.trace(`Picked #${jobs.length} jobs`);
 
     if (jobs.length > 0) {
       for (const job of jobs) {
@@ -261,28 +298,46 @@ export class Queue extends EventEmitter<QueueEvents> {
 
   addJobHandler(name: string, callback: JobHandler) {
     this.jobHandlers.set(name, callback);
+    logger.trace(`Added #${name} handler`);
   }
 
-  addJob<JobDataType = unknown>(name: string, data: JobDataType, options?: JobOptions) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addJob<JobDataType = any>(
+    name: string,
+    data: JobDataType,
+    options?: JobOptions,
+  ): Job<JobDataType> {
     if (!this.jobHandlers.has(name)) {
       throw new Error(`Job handler with name #${name} not registered yet`);
     }
 
     const jobId = simpleUid();
     this._addJobId(jobId);
+    const job = {
+      id: jobId,
+      name,
+      data,
+      options: JobOptionsSchema.parse(options ?? {}),
+      state: JobStateSchema.parse({
+        status: JobStatuses.PENDING,
+        attempts: 1,
+        errors: [],
+      }),
+    };
     this.storage
-      .set<Job>(jobId, {
-        id: jobId,
-        data,
-        options: JobOptionsSchema.parse(options ?? {}),
-        state: JobStateSchema.parse({
-          status: JobStatuses.PENDING,
-          attempts: 1,
-          errors: [],
-        }),
+      .set<Job>(jobId, job)
+      .then(() => {
+        logger.trace(`Added job #${jobId}`, job);
+        this.dispatchEvent(
+          new CustomEvent('job', {
+            detail: job,
+          }),
+        );
       })
       .then(this._process.bind(this))
       .catch(logger.error);
+
+    return job;
   }
 
   async getJob<JobDtaType>(key: string): Promise<Job<JobDtaType>> {
