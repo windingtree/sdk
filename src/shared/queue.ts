@@ -44,6 +44,7 @@ export enum JobStatuses {
   CANCELLED,
   ERRORED,
   FAILED,
+  EXPIRED,
 }
 
 export const JobStatusSchema = z.nativeEnum(JobStatuses);
@@ -83,7 +84,7 @@ export const createJobSchema = <JobDataType = unknown>(dataSchema: z.ZodType<Job
 export type Job<JobDataType = any> = z.infer<ReturnType<typeof createJobSchema<JobDataType>>>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type JobHandler<JobDataType = any> = (data: Job<JobDataType>) => Promise<void>;
+export type JobHandler<JobDataType = any> = (data: Job<JobDataType>) => Promise<boolean | void>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface QueueEvents {
@@ -242,6 +243,11 @@ export class Queue extends EventEmitter<QueueEvents> {
           throw new Error(`Job #${key} not found`);
         }
 
+        if (job.state.status === JobStatuses.CANCELLED) {
+          logger.trace(`Cancelled job #${job.id} skipped`, job);
+          continue;
+        }
+
         if (job.state.scheduled && job.state.scheduled > Date.now()) {
           logger.trace(`Scheduled job #${job.id} skipped`, job);
           continue;
@@ -278,25 +284,25 @@ export class Queue extends EventEmitter<QueueEvents> {
       }
 
       // Expired job must be removed from queue
-      if (job.options.expire && job.options.expire * 1000 >= Date.now()) {
+      if (job.options.expire && job.options.expire * 1000 <= Date.now()) {
         logger.trace(`Job #${job.id} expired at: ${job.options.expire}`);
 
-        const status =
+        const prevStatus =
           job.state.status === JobStatuses.ERRORED ? JobStatuses.FAILED : JobStatuses.DONE;
-        job = await this._updatedJobState(job, { status });
+        job = await this._updatedJobState(job, { status: JobStatuses.EXPIRED });
 
         this.jobs.delete(job.id);
         await this._sync();
         this.liveJobs.delete(job.id);
 
         this.dispatchEvent(
-          new CustomEvent<Job>('expired', {
+          new CustomEvent<Job>(prevStatus === JobStatuses.DONE ? 'done' : 'fail', {
             detail: job,
           }),
         );
 
         this.dispatchEvent(
-          new CustomEvent<Job>(status === JobStatuses.DONE ? 'done' : 'fail', {
+          new CustomEvent<Job>('expired', {
             detail: job,
           }),
         );
@@ -308,9 +314,15 @@ export class Queue extends EventEmitter<QueueEvents> {
       });
       logger.trace(`Starting job #${job.id}`, job);
 
-      await Promise.resolve(callback(job));
+      const shouldCancel = await Promise.resolve(callback(job));
 
-      if (job.options.every) {
+      if (job.options.every && !shouldCancel) {
+        if (job.options.attempts && job.state.attempts >= job.options.attempts) {
+          logger.trace(`Job #${job.id} should be cancelled (attempts rule)`);
+          await this.cancelJob(job.id);
+          return;
+        }
+
         job = await this._updatedJobState(job, {
           status: JobStatuses.PENDING,
           scheduled: Date.now() + job.options.every,
@@ -329,6 +341,10 @@ export class Queue extends EventEmitter<QueueEvents> {
             detail: job,
           }),
         );
+      } else if (shouldCancel) {
+        logger.trace(`Job #${job.id} should be cancelled (handler rule)`);
+        await this.cancelJob(job.id);
+        return;
       } else {
         job = await this._updatedJobState(job, {
           status: JobStatuses.DONE,

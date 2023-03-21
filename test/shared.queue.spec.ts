@@ -1,7 +1,9 @@
 import './setup.js';
 import { z } from 'zod';
 import { memoryStorage } from '../src/storage/index.js';
-import { Queue, JobHandler } from '../src/shared/queue.js';
+import { Queue, JobHandler, JobStatuses } from '../src/shared/queue.js';
+import { nowSec } from '../src/utils/time.js';
+import { expect } from 'chai';
 
 export const JobDataSchema = z
   .object({
@@ -20,6 +22,7 @@ export interface JobConfiguration {
 }
 
 describe('Shared.Queue', () => {
+  const name = 'test';
   const totalJobs = 30;
   const minAttempts = 3;
   const maxAttempts = 5;
@@ -116,15 +119,15 @@ describe('Shared.Queue', () => {
   });
 
   it('should process recurrent jobs', (done) => {
-    const name = 'test';
-    const counter = 10;
+    const counter = 5;
     const handler: JobHandler<JobData> = async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     };
 
     queue.addJobHandler(name, handler);
 
-    queue.addEventListener('cancel', () => {
+    queue.addEventListener('cancel', ({ detail: job }) => {
+      expect(job.state.status).to.eq(JobStatuses.CANCELLED);
       done();
     });
 
@@ -140,6 +143,80 @@ describe('Shared.Queue', () => {
       {
         every: 100,
         attemptsDelay: 100,
+      },
+    );
+  });
+
+  it('should cancel recurrent job using handler return', (done) => {
+    const counter = 5;
+    const handler: JobHandler<JobData> = async (job) => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      if (job.state.attempts >= counter) {
+        return true;
+      }
+    };
+
+    queue.addJobHandler(name, handler);
+
+    queue.addEventListener('cancel', ({ detail: job }) => {
+      expect(job.state.status).to.eq(JobStatuses.CANCELLED);
+      done();
+    });
+
+    queue.addJob<JobData>(
+      name,
+      {},
+      {
+        every: 100,
+        attemptsDelay: 100,
+      },
+    );
+  });
+
+  it('should cancel recurrent job using max attempts option', (done) => {
+    const counter = 5;
+    const handler: JobHandler<JobData> = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    };
+
+    queue.addJobHandler(name, handler);
+
+    queue.addEventListener('cancel', ({ detail: job }) => {
+      expect(job.state.status).to.eq(JobStatuses.CANCELLED);
+      done();
+    });
+
+    queue.addJob<JobData>(
+      name,
+      {},
+      {
+        every: 100,
+        attempts: counter,
+        attemptsDelay: 100,
+      },
+    );
+  });
+
+  it('should cancel expired job', (done) => {
+    const handler: JobHandler<JobData> = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    };
+
+    queue.addJobHandler(name, handler);
+
+    queue.addEventListener('expired', ({ detail: job }) => {
+      expect(job.state.status).to.eq(JobStatuses.EXPIRED);
+      done();
+    });
+
+    queue.addJob<JobData>(
+      name,
+      {},
+      {
+        every: 100,
+        attemptsDelay: 100,
+        expire: nowSec() + 1,
       },
     );
   });
