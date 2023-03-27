@@ -13,7 +13,8 @@ import {
   verifyOffer,
 } from '../src/shared/messages.js';
 
-describe('Common.messages', () => {
+describe('Shared.messages', () => {
+  const topic = 'test';
   const CustomQuerySchema = GenericQuerySchema.extend({
     guests: z.number(),
     rooms: z.number(),
@@ -28,15 +29,16 @@ describe('Common.messages', () => {
   type CustomOfferOptions = z.infer<typeof CustomOfferOptionsSchema>;
 
   const createRequest = (expire: number | string = 1) =>
-    buildRequest<CustomQuery>(
+    buildRequest<CustomQuery>({
       expire,
-      1,
-      {
+      nonce: 1,
+      topic,
+      query: {
         guests: 2,
         rooms: 1,
       },
-      CustomQuerySchema,
-    );
+      querySchema: CustomQuerySchema,
+    });
 
   const signer = Wallet.createRandom();
   const supplierId = spId(randomSalt(), signer.address);
@@ -48,35 +50,35 @@ describe('Common.messages', () => {
   };
 
   const createOffer = (request: RequestData<CustomQuery>, expire: number | string = 1) =>
-    buildOffer<CustomQuery, CustomOfferOptions>(
-      contractConfig,
+    buildOffer<CustomQuery, CustomOfferOptions>({
+      contract: contractConfig,
       signer,
-      CustomQuerySchema,
-      CustomOfferOptionsSchema,
+      querySchema: CustomQuerySchema,
+      optionsSchema: CustomOfferOptionsSchema,
       supplierId,
       expire,
       request,
-      {
+      options: {
         room: 'big',
         checkIn: '1',
         checkOut: '2',
       },
-      [
+      payment: [
         {
           id: uuid4(),
           asset: '0x0',
           price: '1',
         },
       ],
-      [
+      cancel: [
         {
           time: 1,
           penalty: 1,
         },
       ],
-      1,
-      true,
-    );
+      checkIn: 1,
+      transferable: true,
+    });
 
   let request: RequestData<CustomQuery>;
 
@@ -93,6 +95,11 @@ describe('Common.messages', () => {
 
   describe('#buildOffer', () => {
     it('should build an offer', async () => {
+      try {
+        await createOffer(request, '30s');
+      } catch (error) {
+        console.log(error);
+      }
       await expect(createOffer(request)).to.not.rejected;
       await expect(createOffer(request, '30s')).to.not.rejected;
     });
@@ -105,42 +112,40 @@ describe('Common.messages', () => {
       });
 
       it('should restore an offer from raw data', async () => {
-        const fromRaw = await buildOffer<CustomQuery, CustomOfferOptions>(
-          contractConfig,
-          undefined,
-          CustomQuerySchema,
-          CustomOfferOptionsSchema,
+        const fromRaw = await buildOffer<CustomQuery, CustomOfferOptions>({
+          contract: contractConfig,
+          querySchema: CustomQuerySchema,
+          optionsSchema: CustomOfferOptionsSchema,
           supplierId,
-          offer.expire,
-          offer.request,
-          offer.options,
-          offer.payment,
-          offer.cancel,
-          offer.payload.checkIn,
-          offer.payload.transferable,
-          offer.id,
-          offer.signature,
-        );
+          expire: offer.expire,
+          request: offer.request,
+          options: offer.options,
+          payment: offer.payment,
+          cancel: offer.cancel,
+          checkIn: offer.payload.checkIn,
+          transferable: offer.payload.transferable,
+          idOverride: offer.id,
+          signatureOverride: offer.signature,
+        });
         expect(fromRaw).to.deep.eq(offer);
       });
 
       it('should throw is signatureOverride not been provided', async () => {
         await expect(
-          buildOffer<CustomQuery, CustomOfferOptions>(
-            contractConfig,
-            undefined,
-            CustomQuerySchema,
-            CustomOfferOptionsSchema,
+          buildOffer<CustomQuery, CustomOfferOptions>({
+            contract: contractConfig,
+            querySchema: CustomQuerySchema,
+            optionsSchema: CustomOfferOptionsSchema,
             supplierId,
-            offer.expire,
-            offer.request,
-            offer.options,
-            offer.payment,
-            offer.cancel,
-            offer.payload.checkIn,
-            offer.payload.transferable,
-            offer.id,
-          ),
+            expire: offer.expire,
+            request: offer.request,
+            options: offer.options,
+            payment: offer.payment,
+            cancel: offer.cancel,
+            checkIn: offer.payload.checkIn,
+            transferable: offer.payload.transferable,
+            idOverride: offer.id,
+          }),
         ).to.rejectedWith('Either signer or signatureOverride must be provided');
       });
     });
