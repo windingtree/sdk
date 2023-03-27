@@ -91,13 +91,14 @@
   },
   "dependencies": {
     "debug": "^4.3.4",
-    "ethers": "^6.1.0",
+    "ethers": "^6.2.0",
+    "@sinclair/typebox": "^0.26.3",
     "zod": "^3.21.4",
-    "libp2p": "^0.42.2",
+    "libp2p": "^0.43.2",
     "@chainsafe/libp2p-noise": "^11.0.1",
     "@chainsafe/libp2p-gossipsub": "^6.2.0",
-    "@libp2p/mplex": "^7.1.1",
-    "@libp2p/websockets": "^5.0.6",
+    "@libp2p/mplex": "^7.1.2",
+    "@libp2p/websockets": "^5.0.7",
     "luxon": "^3.3.0"
   }
 }
