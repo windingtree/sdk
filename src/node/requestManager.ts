@@ -45,7 +45,7 @@ export class RequestManager<CustomRequestQuery extends GenericQuery> extends Eve
   }
 
   add(topic: string, data: string) {
-    const requestData = createRequestDataSchema<CustomRequestQuery>(this.querySchema).parse(
+    const requestData = createRequestDataSchema<typeof this.querySchema>(this.querySchema).parse(
       JSON.parse(data),
     );
 

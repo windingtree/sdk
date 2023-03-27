@@ -33,6 +33,10 @@ export const ServerAddressOptionSchema = z.object({
   serverAddress: z.string(), // Multiaddr of the coordination server
 });
 
+export const SignerSeedOptionsSchema = z.object({
+  signerSeedPhrase: z.string(), // Seed phrase of the node signer
+});
+
 // The protocol node initialization options schema
 export const createNodeOptionsSchema = <
   CustomRequestQuery extends GenericQuery,
@@ -42,6 +46,7 @@ export const createNodeOptionsSchema = <
     .object({
       libp2p: z.object({}).catchall(z.any()).optional(),
       topics: z.array(z.string()),
+      supplierId: z.string(),
     })
     .merge(createQuerySchemaOptionSchema<CustomRequestQuery>())
     .merge(createOfferOptionsSchemaOptionSchema<CustomOfferOptions>())
@@ -49,6 +54,7 @@ export const createNodeOptionsSchema = <
     .merge(ContractConfigOptionSchema)
     .merge(ProviderOptionSchema)
     .merge(ServerAddressOptionSchema)
+    .merge(SignerSeedOptionsSchema)
     .strict();
 
 // The protocol node initialization options type

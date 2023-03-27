@@ -12,15 +12,15 @@ import { AbstractProvider } from 'ethers';
 import { z } from 'zod';
 import { centerSub, CenterSub } from '../shared/pubsub.js';
 import {
+  buildRequest,
+  BuildRequestOptions,
   createOfferDataSchema,
   GenericOfferOptions,
   GenericQuery,
-  OfferData,
   RequestData,
 } from '../shared/messages.js';
 import { ClientOptions, createClientOptionsSchema } from '../shared/options.js';
-import { Request } from '../shared/request.js';
-import { RequestsRegistry } from './requestsRegistry.js';
+import { RequestRecord, RequestsRegistry } from './requestManager.js';
 import { decodeText } from '../utils/text.js';
 import { ContractConfig } from '../utils/contract.js';
 import { StorageInitializer } from '../storage/index.js';
@@ -91,12 +91,100 @@ export interface ClientEvents<
    * @example
    *
    * ```js
-   * request.addEventListener('requests', () => {
-   *    // ... registry updated
+   * client.addEventListener('request:create', () => {
+   *    // ... request created
    * })
    * ```
    */
-  requests: CustomEvent<Required<Request<CustomRequestQuery, CustomOfferOptions>>[]>;
+  'request:create': CustomEvent<RequestRecord<CustomRequestQuery, CustomOfferOptions>>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * client.addEventListener('request:publish', ({ details: id }) => {
+   *    // ... request published
+   * })
+   * ```
+   */
+  'request:publish': CustomEvent<string>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * client.addEventListener('request:subscribe', ({ details: id }) => {
+   *    // ... request unsubscribed
+   * })
+   * ```
+   */
+  'request:subscribe': CustomEvent<string>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * client.addEventListener('request:unsubscribe', ({ details: id }) => {
+   *    // ... request subscribed
+   * })
+   * ```
+   */
+  'request:unsubscribe': CustomEvent<string>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * client.addEventListener('request:expire', ({ details: id }) => {
+   *    // ... request expired
+   * })
+   * ```
+   */
+  'request:expire': CustomEvent<string>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * client.addEventListener('request:cancel', ({ details: id }) => {
+   *    // ... request cancelled
+   * })
+   * ```
+   */
+  'request:cancel': CustomEvent<string>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * client.addEventListener('request:delete', ({ details: id }) => {
+   *    // ... request deleted
+   * })
+   * ```
+   */
+  'request:delete': CustomEvent<string>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * client.addEventListener('request:offer', ({ details: id }) => {
+   *    // ... offer added to request ${id}
+   * })
+   * ```
+   */
+  'request:offer': CustomEvent<string>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * client.addEventListener('request:clear', () => {
+   *    // ... requests are cleared
+   * })
+   * ```
+   */
+  'request:clear': CustomEvent<void>;
 }
 
 export class Client<
@@ -198,30 +286,19 @@ export class Client<
           throw new Error('Requests registry not initialized yet');
         }
 
-        let offer = JSON.parse(decodeText(detail.data)) as OfferData<
-          CustomRequestQuery,
-          CustomOfferOptions
-        >;
-
         // Check is the message is an offer
-        offer = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
-          this.querySchema,
-          this.offerOptionsSchema,
-        ).parse(offer);
+        const offer = createOfferDataSchema<
+          z.ZodType<CustomRequestQuery>,
+          z.ZodType<CustomOfferOptions>
+        >(this.querySchema, this.offerOptionsSchema).parse(JSON.parse(decodeText(detail.data)));
         logger.trace('Offer received:', offer);
 
         // Verify the offer
         // @todo Implement offer verification
 
-        // Fetch associated request from the requests registry
-        const requestId = (offer.request as RequestData<CustomRequestQuery>).id;
-        const request = this.requestsRegistry.get(requestId);
-
-        if (!request) {
-          throw new Error(`Request #${requestId} not found in the registry`);
-        }
-
         // Save the offer to the offers set of request
+        console.log('Offer:', offer);
+        this.requestsRegistry.addOffer(offer);
       } catch (error) {
         logger.error(error);
       }
@@ -231,12 +308,57 @@ export class Client<
       this,
       await this.storageInitializer(),
     );
-    this.requestsRegistry.addEventListener('change', ({ detail }) => {
+    this.requestsRegistry.addEventListener('request', ({ detail }) => {
       this.dispatchEvent(
-        new CustomEvent<Required<Request<CustomRequestQuery, CustomOfferOptions>>[]>('requests', {
+        new CustomEvent<RequestRecord<CustomRequestQuery, CustomOfferOptions>>('request:create', {
           detail,
         }),
       );
+    });
+    this.requestsRegistry.addEventListener('publish', ({ detail }) => {
+      this.dispatchEvent(
+        new CustomEvent<string>('request:publish', {
+          detail,
+        }),
+      );
+    });
+    this.requestsRegistry.addEventListener('unsubscribe', ({ detail }) => {
+      this.dispatchEvent(
+        new CustomEvent<string>('request:unsubscribe', {
+          detail,
+        }),
+      );
+    });
+    this.requestsRegistry.addEventListener('subscribe', ({ detail }) => {
+      this.dispatchEvent(
+        new CustomEvent<string>('request:subscribe', {
+          detail,
+        }),
+      );
+    });
+    this.requestsRegistry.addEventListener('cancel', ({ detail }) => {
+      this.dispatchEvent(
+        new CustomEvent<string>('request:cancel', {
+          detail,
+        }),
+      );
+    });
+    this.requestsRegistry.addEventListener('delete', ({ detail }) => {
+      this.dispatchEvent(
+        new CustomEvent<string>('request:delete', {
+          detail,
+        }),
+      );
+    });
+    this.requestsRegistry.addEventListener('offer', ({ detail }) => {
+      this.dispatchEvent(
+        new CustomEvent<string>('request:offer', {
+          detail,
+        }),
+      );
+    });
+    this.requestsRegistry.addEventListener('clear', () => {
+      this.dispatchEvent(new CustomEvent<void>('request:clear'));
     });
 
     await this.libp2p.start();
@@ -254,30 +376,28 @@ export class Client<
     logger.trace('👋 Client stopped at:', new Date().toISOString());
   }
 
-  async buildRequest(
-    topic: string,
-    expire: string | number,
-    nonce: number,
-    query: CustomRequestQuery,
-  ): Promise<Request<CustomRequestQuery, CustomOfferOptions>> {
+  async _createRequest(
+    requestOptions: Omit<BuildRequestOptions<CustomRequestQuery>, 'querySchema' | 'idOverride'>,
+  ): Promise<RequestData<CustomRequestQuery>> {
     if (!this.libp2p || !this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
 
-    const request = new Request({
-      pubsub: this.libp2p.pubsub as CenterSub,
+    return await buildRequest<CustomRequestQuery>({
+      ...requestOptions,
       querySchema: this.querySchema,
-      offerOptionsSchema: this.offerOptionsSchema,
-      contractConfig: this.contractConfig,
-      provider: this.provider,
-    });
-    await request.build(topic, expire, nonce, query);
-    this.requestsRegistry.set(request);
-
-    return request;
+    } as BuildRequestOptions<CustomRequestQuery>);
   }
 
-  _getRequests(): Required<Request<CustomRequestQuery, CustomOfferOptions>>[] {
+  _addRequest(request: RequestData<CustomRequestQuery>) {
+    if (!this.requestsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return this.requestsRegistry.add(request);
+  }
+
+  _getRequests(): Required<RequestRecord<CustomRequestQuery, CustomOfferOptions>>[] {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -285,7 +405,7 @@ export class Client<
     return this.requestsRegistry.getAll();
   }
 
-  _getRequest(id: string): Request<CustomRequestQuery, CustomOfferOptions> | undefined {
+  _getRequest(id: string): RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -293,15 +413,23 @@ export class Client<
     return this.requestsRegistry.get(id);
   }
 
-  _deleteRequest(id: string): boolean {
+  _cancelRequest(id: string) {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
 
-    return this.requestsRegistry.delete(id);
+    this.requestsRegistry.cancel(id);
   }
 
-  _clearRequests(): void {
+  _deleteRequest(id: string) {
+    if (!this.requestsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    this.requestsRegistry.delete(id);
+  }
+
+  _clearRequests() {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -309,12 +437,24 @@ export class Client<
     return this.requestsRegistry.clear();
   }
 
+  _subscribed(id: string) {
+    if (!this.requestsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return this.requestsRegistry.subscribed(id);
+  }
+
   get requests() {
     return {
+      create: this._createRequest.bind(this),
+      add: this._addRequest.bind(this),
       get: this._getRequest.bind(this),
       getAll: this._getRequests.bind(this),
+      cancel: this._cancelRequest.bind(this),
       delete: this._deleteRequest.bind(this),
       clear: this._clearRequests.bind(this),
+      subscribed: this._subscribed.bind(this),
     };
   }
 }
