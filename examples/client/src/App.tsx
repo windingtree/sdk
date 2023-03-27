@@ -6,12 +6,13 @@ import {
   contractConfig,
   serverAddress,
 } from '../../common/types.js';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { createClient, Client, ClientOptions, Request } from '../../../src/index.js';
+import { useState, useEffect, useRef } from 'react';
+import { createClient, Client, ClientOptions } from '../../../src/index.js';
 import { localStorage } from '../../../src/storage/index.js';
 import { isExpired } from '../../../src/utils/time.js';
+import { RequestRecord } from '../../../src/client/requestManager.js';
 
-const defaultExpire = '15s'; // 5 sec
+const defaultExpire = '30s';
 
 const defaultTopic = 'hello';
 
@@ -29,17 +30,17 @@ interface FormValues {
 
 interface RequestFormProps {
   connected: boolean;
-  subscribed: boolean;
   onSubmit(query: FormValues): void;
-  onCancel(): void;
 }
 
 interface RequestsProps {
-  requests: Required<Request<RequestQuery, OfferOptions>>[];
+  requests: Required<RequestRecord<RequestQuery, OfferOptions>>[];
+  subscribed?: (id: string) => boolean;
   onClear(): void;
+  onCancel(id: string): void;
 }
 
-export const RequestForm = ({ connected, subscribed, onSubmit, onCancel }: RequestFormProps) => {
+export const RequestForm = ({ connected, onSubmit }: RequestFormProps) => {
   const [topic, setTopic] = useState<string>(defaultTopic);
   const [message, setMessage] = useState<string>('');
 
@@ -66,34 +67,17 @@ export const RequestForm = ({ connected, subscribed, onSubmit, onCancel }: Reque
             <strong>Topic:</strong>
           </div>
           <div style={{ marginBottom: 5 }}>
-            <input value={topic} onChange={(e) => setTopic(e.target.value)} disabled={subscribed} />
+            <input value={topic} onChange={(e) => setTopic(e.target.value)} />
           </div>
           <div>
             <strong>Request:</strong>
           </div>
           <div>
-            <input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              disabled={subscribed}
-            />
+            <input value={message} onChange={(e) => setMessage(e.target.value)} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', marginTop: 10 }}>
             <div>
-              <button type="submit" disabled={subscribed}>
-                Send{subscribed ? '...' : ''}
-              </button>
-            </div>
-            <div style={{ marginLeft: 10 }}>
-              {subscribed && (
-                <button
-                  onClick={() => {
-                    onCancel();
-                  }}
-                >
-                  Cancel
-                </button>
-              )}
+              <button type="submit">Send</button>
             </div>
           </div>
         </div>
@@ -102,7 +86,7 @@ export const RequestForm = ({ connected, subscribed, onSubmit, onCancel }: Reque
   );
 };
 
-export const Requests = ({ requests, onClear }: RequestsProps) => {
+export const Requests = ({ requests, subscribed, onClear, onCancel }: RequestsProps) => {
   if (requests.length === 0) {
     return null;
   }
@@ -115,20 +99,34 @@ export const Requests = ({ requests, onClear }: RequestsProps) => {
             <td>Topic</td>
             <td>Id</td>
             <td>Query</td>
-            <td>Published</td>
+            <td>Subscribed</td>
             <td>Expired</td>
             <td>Offers</td>
+            <td>Cancel</td>
           </tr>
         </thead>
         <tbody>
           {requests.map((r, index) => (
             <tr key={index}>
-              <td>{r.topic}</td>
+              <td>{r.data.topic}</td>
               <td>{r.data.id}</td>
               <td>{JSON.stringify(r.data.query)}</td>
-              <td>{r.published}</td>
-              <td>{isExpired(r.data.expire) ? '✅' : 'no'}</td>
-              <td>{r.offers.size}</td>
+              <td>{subscribed && subscribed(r.data.id) ? '✅' : 'no'}</td>
+              <td>{isExpired(r.data.expire) || r.cancelled ? '✅' : 'no'}</td>
+              <td>{r.offers.length}</td>
+              <td>
+                {!r.cancelled && !isExpired(r.data.expire) ? (
+                  <button
+                    onClick={() => {
+                      onCancel(r.data.id);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                ) : (
+                  'cancelled'
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -149,10 +147,10 @@ export const Requests = ({ requests, onClear }: RequestsProps) => {
 
 export const App = () => {
   const client = useRef<Client<RequestQuery, OfferOptions> | undefined>();
-  const query = useRef<Request<RequestQuery, OfferOptions> | undefined>();
   const [connected, setConnected] = useState<boolean>(false);
-  const [subscribed, setSubscribed] = useState<boolean>(false);
-  const [requests, setRequests] = useState<Required<Request<RequestQuery, OfferOptions>>[]>([]);
+  const [requests, setRequests] = useState<Required<RequestRecord<RequestQuery, OfferOptions>>[]>(
+    [],
+  );
   const [error, setError] = useState<string | undefined>();
 
   useEffect(() => {
@@ -168,6 +166,9 @@ export const App = () => {
 
         client.current.addEventListener('start', () => {
           console.log('🚀 Client started at:', new Date().toISOString());
+          if (client.current) {
+            setRequests(client.current.requests.getAll());
+          }
         });
 
         client.current.addEventListener('stop', () => {
@@ -184,9 +185,23 @@ export const App = () => {
           console.log('🔌 Client disconnected from server at:', new Date().toISOString());
         });
 
-        client.current.addEventListener('requests', ({ detail }) => {
-          setRequests(detail);
-        });
+        const updateRequests = (evt: { detail: any }) => {
+          console.log('@@@', evt);
+          if (!client.current) {
+            return;
+          }
+          setRequests(client.current.requests.getAll());
+        };
+
+        client.current.addEventListener('request:create', updateRequests);
+        client.current.addEventListener('request:subscribe', updateRequests);
+        client.current.addEventListener('request:publish', updateRequests);
+        client.current.addEventListener('request:unsubscribe', updateRequests);
+        client.current.addEventListener('request:expire', updateRequests);
+        client.current.addEventListener('request:cancel', updateRequests);
+        client.current.addEventListener('request:delete', updateRequests);
+        client.current.addEventListener('request:offer', updateRequests);
+        client.current.addEventListener('request:clear', updateRequests);
 
         await client.current.start();
       } catch (error) {
@@ -206,54 +221,41 @@ export const App = () => {
         throw new Error('The client is not initialized yet');
       }
 
-      if (query.current && query.current.subscribed) {
-        query.current.cancel();
-      }
-
-      query.current = await client.current.buildRequest(topic, defaultExpire, 1, {
-        greeting: message,
+      const request = await client.current.requests.create({
+        topic,
+        expire: defaultExpire,
+        nonce: 1,
+        query: {
+          greeting: message,
+        },
       });
 
-      query.current.addEventListener('expired', () => {
-        setSubscribed(false);
-      });
-
-      await query.current.publish();
-      setSubscribed(true);
+      client.current.requests.add(request);
     } catch (error) {
       setError((error as Error).message);
-      setSubscribed(false);
     }
   };
-
-  const cancelRequest = useCallback(() => {
-    if (query.current) {
-      query.current.cancel();
-      setSubscribed(false);
-    }
-  }, [query]);
 
   return (
     <>
       {client.current && <div>✅ Client started</div>}
       {connected && <div>✅ Connected to the coordination server</div>}
-      {subscribed && (
-        <>
-          <div>✅ Sent request: {query.current?.toJSON()}</div>
-          <div>✅ Subscribed to: {query.current?.data?.id}</div>
-        </>
-      )}
-      <RequestForm
-        connected={connected}
-        subscribed={subscribed}
-        onSubmit={sendRequest}
-        onCancel={cancelRequest}
-      />
+      <RequestForm connected={connected} onSubmit={sendRequest} />
       <Requests
         requests={requests}
+        subscribed={(id) => {
+          console.log('###', id);
+          return client.current?.requests.subscribed(id) || false;
+        }}
         onClear={() => {
-          cancelRequest();
-          client.current?.requests.clear();
+          if (client.current) {
+            client.current?.requests.clear();
+          }
+        }}
+        onCancel={(id) => {
+          if (client.current) {
+            client.current.requests.cancel(id);
+          }
         }}
       />
       {error && <div style={{ marginTop: 20 }}>🚨 {error}</div>}

@@ -12,6 +12,8 @@ export type RequestQuery = z.infer<typeof RequestQuerySchema>;
 export const OfferOptionsSchema = z
   .object({
     date: z.string(),
+    buongiorno: z.boolean(),
+    buonasera: z.boolean(),
   })
   .catchall(z.any());
 
@@ -21,7 +23,7 @@ export const contractConfig: ContractConfig = {
   name: 'WtMarket',
   version: '1',
   chainId: '1',
-  address: '0x0',
+  address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
 };
 
 export const serverAddress =
