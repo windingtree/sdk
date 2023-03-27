@@ -198,6 +198,7 @@ export class Queue extends EventEmitter<QueueEvents> {
 
   private async _init() {
     if (this.heartbeatInterval) {
+      logger.trace('_init: heartbeat On', this.heartbeatInterval);
       return;
     }
 
@@ -214,6 +215,7 @@ export class Queue extends EventEmitter<QueueEvents> {
       }
 
       clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = undefined;
       logger.trace('Queue interval cleared');
     };
 
@@ -244,12 +246,12 @@ export class Queue extends EventEmitter<QueueEvents> {
         }
 
         if (job.state.status === JobStatuses.CANCELLED) {
-          logger.trace(`Cancelled job #${job.id} skipped`, job);
+          logger.trace(`Cancelled job #${job.id} skipped`);
           continue;
         }
 
         if (job.state.scheduled && job.state.scheduled > Date.now()) {
-          logger.trace(`Scheduled job #${job.id} skipped`, job);
+          logger.trace(`Scheduled job #${job.id} skipped`);
           continue;
         }
 
