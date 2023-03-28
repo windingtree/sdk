@@ -1,13 +1,13 @@
-import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { createLibp2p, Libp2pOptions, Libp2p } from 'libp2p';
 import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
-import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
-import { peerIdFromString } from '@libp2p/peer-id';
-import { PeerId } from '@libp2p/interface-peer-id';
+import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { OPEN } from '@libp2p/interface-connection/status';
+import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
+import { PeerId } from '@libp2p/interface-peer-id';
+import { peerIdFromString } from '@libp2p/peer-id';
 import { AbstractProvider, AbstractSigner, Wallet } from 'ethers';
 import { z } from 'zod';
 import {
@@ -28,12 +28,15 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Node');
 
+/**
+ * The protocol node events interface
+ */
 export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
   /**
    * @example
    *
    * ```js
-   * client.addEventListener('start', () => {
+   * node.addEventListener('start', () => {
    *    // ... started
    * })
    * ```
@@ -44,7 +47,7 @@ export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
    * @example
    *
    * ```js
-   * client.addEventListener('stop', () => {
+   * node.addEventListener('stop', () => {
    *    // ... stopped
    * })
    * ```
@@ -55,7 +58,7 @@ export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
    * @example
    *
    * ```js
-   * client.addEventListener('heartbeat', () => {
+   * node.addEventListener('heartbeat', () => {
    *    // ... tick
    * })
    * ```
@@ -66,7 +69,7 @@ export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
    * @example
    *
    * ```js
-   * client.addEventListener('connected', () => {
+   * node.addEventListener('connected', () => {
    *    // ... connected
    * })
    * ```
@@ -77,7 +80,7 @@ export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
    * @example
    *
    * ```js
-   * client.addEventListener('disconnected', () => {
+   * node.addEventListener('disconnected', () => {
    *    // ... disconnected
    * })
    * ```
@@ -88,7 +91,7 @@ export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
    * @example
    *
    * ```js
-   * client.addEventListener('request', ({ detail }) => {
+   * node.addEventListener('request', ({ detail }) => {
    *    // detail.topic
    *    // detail.data
    * })
@@ -97,6 +100,14 @@ export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
   request: CustomEvent<RequestEvent<CustomRequestQuery>>;
 }
 
+/**
+ * The protocol node
+ *
+ * @class Node
+ * @extends {EventEmitter<NodeEvents<CustomRequestQuery>>}
+ * @template {CustomRequestQuery}
+ * @template {CustomOfferOptions}
+ */
 export class Node<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
@@ -114,6 +125,9 @@ export class Node<
   private libp2pInit: Libp2pOptions;
   private requestManager: RequestManager<CustomRequestQuery>;
 
+  /**
+   * @param {NodeOptions<CustomRequestQuery, CustomOfferOptions>} options Node initialization options
+   */
   constructor(options: NodeOptions<CustomRequestQuery, CustomOfferOptions>) {
     super();
 
@@ -140,8 +154,16 @@ export class Node<
       noncePeriod: options.noncePeriod,
     });
     this.requestManager.addEventListener('request', (e) => this.handleRequest(e));
+    logger.trace('Node instantiated');
   }
 
+  /**
+   * Node connection indicator
+   *
+   * @readonly
+   * @type {boolean}
+   * @memberof Node
+   */
   get connected(): boolean {
     return (
       !!this.libp2p &&
@@ -151,6 +173,11 @@ export class Node<
     );
   }
 
+  /**
+   * Enables the node. When enabled the node starts listening to all configured topics
+   *
+   * @memberof Node
+   */
   enable() {
     if (!this.libp2p) {
       throw new Error('libp2p not initialized yet');
@@ -164,6 +191,11 @@ export class Node<
     logger.trace('Node is enabled');
   }
 
+  /**
+   * Disables the node
+   *
+   * @memberof Node
+   */
   disable() {
     if (!this.libp2p) {
       throw new Error('libp2p not initialized yet');
@@ -177,6 +209,12 @@ export class Node<
     logger.trace('Node is disabled');
   }
 
+  /**
+   * Handles requests
+   *
+   * @param {CustomEvent<RequestEvent<CustomRequestQuery>>} event Request event
+   * @memberof Node
+   */
   handleRequest(event: CustomEvent<RequestEvent<CustomRequestQuery>>) {
     try {
       if (!this.libp2p) {
@@ -184,11 +222,22 @@ export class Node<
       }
 
       this.dispatchEvent(new CustomEvent<RequestEvent<CustomRequestQuery>>('request', event));
+      logger.trace('Request event', event);
     } catch (error) {
       logger.error(error);
     }
   }
 
+  /**
+   * Builds an offer
+   *
+   * @param {(Omit<
+   *       BuildOfferOptions<CustomRequestQuery, CustomOfferOptions>,
+   *       'contract' | 'signer' | 'querySchema' | 'optionsSchema' | 'supplierId'
+   *     >)} offerOptions Offer creation options
+   * @returns {Promise<OfferData<CustomRequestQuery, CustomOfferOptions>>} Built offer
+   * @memberof Node
+   */
   async buildOffer(
     offerOptions: Omit<
       BuildOfferOptions<CustomRequestQuery, CustomOfferOptions>,
@@ -223,6 +272,12 @@ export class Node<
     return offer;
   }
 
+  /**
+   * Starts the node
+   *
+   * @returns {Promise<void>}
+   * @memberof Node
+   */
   async start(): Promise<void> {
     const config: Libp2pOptions = {
       transports: [webSockets({ filter: all })],
@@ -285,6 +340,12 @@ export class Node<
     logger.trace('🚀 Node started at:', new Date().toISOString());
   }
 
+  /**
+   * Stops the node
+   *
+   * @returns {Promise<void>}
+   * @memberof Node
+   */
   async stop(): Promise<void> {
     if (!this.libp2p) {
       throw new Error('libp2p not initialized yet');
@@ -299,6 +360,12 @@ export class Node<
   }
 }
 
+/**
+ * Creates the protocol node
+ *
+ * @param {NodeOptions<CustomRequestQuery, CustomOfferOptions>} options Node instance creation options
+ * @returns {Node<CustomRequestQuery, CustomOfferOptions>} Node instance
+ */
 export const createNode = <
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,

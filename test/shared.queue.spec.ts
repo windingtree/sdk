@@ -1,7 +1,7 @@
 import './setup.js';
 import { z } from 'zod';
 import { memoryStorage } from '../src/storage/index.js';
-import { Queue, JobHandler, JobStatuses } from '../src/shared/queue.js';
+import { Queue, JobHandler, JobStatuses, createJobHandler } from '../src/shared/queue.js';
 import { nowSec } from '../src/utils/time.js';
 import { expect } from 'chai';
 
@@ -88,13 +88,13 @@ describe('Shared.Queue', () => {
     };
 
     // eslint-disable-next-line @typescript-eslint/require-await
-    const handler: JobHandler<JobData> = async (job) => {
+    const handler = createJobHandler<JobData>(async (job) => {
       if ((job.data.repeat && job.state.attempts < job.data.repeat) || job.data.shouldFail) {
         throw new Error('Should throw');
       }
-    };
+    });
 
-    queue.addJobHandler('test', handler);
+    queue.addJobHandler('test', handler());
 
     queue.addEventListener('done', () => {
       result.ok++;

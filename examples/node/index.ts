@@ -8,8 +8,15 @@ import {
   OfferOptions,
   contractConfig,
   serverAddress,
-} from '../common/types.js';
-import { createNode, Node, NodeOptions, Queue, JobHandler, OfferData } from '../../src/index.js';
+} from '../shared/types.js';
+import {
+  createNode,
+  Node,
+  NodeOptions,
+  Queue,
+  OfferData,
+  createJobHandler,
+} from '../../src/index.js';
 import { noncePeriod } from '../../src/constants.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
@@ -18,7 +25,7 @@ import { generateMnemonic, deriveAccount } from '../../src/utils/wallet.js';
 import { RequestEvent } from '../../src/node/requestManager.js';
 import { createLogger } from '../../src/utils/logger.js';
 
-const logger = createLogger('NodeInstance');
+const logger = createLogger('NodeMain');
 
 const supplierMnemonic = generateMnemonic();
 const signerMnemonic = generateMnemonic();
@@ -31,21 +38,22 @@ process.once('unhandledRejection', (error) => {
   process.exit(1);
 });
 
+// This is interface of object that you want to pass to the job handler as options
+interface DealHandlerOptions {
+  node: Node<RequestQuery, OfferOptions>;
+}
+
 // This handler looking up for a deal
-const createDealHandler =
-  (
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    node: Node<RequestQuery, OfferOptions>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  ): JobHandler<OfferData<RequestQuery, OfferOptions>> =>
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async ({ name, id, data: offer }) => {
+const dealHandler = createJobHandler<OfferData<RequestQuery, OfferOptions>, DealHandlerOptions>(
+  // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
+  async ({ name, id, data: offer }, options) => {
     logger.trace(`Job "${name}" #${id} Checking for a deal. Offer #${offer.id}`);
     // Makes request to the smart contract, checks for a deal
     // If the deal is found - check for double booking in the availability system
     // If double booking detected - rejects (and refunds) the deal
     // If not detected - claims the deal
-  };
+  },
+);
 
 // This handler creates offer then publishes it and creates a job for deal handling
 const createRequestsHandler =
@@ -113,7 +121,7 @@ const main = async (): Promise<void> => {
   };
   const node = createNode(options);
 
-  queue.addJobHandler('deal', createDealHandler(node));
+  queue.addJobHandler('deal', dealHandler({ node }));
 
   node.addEventListener('start', () => {
     console.log('🚀 Node started at', new Date().toISOString());

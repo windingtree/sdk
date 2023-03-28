@@ -7,45 +7,58 @@ import { noncePeriod } from '../constants.js';
 
 export const createQuerySchemaOptionSchema = <CustomRequestQuery extends GenericQuery>() =>
   z.object({
-    querySchema: z.instanceof(z.ZodType<CustomRequestQuery>), // Should be zod schema instance
+    /** Query validation schema instance */
+    querySchema: z.instanceof(z.ZodType<CustomRequestQuery>),
   });
 
 export const createOfferOptionsSchemaOptionSchema = <
   CustomOfferOptions extends GenericOfferOptions,
 >() =>
   z.object({
-    offerOptionsSchema: z.instanceof(z.ZodType<CustomOfferOptions>), // Should be zod schema instance
+    /** Offer options validation schema instance */
+    offerOptionsSchema: z.instanceof(z.ZodType<CustomOfferOptions>),
   });
 
 export const NoncePeriodOptionSchema = z.object({
-  noncePeriod: z.number().default(parseSeconds(noncePeriod)), // Period while the node accepting requests with the same Id
+  /** Period while the node waits and accepting requests with the same Id */
+  noncePeriod: z.number().int().nonnegative().default(parseSeconds(noncePeriod)),
 });
 
 export const ContractConfigOptionSchema = z.object({
-  contractConfig: ContractConfigSchema, // The protocol smart contract configuration
+  /** The protocol smart contract configuration */
+  contractConfig: ContractConfigSchema,
 });
 
 export const ProviderOptionSchema = z.object({
-  provider: z.instanceof(AbstractProvider).optional(), // Ethers.js provider instance
+  /** Ethers.js provider instance */
+  provider: z.instanceof(AbstractProvider).optional(),
 });
 
 export const ServerAddressOptionSchema = z.object({
-  serverAddress: z.string(), // Multiaddr of the coordination server
+  /** Multiaddr of the coordination server */
+  serverAddress: z.string(),
 });
 
 export const SignerSeedOptionsSchema = z.object({
-  signerSeedPhrase: z.string(), // Seed phrase of the node signer
+  /** Seed phrase of the node signer wallet */
+  signerSeedPhrase: z.string(),
 });
 
-// The protocol node initialization options schema
+/**
+ * Creates the protocol node initialization options schema
+ * @returns z.ZodType
+ */
 export const createNodeOptionsSchema = <
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 >() =>
   z
     .object({
+      /** libp2p configuration options */
       libp2p: z.object({}).catchall(z.any()).optional(),
+      /** Subscription topics of node */
       topics: z.array(z.string()),
+      /** Unique supplier Id */
       supplierId: z.string(),
     })
     .merge(createQuerySchemaOptionSchema<CustomRequestQuery>())
@@ -57,13 +70,18 @@ export const createNodeOptionsSchema = <
     .merge(SignerSeedOptionsSchema)
     .strict();
 
-// The protocol node initialization options type
+/**
+ * The protocol node initialization options type
+ */
 export type NodeOptions<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 > = z.infer<ReturnType<typeof createNodeOptionsSchema<CustomRequestQuery, CustomOfferOptions>>>;
 
-// Request manager (of the protocol node) initialization options schema
+/**
+ * Creates request manager (of the protocol node) initialization options schema
+ * @returns z.ZodType
+ */
 export const createRequestManagerOptionsSchema = <CustomRequestQuery extends GenericQuery>() =>
   z
     .object({})
@@ -71,18 +89,24 @@ export const createRequestManagerOptionsSchema = <CustomRequestQuery extends Gen
     .merge(NoncePeriodOptionSchema)
     .strict();
 
-// Request manager (of the protocol node) initialization options type
+/**
+ * Request manager (of the protocol node) initialization options type
+ */
 export type RequestManagerOptions<CustomRequestQuery extends GenericQuery> = z.infer<
   ReturnType<typeof createRequestManagerOptionsSchema<CustomRequestQuery>>
 >;
 
-// The protocol client initialization schema
+/**
+ * Creates the protocol client initialization schema
+ * @returns z.ZodType
+ */
 export const createClientOptionsSchema = <
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 >() =>
   z
     .object({
+      /** libp2p configuration options */
       libp2p: z.object({}).catchall(z.any()).optional(),
     })
     .merge(createQuerySchemaOptionSchema<CustomRequestQuery>())
@@ -98,6 +122,9 @@ export type ClientOptions<
   CustomOfferOptions extends GenericOfferOptions,
 > = z.infer<ReturnType<typeof createClientOptionsSchema<CustomRequestQuery, CustomOfferOptions>>>;
 
+/**
+ * Interface of a node key in Json format (schema)
+ */
 export const NodeKeyJsonSchema = z
   .object({
     id: z.string(), // Peer Id
@@ -106,24 +133,38 @@ export const NodeKeyJsonSchema = z
   })
   .strict();
 
+/**
+ * Interface of a node key in Json format (type)
+ */
 export type NodeKeyJson = z.infer<typeof NodeKeyJsonSchema>;
 
-// Peer configuration options
+/**
+ * Peer configuration options schema
+ */
 export const PeerOptionsSchema = z
   .object({
-    peerKey: NodeKeyJsonSchema.optional(), // Peer key
+    /** Peer key */
+    peerKey: NodeKeyJsonSchema.optional(),
   })
   .strict();
 
+/**
+ * Peer configuration options type
+ */
 export type PeerOptions = z.infer<typeof PeerOptionsSchema>;
 
-// The protocol coordination server options schema
+/**
+ * The protocol coordination server options schema
+ */
 export const ServerOptionsSchema = PeerOptionsSchema.required()
   .extend({
-    address: z.string().optional(), // Optional IP address of the server, defaults to '0.0.0.0'
+    /** Optional IP address of the server, defaults to '0.0.0.0' */
+    address: z.string().optional(),
     port: z.number(),
   })
   .strict();
 
-// The protocol coordination server options type
+/**
+ * The protocol coordination server options type
+ */
 export type ServerOptions = z.infer<typeof ServerOptionsSchema>;

@@ -1,9 +1,12 @@
 import { createServer, ServerOptions } from '../../src/index.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import peerKey from '../../test/peerKey.json';
+import { createLogger } from '../../src/utils/logger.js';
+
+const logger = createLogger('ServerMain');
 
 process.once('unhandledRejection', (error) => {
-  console.log('🛸 Unhandled rejection', error);
+  logger.error('🛸 Unhandled rejection', error);
   process.exit(1);
 });
 
@@ -15,11 +18,11 @@ const main = async (): Promise<void> => {
   const server = createServer(options, memoryStorage.init());
 
   server.addEventListener('start', () => {
-    console.log('🚀 Server started at', new Date().toISOString());
+    logger.trace('🚀 Server started at', new Date().toISOString());
   });
 
   server.addEventListener('stop', () => {
-    console.log('👋 Server stopped at:', new Date().toISOString());
+    logger.trace('👋 Server stopped at:', new Date().toISOString());
   });
 
   // Graceful Shutdown handler
@@ -28,7 +31,7 @@ const main = async (): Promise<void> => {
       await server.stop();
     };
     stopHandler()
-      .catch(console.log)
+      .catch(logger.error)
       .finally(() => process.exit(0));
   };
 
@@ -39,6 +42,6 @@ const main = async (): Promise<void> => {
 };
 
 export default main().catch((error) => {
-  console.log('🚨 Internal application error', error);
+  logger.error('🚨 Internal application error', error);
   process.exit(1);
 });
