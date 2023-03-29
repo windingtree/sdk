@@ -22,13 +22,22 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('PubSub');
 
+/**
+ * Message transformer function schema
+ */
 export const MessageTransformerSchema = z
   .function()
   .args(z.instanceof(ArrayBuffer))
   .returns(GenericMessageSchema);
 
+/**
+ * Message transformer function type
+ */
 export type MessageTransformer = z.infer<typeof MessageTransformerSchema>;
 
+/**
+ * CenterSub initialization options schema
+ */
 export const CenterSubOptionsSchema = z.object({
   isClient: z.boolean().optional(),
   directPeers: z
@@ -42,12 +51,25 @@ export const CenterSubOptionsSchema = z.object({
   messageTransformer: MessageTransformerSchema.optional(),
 });
 
+/**
+ * CenterSub initialization options type
+ */
 export type CenterSubOptions = z.infer<typeof CenterSubOptionsSchema>;
 
+/**
+ * Message details interface
+ */
 export interface MessageDetails {
   detail: Message;
 }
 
+/**
+ * CenterSub class. Centralized pubsub protocol for libp2p
+ *
+ * @export
+ * @class CenterSub
+ * @extends {GossipSub}
+ */
 export class CenterSub extends GossipSub {
   public readonly isClient: boolean;
   protected messages: MessagesCache | undefined;
@@ -55,6 +77,14 @@ export class CenterSub extends GossipSub {
   protected messageTransformer: MessageTransformer;
   protected options: CenterSubOptions;
 
+  /**
+   * Creates an instance of CenterSub.
+   *
+   * @param {GossipSubComponents} components
+   * @param {CenterSubOptions} options
+   * @param {Storage} [messagesStorage]
+   * @memberof CenterSub
+   */
   constructor(
     components: GossipSubComponents,
     options: CenterSubOptions,
@@ -83,6 +113,7 @@ export class CenterSub extends GossipSub {
       this.messages = new MessagesCache(messagesStorage);
     }
 
+    /** Overriding private methods of GossipSub */
     this['selectPeersToPublish'] = this.onSelectPeersToPublish.bind(this);
     this['handleReceivedMessage'] = this.onHandleReceivedMessage.bind(this);
     this['addPeer'] = this.onAddPeer.bind(this);
@@ -98,7 +129,15 @@ export class CenterSub extends GossipSub {
     );
   }
 
-  private publishToPeer(peerId: PeerId, messages: CashedMessageEntry[]): void {
+  /**
+   * Publishes message to selected peer
+   *
+   * @private
+   * @param {PeerId} peerId
+   * @param {CashedMessageEntry[]} messages
+   * @memberof CenterSub
+   */
+  private publishToPeer(peerId: PeerId, messages: CashedMessageEntry[]) {
     const id = peerId.toString();
     logger.trace('publishToPeer: peerId:', id);
 
@@ -123,12 +162,26 @@ export class CenterSub extends GossipSub {
     logger.trace('publishToPeer: sendRpc:', sentMsgIds, sent);
   }
 
-  private handleHeartbeat(): void {
+  /**
+   * Protocol heartbeat callback
+   *
+   * @private
+   * @memberof CenterSub
+   */
+  private handleHeartbeat() {
     if (!this.isClient && this.messages) {
       this.messages.prune().catch(logger.error);
     }
   }
 
+  /**
+   * Puts message to cache
+   *
+   * @private
+   * @param {RPC.IMessage} rpcMsg
+   * @returns {Promise<void>}
+   * @memberof CenterSub
+   */
   private async cacheMessage(rpcMsg: RPC.IMessage): Promise<void> {
     try {
       if (!this.messages) {
@@ -159,6 +212,14 @@ export class CenterSub extends GossipSub {
     }
   }
 
+  /**
+   * Handles actions on every peer connection
+   *
+   * @private
+   * @param {PeerId} peerId
+   * @returns {void}
+   * @memberof CenterSub
+   */
   private handlePeerConnect(peerId: PeerId): void {
     try {
       if (!this.messages) {
@@ -175,17 +236,34 @@ export class CenterSub extends GossipSub {
     }
   }
 
+  /**
+   * Handles actions on adding peer to node peers registry
+   *
+   * @private
+   * @param {PeerId} peerId
+   * @param {Direction} direction
+   * @param {Multiaddr} addr
+   * @memberof CenterSub
+   */
   private onAddPeer(peerId: PeerId, direction: Direction, addr: Multiaddr): void {
     const id = peerId.toString();
     const hasPeer = this.peers.has(id);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     super['addPeer'](peerId, direction, addr);
+
     if (!hasPeer && direction === 'inbound') {
       // We need to wait for the outbound stream to be opened
       setTimeout(() => this.handlePeerConnect(peerId), outboundStreamDelay);
     }
   }
 
+  /**
+   * Handles actions on peer disconnection
+   *
+   * @private
+   * @param {CustomEvent<Connection>} { detail }
+   * @memberof CenterSub
+   */
   private handlePeerDisconnect({ detail }: CustomEvent<Connection>): void {
     try {
       const id = detail.id.toString();
@@ -195,6 +273,15 @@ export class CenterSub extends GossipSub {
     }
   }
 
+  /**
+   * Handles actions on received message
+   *
+   * @private
+   * @param {PeerId} from
+   * @param {RPC.IMessage} rpcMsg
+   * @returns {Promise<void>}
+   * @memberof CenterSub
+   */
   private async onHandleReceivedMessage(from: PeerId, rpcMsg: RPC.IMessage): Promise<void> {
     // We subscribe a server to every incoming topic
     // to guarantee that every message will be processed.
@@ -208,6 +295,17 @@ export class CenterSub extends GossipSub {
     await super['handleReceivedMessage'](from, rpcMsg);
   }
 
+  /**
+   * Handles actions when selecting peers to publish message
+   *
+   * @private
+   * @param {TopicStr} topic
+   * @returns {{
+   *     tosend: Set<PeerIdStr>;
+   *     tosendCount: ToSendGroupCount;
+   *   }}
+   * @memberof CenterSub
+   */
   private onSelectPeersToPublish(topic: TopicStr): {
     tosend: Set<PeerIdStr>;
     tosendCount: ToSendGroupCount;
@@ -235,6 +333,13 @@ export class CenterSub extends GossipSub {
   }
 }
 
+/**
+ * Create CenterSub instance
+ *
+ * @param {CenterSubOptions} options
+ * @param {Storage} [messagesStorage]
+ * @returns {((components: GossipSubComponents) => PubSub<GossipsubEvents>)}
+ */
 export const centerSub = (
   options: CenterSubOptions,
   messagesStorage?: Storage,

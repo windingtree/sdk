@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 
-// Calculation bases
+/** Calculation bases */
 const s = 1;
 const ms = s * 0.001;
 const m = s * 60;
@@ -8,13 +8,23 @@ const h = m * 60;
 const d = h * 24;
 const y = d * 365.25;
 
+/** Allowed duration types */
 export type AllowedDurationType = 'ms' | 's' | 'm' | 'h' | 'd' | 'y';
 
+/**
+ * Duration format interface
+ */
 export interface DurationFormat {
   type: AllowedDurationType;
   value: number;
 }
 
+/**
+ * Validate duration format
+ *
+ * @param {string} str
+ * @returns {DurationFormat}
+ */
 export const validateDurationFormat = (str: string): DurationFormat => {
   const match = /^((?:\d+)?\.?\d+) *(ms|s|m|h|d|y)$/i.exec(str); // milliseconds|seconds|minutes|hours|days|years
 
@@ -28,7 +38,12 @@ export const validateDurationFormat = (str: string): DurationFormat => {
   };
 };
 
-// Parses formatted string into seconds number value
+/**
+ * Parses formatted string into seconds number value
+ *
+ * @param {(string | number)} str
+ * @returns {number}
+ */
 export const parseSeconds = (str: string | number): number => {
   if (typeof str === 'number') {
     return str;
@@ -63,18 +78,32 @@ export const parseSeconds = (str: string | number): number => {
       break;
     /* c8 ignore next 3 */
     default:
-      // Should not occur
+      // Should never occur
       throw new Error('Unknown duration type');
   }
 
   return Math.ceil(parsed);
 };
 
-// Converts milliseconds to seconds
+/**
+ * Converts milliseconds to seconds
+ *
+ * @param {number} time
+ * @returns {number}
+ */
 export const millisToSec = (time: number) => Math.round(time / 1000);
 
-// Returns current time in seconds
+/**
+ * Returns current time in seconds
+ *
+ * @returns {number}
+ */
 export const nowSec = () => Math.round(DateTime.now().toSeconds());
 
-// Checks expiration time
+/**
+ * Checks expiration time
+ *
+ * @param {number} expire
+ * @returns {boolean}
+ */
 export const isExpired = (expire: number): boolean => nowSec() + 1 > expire;

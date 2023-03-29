@@ -4,6 +4,8 @@ import { GenericOfferOptions, GenericQuery } from '../shared/messages.js';
 import { ContractConfigSchema } from '../utils/contract.js';
 import { parseSeconds } from '../utils/time.js';
 import { noncePeriod } from '../constants.js';
+import { StorageInitializerSchema } from '../storage/abstract.js';
+import { RequestRegistryPrefixSchema } from '../client/requestManager.js';
 
 export const createQuerySchemaOptionSchema = <CustomRequestQuery extends GenericQuery>() =>
   z.object({
@@ -108,6 +110,10 @@ export const createClientOptionsSchema = <
     .object({
       /** libp2p configuration options */
       libp2p: z.object({}).catchall(z.any()).optional(),
+      /** Storage initializer function */
+      storageInitializer: StorageInitializerSchema,
+      /** Request registry keys prefix */
+      requestRegistryPrefix: RequestRegistryPrefixSchema,
     })
     .merge(createQuerySchemaOptionSchema<CustomRequestQuery>())
     .merge(createOfferOptionsSchemaOptionSchema<CustomOfferOptions>())
@@ -116,7 +122,9 @@ export const createClientOptionsSchema = <
     .merge(ServerAddressOptionSchema)
     .strict();
 
-// The protocol client initialization schema type
+/**
+ * The protocol client initialization schema type
+ */
 export type ClientOptions<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
@@ -127,9 +135,12 @@ export type ClientOptions<
  */
 export const NodeKeyJsonSchema = z
   .object({
-    id: z.string(), // Peer Id
-    privKey: z.string(), // Private key
-    pubKey: z.string(), // Public key
+    /** Peer Id */
+    id: z.string(),
+    /** Private key */
+    privKey: z.string(),
+    /** Public key */
+    pubKey: z.string(),
   })
   .strict();
 
@@ -160,7 +171,10 @@ export const ServerOptionsSchema = PeerOptionsSchema.required()
   .extend({
     /** Optional IP address of the server, defaults to '0.0.0.0' */
     address: z.string().optional(),
+    /** Server port */
     port: z.number(),
+    /** Messages storage initializer */
+    messagesStorageInit: StorageInitializerSchema,
   })
   .strict();
 

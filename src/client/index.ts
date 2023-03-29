@@ -187,35 +187,62 @@ export interface ClientEvents<
   'request:clear': CustomEvent<void>;
 }
 
+/**
+ * The protocol Client class
+ *
+ * @class Client
+ * @extends {EventEmitter<ClientEvents<CustomRequestQuery, CustomOfferOptions>>}
+ * @template CustomRequestQuery
+ * @template CustomOfferOptions
+ */
 export class Client<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 > extends EventEmitter<ClientEvents<CustomRequestQuery, CustomOfferOptions>> {
-  libp2p?: Libp2p;
-  serverMultiaddr: Multiaddr;
-  serverPeerId: PeerId;
-  querySchema: z.ZodType<CustomRequestQuery>;
-  offerOptionsSchema: z.ZodType<CustomOfferOptions>;
-  contractConfig: ContractConfig;
-  provider?: AbstractProvider;
   private libp2pInit: Libp2pOptions;
   private requestsRegistry?: RequestsRegistry<CustomRequestQuery, CustomOfferOptions>;
   private storageInitializer: StorageInitializer;
+  private requestRegistryPrefix: string;
 
-  constructor(
-    options: ClientOptions<CustomRequestQuery, CustomOfferOptions>,
-    storageInitializer: StorageInitializer,
-  ) {
+  /** libp2p instance */
+  libp2p?: Libp2p;
+  /** Server instance multiaddr */
+  serverMultiaddr: Multiaddr;
+  /** Server peer Id */
+  serverPeerId: PeerId;
+  /** Request query validation schema */
+  querySchema: z.ZodType<CustomRequestQuery>;
+  /** Offer options validation schema */
+  offerOptionsSchema: z.ZodType<CustomOfferOptions>;
+  /** Smart contract configuration */
+  contractConfig: ContractConfig;
+  /** Ethers.js provider instance */
+  provider?: AbstractProvider;
+  /**
+   *Creates an instance of Client.
+   * @param {ClientOptions<CustomRequestQuery, CustomOfferOptions>} options
+   * @memberof Client
+   */
+  constructor(options: ClientOptions<CustomRequestQuery, CustomOfferOptions>) {
     super();
 
-    options = createClientOptionsSchema<CustomRequestQuery, CustomOfferOptions>().parse(options);
+    const {
+      querySchema,
+      offerOptionsSchema,
+      contractConfig,
+      libp2p,
+      provider,
+      serverAddress,
+      storageInitializer,
+      requestRegistryPrefix,
+    } = createClientOptionsSchema<CustomRequestQuery, CustomOfferOptions>().parse(options);
 
-    this.querySchema = options.querySchema;
-    this.offerOptionsSchema = options.offerOptionsSchema;
-    this.contractConfig = options.contractConfig;
-    this.libp2pInit = (options.libp2p ?? {}) as Libp2pOptions;
-    this.provider = options.provider;
-    this.serverMultiaddr = multiaddr(options.serverAddress);
+    this.querySchema = querySchema;
+    this.offerOptionsSchema = offerOptionsSchema;
+    this.contractConfig = contractConfig;
+    this.libp2pInit = (libp2p ?? {}) as Libp2pOptions;
+    this.provider = provider;
+    this.serverMultiaddr = multiaddr(serverAddress);
     const serverPeerIdString = this.serverMultiaddr.getPeerId();
 
     if (!serverPeerIdString) {
@@ -224,8 +251,16 @@ export class Client<
 
     this.serverPeerId = peerIdFromString(serverPeerIdString);
     this.storageInitializer = storageInitializer;
+    this.requestRegistryPrefix = requestRegistryPrefix;
   }
 
+  /**
+   * Client connection status flag
+   *
+   * @readonly
+   * @type {boolean}
+   * @memberof Client
+   */
   get connected(): boolean {
     return (
       !!this.libp2p &&
@@ -235,6 +270,12 @@ export class Client<
     );
   }
 
+  /**
+   * Starts the client
+   *
+   * @returns {Promise<void>}
+   * @memberof Client
+   */
   async start(): Promise<void> {
     const config: Libp2pOptions = {
       transports: [webSockets({ filter: all })],
@@ -242,6 +283,7 @@ export class Client<
       connectionEncryption: [noise()],
       pubsub: centerSub({
         isClient: true,
+        /** Client must be connected to the coordination server */
         directPeers: [
           {
             id: this.serverPeerId,
@@ -286,7 +328,7 @@ export class Client<
           throw new Error('Requests registry not initialized yet');
         }
 
-        // Check is the message is an offer
+        /** Check is the message is an offer */
         const offer = createOfferDataSchema<
           z.ZodType<CustomRequestQuery>,
           z.ZodType<CustomOfferOptions>
@@ -296,18 +338,25 @@ export class Client<
         // Verify the offer
         // @todo Implement offer verification
 
-        // Save the offer to the offers set of request
-        console.log('Offer:', offer);
+        logger.trace('Offer:', offer);
+
+        /** Add the offer to the associated request */
         this.requestsRegistry.addOffer(offer);
       } catch (error) {
         logger.error(error);
       }
     });
 
-    this.requestsRegistry = new RequestsRegistry<CustomRequestQuery, CustomOfferOptions>(
-      this,
-      await this.storageInitializer(),
-    );
+    this.requestsRegistry = new RequestsRegistry<CustomRequestQuery, CustomOfferOptions>({
+      client: this,
+      storage: await this.storageInitializer(),
+      prefix: this.requestRegistryPrefix,
+    });
+
+    /**
+     * Listening on request registry events
+     */
+
     this.requestsRegistry.addEventListener('request', ({ detail }) => {
       this.dispatchEvent(
         new CustomEvent<RequestRecord<CustomRequestQuery, CustomOfferOptions>>('request:create', {
@@ -315,6 +364,7 @@ export class Client<
         }),
       );
     });
+
     this.requestsRegistry.addEventListener('publish', ({ detail }) => {
       this.dispatchEvent(
         new CustomEvent<string>('request:publish', {
@@ -322,6 +372,7 @@ export class Client<
         }),
       );
     });
+
     this.requestsRegistry.addEventListener('unsubscribe', ({ detail }) => {
       this.dispatchEvent(
         new CustomEvent<string>('request:unsubscribe', {
@@ -329,6 +380,7 @@ export class Client<
         }),
       );
     });
+
     this.requestsRegistry.addEventListener('subscribe', ({ detail }) => {
       this.dispatchEvent(
         new CustomEvent<string>('request:subscribe', {
@@ -336,6 +388,7 @@ export class Client<
         }),
       );
     });
+
     this.requestsRegistry.addEventListener('cancel', ({ detail }) => {
       this.dispatchEvent(
         new CustomEvent<string>('request:cancel', {
@@ -343,6 +396,7 @@ export class Client<
         }),
       );
     });
+
     this.requestsRegistry.addEventListener('delete', ({ detail }) => {
       this.dispatchEvent(
         new CustomEvent<string>('request:delete', {
@@ -350,6 +404,7 @@ export class Client<
         }),
       );
     });
+
     this.requestsRegistry.addEventListener('offer', ({ detail }) => {
       this.dispatchEvent(
         new CustomEvent<string>('request:offer', {
@@ -357,6 +412,7 @@ export class Client<
         }),
       );
     });
+
     this.requestsRegistry.addEventListener('clear', () => {
       this.dispatchEvent(new CustomEvent<void>('request:clear'));
     });
@@ -366,6 +422,12 @@ export class Client<
     logger.trace('🚀 Client started at:', new Date().toISOString());
   }
 
+  /**
+   * Stops the client
+   *
+   * @returns {Promise<void>}
+   * @memberof Client
+   */
   async stop(): Promise<void> {
     if (!this.libp2p) {
       throw new Error('libp2p not initialized yet');
@@ -376,7 +438,21 @@ export class Client<
     logger.trace('👋 Client stopped at:', new Date().toISOString());
   }
 
-  async _createRequest(
+  /**
+   *
+   * Requests API
+   *
+   */
+
+  /**
+   * Create new request
+   *
+   * @private
+   * @param {(Omit<BuildRequestOptions<CustomRequestQuery>, 'querySchema' | 'idOverride'>)} requestOptions
+   * @returns {Promise<RequestData<CustomRequestQuery>>}
+   * @memberof Client
+   */
+  private async _createRequest(
     requestOptions: Omit<BuildRequestOptions<CustomRequestQuery>, 'querySchema' | 'idOverride'>,
   ): Promise<RequestData<CustomRequestQuery>> {
     if (!this.libp2p || !this.requestsRegistry) {
@@ -389,7 +465,15 @@ export class Client<
     } as BuildRequestOptions<CustomRequestQuery>);
   }
 
-  _addRequest(request: RequestData<CustomRequestQuery>) {
+  /**
+   * Adds request to the request registry
+   *
+   * @private
+   * @param {RequestData<CustomRequestQuery>} request
+   * @returns
+   * @memberof Client
+   */
+  private _addRequest(request: RequestData<CustomRequestQuery>) {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -397,7 +481,14 @@ export class Client<
     return this.requestsRegistry.add(request);
   }
 
-  _getRequests(): Required<RequestRecord<CustomRequestQuery, CustomOfferOptions>>[] {
+  /**
+   * Returns all requests from the registry
+   *
+   * @private
+   * @returns {Required<RequestRecord<CustomRequestQuery, CustomOfferOptions>>[]}
+   * @memberof Client
+   */
+  private _getRequests(): Required<RequestRecord<CustomRequestQuery, CustomOfferOptions>>[] {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -405,7 +496,17 @@ export class Client<
     return this.requestsRegistry.getAll();
   }
 
-  _getRequest(id: string): RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined {
+  /**
+   * Return request from the registry by Id
+   *
+   * @private
+   * @param {string} id
+   * @returns {(RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined)}
+   * @memberof Client
+   */
+  private _getRequest(
+    id: string,
+  ): RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -413,7 +514,14 @@ export class Client<
     return this.requestsRegistry.get(id);
   }
 
-  _cancelRequest(id: string) {
+  /**
+   * Cancels request by Id
+   *
+   * @private
+   * @param {string} id
+   * @memberof Client
+   */
+  private _cancelRequest(id: string) {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -421,7 +529,14 @@ export class Client<
     this.requestsRegistry.cancel(id);
   }
 
-  _deleteRequest(id: string) {
+  /**
+   * Deletes request by Id
+   *
+   * @private
+   * @param {string} id
+   * @memberof Client
+   */
+  private _deleteRequest(id: string) {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -429,7 +544,14 @@ export class Client<
     this.requestsRegistry.delete(id);
   }
 
-  _clearRequests() {
+  /**
+   * Cancels and removes all requests from registry
+   *
+   * @private
+   * @returns
+   * @memberof Client
+   */
+  private _clearRequests() {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -437,7 +559,15 @@ export class Client<
     return this.requestsRegistry.clear();
   }
 
-  _subscribed(id: string) {
+  /**
+   * Checks if request is currently subscribe by its Id
+   *
+   * @private
+   * @param {string} id
+   * @returns
+   * @memberof Client
+   */
+  private _subscribed(id: string) {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -445,26 +575,45 @@ export class Client<
     return this.requestsRegistry.subscribed(id);
   }
 
+  /**
+   * Provides access to subset of requests API
+   *
+   * @readonly
+   * @memberof Client
+   */
   get requests() {
     return {
+      /** @see _createRequest */
       create: this._createRequest.bind(this),
+      /** @see _addRequest */
       add: this._addRequest.bind(this),
+      /** @see _getRequest */
       get: this._getRequest.bind(this),
+      /** @see _getRequests */
       getAll: this._getRequests.bind(this),
+      /** @see _cancelRequest */
       cancel: this._cancelRequest.bind(this),
+      /** @see _deleteRequest */
       delete: this._deleteRequest.bind(this),
+      /** @see _clearRequests */
       clear: this._clearRequests.bind(this),
+      /** @see _subscribed */
       subscribed: this._subscribed.bind(this),
     };
   }
 }
 
+/**
+ * Creates client instance
+ *
+ * @param {ClientOptions<CustomRequestQuery, CustomOfferOptions>} options Client initialization options
+ * @returns {Client}
+ */
 export const createClient = <
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 >(
   options: ClientOptions<CustomRequestQuery, CustomOfferOptions>,
-  storageInit: StorageInitializer,
 ): Client<CustomRequestQuery, CustomOfferOptions> => {
-  return new Client(options, storageInit);
+  return new Client(options);
 };

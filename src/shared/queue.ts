@@ -93,9 +93,10 @@ export const JobStateSchema = z
 export type JobState = z.infer<typeof JobStateSchema>;
 
 /**
- * Creates combined job schema
- * @param dataSchema z.ZodType
- * @returns z.ZodType
+ * Creates job schema
+ *
+ * @param {z.ZodType} dataSchema
+ * @returns {z.ZodType}
  */
 export const createJobSchema = <JobDataType = unknown>(dataSchema: z.ZodType<JobDataType>) =>
   z
@@ -108,15 +109,24 @@ export const createJobSchema = <JobDataType = unknown>(dataSchema: z.ZodType<Job
     })
     .strict();
 
+/**
+ * Job type
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Job<JobDataType = any> = z.infer<ReturnType<typeof createJobSchema<JobDataType>>>;
 
+/**
+ * Job handler function type
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type JobHandler<OfferData = any, HandlerOptions extends object = object> = (
   job: Job<OfferData>,
   options?: HandlerOptions,
 ) => Promise<boolean | void>;
 
+/**
+ * Job handler closure type
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type JobHandlerClosure = (job: any) => ReturnType<JobHandler<any>>;
 
@@ -247,6 +257,8 @@ export class Queue extends EventEmitter<QueueEvents> {
   private heartbeatInterval?: NodeJS.Timeout;
 
   /**
+   * Creates Queue instance
+   *
    * @param {QueueInit} options Queue initialization options
    */
   constructor(options: QueueInit) {
@@ -285,6 +297,7 @@ export class Queue extends EventEmitter<QueueEvents> {
       new Set<string>(JSON.parse(rawJobKeys) as string[]);
     }
 
+    /** Heartbeat callback */
     const tick = () => {
       if (this.jobs.size > 0) {
         this._process().catch(logger.error);
@@ -385,7 +398,7 @@ export class Queue extends EventEmitter<QueueEvents> {
         throw new Error(`Job #${job.id} already failed`);
       }
 
-      // Expired job must be removed from queue
+      /** Expired job must be removed from queue */
       if (job.options.expire && job.options.expire * 1000 <= Date.now()) {
         logger.trace(`Job #${job.id} expired at: ${job.options.expire}`);
 

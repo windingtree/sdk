@@ -5,23 +5,18 @@ import {
   OfferOptions,
   contractConfig,
   serverAddress,
-} from '../../common/types.js';
+} from '../../shared/types.js';
 import { useState, useEffect, useRef } from 'react';
 import { createClient, Client, ClientOptions } from '../../../src/index.js';
 import { localStorage } from '../../../src/storage/index.js';
 import { isExpired } from '../../../src/utils/time.js';
 import { RequestRecord } from '../../../src/client/requestManager.js';
 
+/** Default request expiration time */
 const defaultExpire = '30s';
 
+/** Default topic to publish requests the same as for the supplier node */
 const defaultTopic = 'hello';
-
-const options: ClientOptions<RequestQuery, OfferOptions> = {
-  querySchema: RequestQuerySchema,
-  offerOptionsSchema: OfferOptionsSchema,
-  contractConfig,
-  serverAddress,
-};
 
 interface FormValues {
   topic: string;
@@ -40,6 +35,9 @@ interface RequestsProps {
   onCancel(id: string): void;
 }
 
+/**
+ * Accepts user input
+ */
 export const RequestForm = ({ connected, onSubmit }: RequestFormProps) => {
   const [topic, setTopic] = useState<string>(defaultTopic);
   const [message, setMessage] = useState<string>('');
@@ -86,6 +84,9 @@ export const RequestForm = ({ connected, onSubmit }: RequestFormProps) => {
   );
 };
 
+/**
+ * Published requests table
+ */
 export const Requests = ({ requests, subscribed, onClear, onCancel }: RequestsProps) => {
   if (requests.length === 0) {
     return null;
@@ -153,16 +154,24 @@ export const App = () => {
   );
   const [error, setError] = useState<string | undefined>();
 
+  /** This hook starts the client that will be available via `client.current` */
   useEffect(() => {
     const startClient = async () => {
       try {
         setError(undefined);
-        client.current = createClient<RequestQuery, OfferOptions>(
-          options,
-          localStorage.init({
+
+        const options: ClientOptions<RequestQuery, OfferOptions> = {
+          querySchema: RequestQuerySchema,
+          offerOptionsSchema: OfferOptionsSchema,
+          contractConfig,
+          serverAddress,
+          storageInitializer: localStorage.init({
             session: true,
           }),
-        );
+          requestRegistryPrefix: 'requestsRegistry',
+        };
+
+        client.current = createClient<RequestQuery, OfferOptions>(options);
 
         client.current.addEventListener('start', () => {
           console.log('🚀 Client started at:', new Date().toISOString());
@@ -185,14 +194,14 @@ export const App = () => {
           console.log('🔌 Client disconnected from server at:', new Date().toISOString());
         });
 
-        const updateRequests = (evt: { detail: any }) => {
-          console.log('@@@', evt);
+        const updateRequests = () => {
           if (!client.current) {
             return;
           }
           setRequests(client.current.requests.getAll());
         };
 
+        /** Listening for requests events and update the table */
         client.current.addEventListener('request:create', updateRequests);
         client.current.addEventListener('request:subscribe', updateRequests);
         client.current.addEventListener('request:publish', updateRequests);
@@ -213,6 +222,7 @@ export const App = () => {
     startClient();
   }, []);
 
+  /** Publishing of request */
   const sendRequest = async ({ topic, message }: FormValues) => {
     try {
       setError(undefined);

@@ -10,6 +10,9 @@ import debug from 'debug';
   %%	Single percent sign ('%'). This does not consume an argument.
  */
 
+/**
+ * Logger interface
+ */
 export interface Logger {
   (formatter: unknown, ...args: unknown[]): void;
   error: (formatter: unknown, ...args: unknown[]) => void;
@@ -17,6 +20,12 @@ export interface Logger {
   enabled: boolean;
 }
 
+/**
+ * Creates logger instance
+ *
+ * @param {string} name
+ * @returns {Logger}
+ */
 export const createLogger = (name: string): Logger => {
   return Object.assign(debug(name), {
     error: debug(`${name}:error`),
@@ -24,6 +33,16 @@ export const createLogger = (name: string): Logger => {
   });
 };
 
+/**
+ * Enables logging for named scope
+ *
+ * @param {string} name
+ */
 export const enable = (name: string): void => debug.enable(name);
 
+/**
+ * Disables logging for named scope
+ *
+ * @param {string} name
+ */
 export const disable = (): string => debug.disable();

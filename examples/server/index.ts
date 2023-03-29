@@ -5,17 +5,28 @@ import { createLogger } from '../../src/utils/logger.js';
 
 const logger = createLogger('ServerMain');
 
+/** Handles UFOs */
 process.once('unhandledRejection', (error) => {
   logger.error('🛸 Unhandled rejection', error);
   process.exit(1);
 });
 
+/**
+ * Starts the server
+ *
+ * @returns {Promise<void>}
+ */
 const main = async (): Promise<void> => {
   const options: ServerOptions = {
     port: 33333,
     peerKey,
+    /**
+     * This example uses MemoryStorage
+     * but in production it is recommended to use Redis
+     * */
+    messagesStorageInit: memoryStorage.init(),
   };
-  const server = createServer(options, memoryStorage.init());
+  const server = createServer(options);
 
   server.addEventListener('start', () => {
     logger.trace('🚀 Server started at', new Date().toISOString());
@@ -25,7 +36,7 @@ const main = async (): Promise<void> => {
     logger.trace('👋 Server stopped at:', new Date().toISOString());
   });
 
-  // Graceful Shutdown handler
+  /** Graceful Shutdown handler */
   const shutdown = () => {
     const stopHandler = async () => {
       await server.stop();
@@ -41,6 +52,7 @@ const main = async (): Promise<void> => {
   await server.start();
 };
 
+/** Let's go */
 export default main().catch((error) => {
   logger.error('🚨 Internal application error', error);
   process.exit(1);

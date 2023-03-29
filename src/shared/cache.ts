@@ -5,8 +5,14 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('MessagesCache');
 
+/**
+ * Cached message schema
+ */
 export const CachedMessageSchema = z.object({});
 
+/**
+ * Cached message type
+ */
 export interface CachedMessage {
   peerId: string;
   expire: number;
@@ -14,18 +20,39 @@ export interface CachedMessage {
   nonce: number;
 }
 
+/**
+ * Cached message entry type
+ */
 export interface CashedMessageEntry {
   id: string;
   data: RPC.IMessage;
 }
 
+/**
+ * Messages cache class
+ *
+ * @export
+ * @class MessagesCache
+ */
 export class MessagesCache {
   protected cache: Storage;
 
+  /**
+   * Creates an instance of MessagesCache.
+   *
+   * @param {Storage} storage
+   * @memberof MessagesCache
+   */
   constructor(storage: Storage) {
     this.cache = storage;
   }
 
+  /**
+   * Deletes expired messages from the cache
+   *
+   * @returns {Promise<void>}
+   * @memberof MessagesCache
+   */
   async prune(): Promise<void> {
     const now = Math.ceil(Date.now() / 1000);
     for (const [id, message] of this.cache.entries<CachedMessage>()) {
@@ -35,6 +62,12 @@ export class MessagesCache {
     }
   }
 
+  /**
+   * Returns message from cache
+   *
+   * @returns {CashedMessageEntry[]}
+   * @memberof MessagesCache
+   */
   get(): CashedMessageEntry[] {
     const messages: CashedMessageEntry[] = [];
     for (const [id, entry] of this.cache.entries<CachedMessage>()) {
@@ -46,6 +79,17 @@ export class MessagesCache {
     return messages;
   }
 
+  /**
+   * Sets new message to cache
+   *
+   * @param {string} messageId
+   * @param {string} peerId
+   * @param {RPC.IMessage} data
+   * @param {number} expire
+   * @param {number} [nonce=1]
+   * @returns {Promise<void>}
+   * @memberof MessagesCache
+   */
   async set(
     messageId: string,
     peerId: string,

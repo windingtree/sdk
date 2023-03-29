@@ -7,50 +7,92 @@ import { uuid4 } from '../utils/uid.js';
 import { nowSec, parseSeconds } from '../utils/time.js';
 import * as regex from '../utils/regex.js';
 
-// Basic message structure
+/**
+ * Basic message structure
+ */
 export const GenericMessageSchema = z.object({
-  id: z.string(), // Unique message Id
-  expire: z.number().int().nonnegative(), // Expiration time in seconds
-  nonce: z.number().int().nonnegative(), // A number that reflects the version of the message
+  /** Unique message Id */
+  id: z.string(),
+  /** Expiration time in seconds */
+  expire: z.number().int().nonnegative(),
+  /** A number that reflects the version of the message */
+  nonce: z.number().int().nonnegative(),
 });
 
-// Generic message data type
+/**
+ * Generic message data type
+ */
 export type GenericMessage = z.infer<typeof GenericMessageSchema>;
 
-// Basic query is just an object with keys of unknown values
+/**
+ * Basic query is just an object with keys of unknown values
+ */
 export const GenericQuerySchema = z.object({});
 
+/**
+ * Generic query type
+ */
 export type GenericQuery = z.infer<typeof GenericQuerySchema>;
 
-// Request data structure
+/**
+ * Creates request data structure schema
+ *
+ * @param {z.ZodType} querySchema
+ * @returns {z.ZodType}
+ */
 export const createRequestDataSchema = <T extends z.ZodTypeAny>(querySchema: T) =>
   GenericMessageSchema.extend({
+    /** Request topic */
     topic: z.string(),
+    /** Custom query validation schema */
     query: querySchema,
   }).strict();
 
-// Request data type
+/**
+ * Request data type
+ */
 export type RequestData<CustomRequestQuery extends GenericQuery> = z.infer<
   ReturnType<typeof createRequestDataSchema<z.ZodType<CustomRequestQuery>>>
 >;
 
+/**
+ * Creates schema for buildRequest method options
+ *
+ * @param {z.ZodType} querySchema
+ * @returns {z.ZodType}
+ */
 export const createBuildRequestOptions = <T extends z.ZodTypeAny>(querySchema: T) =>
   z
     .object({
-      expire: z.string().or(z.number()),
+      /** Expiration time */
+      expire: z.string().or(z.number().int().nonnegative()),
+      /** Nonce */
       nonce: z.number().int().nonnegative(),
+      /** Topic */
       topic: z.string(),
+      /** Request query */
       query: querySchema,
+      /** Request query schema */
       querySchema: z.instanceof(z.ZodType),
+      /** If allowed request Id override */
       idOverride: z.string().optional(),
     })
     .strict();
 
+/**
+ * buildRequest method options type
+ */
 export type BuildRequestOptions<CustomRequestQuery extends GenericQuery> = z.infer<
   ReturnType<typeof createBuildRequestOptions<z.ZodType<CustomRequestQuery>>>
 >;
 
-// Builds a request
+/**
+ * Builds a request
+ *
+ * @template CustomRequestQuery
+ * @param {BuildRequestOptions<CustomRequestQuery>} requestOptions
+ * @returns
+ */
 export const buildRequest = async <CustomRequestQuery extends GenericQuery>(
   requestOptions: BuildRequestOptions<CustomRequestQuery>,
 ) => {
@@ -67,28 +109,45 @@ export const buildRequest = async <CustomRequestQuery extends GenericQuery>(
   })) as unknown as RequestData<CustomRequestQuery>;
 };
 
-// Offered payment option
+/**
+ * Offered payment option schema
+ */
 export const PaymentOptionSchema = z
   .object({
-    id: z.string(), // Unique payment option Id
-    price: z.string(), // Asset price in WEI
-    asset: z.string(), // ERC20 asset contract address
+    /** Unique payment option Id */
+    id: z.string(),
+    /** Asset price in WEI */
+    price: z.string(),
+    /** ERC20 asset contract address */
+    asset: z.string(),
   })
   .strict();
 
+/**
+ * Offered payment option type
+ */
 export type PaymentOption = z.infer<typeof PaymentOptionSchema>;
 
-// Offered cancellation option
+/**
+ * Offered cancellation option schema
+ */
 export const CancelOptionSchema = z
   .object({
-    time: z.number().int().nonnegative(), // Seconds before checkIn
-    penalty: z.number().int().nonnegative(), // percents of total sum
+    /** Seconds before checkIn */
+    time: z.number().int().nonnegative(),
+    /** Percents of total sum */
+    penalty: z.number().int().nonnegative(),
   })
   .strict();
 
+/**
+ * Offered cancellation option type
+ */
 export type CancelOption = z.infer<typeof CancelOptionSchema>;
 
-// Offer payload
+/**
+ * Unsigned offer payload schema
+ */
 export const UnsignedOfferPayloadSchema = z
   .object({
     supplierId: z.string(), // Unique supplier Id registered on the protocol contract
@@ -102,14 +161,29 @@ export const UnsignedOfferPayloadSchema = z
   })
   .strict();
 
+/**
+ * Unsigned offer payload type
+ */
 export type UnsignedOfferPayload = z.infer<typeof UnsignedOfferPayloadSchema>;
 
-// Generic offer is just an object with props
+/**
+ * Generic offer is just an object with props schema
+ */
 export const GenericOfferOptionsSchema = z.object({});
 
+/**
+ * Generic offer is just an object with props type
+ */
 export type GenericOfferOptions = z.infer<typeof GenericOfferOptionsSchema>;
 
-// Final offer data
+/**
+ * Creates a final offer data schema
+ *
+ * @template TQuery
+ * @template TOfferOptions
+ * @param {TQuery} querySchema
+ * @param {TOfferOptions} offerOptionsSchema
+ */
 export const createOfferDataSchema = <
   TQuery extends z.ZodTypeAny,
   TOfferOptions extends z.ZodTypeAny,
@@ -126,6 +200,9 @@ export const createOfferDataSchema = <
     signature: z.string(), // EIP-712 TypedSignature(UnsignedOffer)
   }).strict();
 
+/**
+ * Offer data type
+ */
 export type OfferData<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
@@ -135,7 +212,9 @@ export type OfferData<
   >
 >;
 
-// EIP-712 types for offer
+/**
+ * EIP-712 JSON schema types for offer
+ */
 export const offerEip712Types: Record<string, Array<TypedDataField>> = {
   Offer: [
     {
@@ -173,6 +252,14 @@ export const offerEip712Types: Record<string, Array<TypedDataField>> = {
   ],
 };
 
+/**
+ * Creates a schema for `buildOffer` method options
+ *
+ * @template TQuery
+ * @template TOfferOptions
+ * @param {TQuery} querySchema
+ * @param {TOfferOptions} offerOptionsSchema
+ */
 export const createBuildOfferOptions = <
   TQuery extends z.ZodTypeAny,
   TOfferOptions extends z.ZodTypeAny,
@@ -199,6 +286,14 @@ export const createBuildOfferOptions = <
     })
     .strict();
 
+/**
+ * Type for `buildOffer` method options
+ *
+ * @template TQuery
+ * @template TOfferOptions
+ * @param {TQuery} querySchema
+ * @param {TOfferOptions} offerOptionsSchema
+ */
 export type BuildOfferOptions<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
@@ -208,7 +303,14 @@ export type BuildOfferOptions<
   >
 >;
 
-// Builds an offer
+/**
+ * Builds an offer
+ *
+ * @template CustomRequestQuery
+ * @template CustomOfferOptions
+ * @param {BuildOfferOptions<CustomRequestQuery, CustomOfferOptions>} offerOptions
+ * @returns
+ */
 export const buildOffer = async <
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
@@ -283,7 +385,15 @@ export const buildOffer = async <
   })) as unknown as OfferData<CustomRequestQuery, CustomOfferOptions>;
 };
 
-// Verify signed offer
+/**
+ * Verifies signed offer
+ *
+ * @template CustomRequestQuery
+ * @template CustomOfferOptions
+ * @param {ContractConfig} contract
+ * @param {string} supplierAddress
+ * @param {OfferData<CustomRequestQuery, CustomOfferOptions>} offer
+ */
 export const verifyOffer = <
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,

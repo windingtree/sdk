@@ -8,11 +8,14 @@ import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { NodeKeyJson, ServerOptions, ServerOptionsSchema } from '../shared/options.js';
 import { centerSub, CenterSub } from '../shared/pubsub.js';
 import { decodeText } from '../utils/text.js';
-import { Storage, StorageInitializer } from '../storage/abstract.js';
+import { StorageInitializer } from '../storage/abstract.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Server');
 
+/**
+ * Coordination server events interface
+ */
 export interface CoordinationServerEvents {
   /**
    * @example
@@ -37,21 +40,39 @@ export interface CoordinationServerEvents {
   stop: CustomEvent<void>;
 }
 
+/**
+ * Coordination server class
+ *
+ * @class CoordinationServer
+ * @extends {EventEmitter<CoordinationServerEvents>}
+ */
 export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
   public port: number;
+  /** Peer key in Json format */
   private peerKey: NodeKeyJson;
   private libp2p?: Libp2p;
-  private options: ServerOptions;
-  private messagesStorageInit?: StorageInitializer;
+  private messagesStorageInit: StorageInitializer;
 
-  constructor(options: ServerOptions, messagesStorageInit?: StorageInitializer) {
+  /**
+   * Creates an instance of CoordinationServer.
+   *
+   * @param {ServerOptions} options
+   * @memberof CoordinationServer
+   */
+  constructor(options: ServerOptions) {
     super();
-    this.options = ServerOptionsSchema.parse(options);
+    const { port, peerKey, messagesStorageInit } = ServerOptionsSchema.parse(options);
     this.messagesStorageInit = messagesStorageInit;
-    this.port = this.options.port;
-    this.peerKey = this.options.peerKey;
+    this.port = port;
+    this.peerKey = peerKey;
   }
 
+  /**
+   * Represents multiaddrs set of the server
+   *
+   * @readonly
+   * @memberof CoordinationServer
+   */
   get multiaddrs() {
     if (!this.libp2p) {
       throw new Error('libp2p not initialized yet');
@@ -59,12 +80,14 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
     return this.libp2p.getMultiaddrs();
   }
 
+  /**
+   * Starts the coordination server
+   *
+   * @returns {Promise<void>}
+   * @memberof CoordinationServer
+   */
   async start(): Promise<void> {
-    let messagesStorage: Storage | undefined;
-
-    if (this.messagesStorageInit) {
-      messagesStorage = await this.messagesStorageInit();
-    }
+    const messagesStorage = await this.messagesStorageInit();
 
     const config: Libp2pOptions = {
       start: false,
@@ -76,6 +99,7 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
       connectionEncryption: [noise()],
       pubsub: centerSub({}, messagesStorage),
     };
+
     const peerId = await createFromJSON(this.peerKey);
     this.libp2p = await createLibp2p({ peerId, ...config });
 
@@ -89,6 +113,12 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
     logger.trace('Listened for peers at:', this.multiaddrs);
   }
 
+  /**
+   * Stops the coordination server
+   *
+   * @returns {Promise<void>}
+   * @memberof CoordinationServer
+   */
   async stop(): Promise<void> {
     if (!this.libp2p) {
       throw new Error('libp2p not initialized yet');
@@ -99,9 +129,12 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
   }
 }
 
-export const createServer = (
-  options: ServerOptions,
-  messagesStorageInit?: StorageInitializer,
-): CoordinationServer => {
-  return new CoordinationServer(options, messagesStorageInit);
+/**
+ * Create an instance of the coordination server
+ *
+ * @param {ServerOptions} options
+ * @returns {CoordinationServer}
+ */
+export const createServer = (options: ServerOptions): CoordinationServer => {
+  return new CoordinationServer(options);
 };

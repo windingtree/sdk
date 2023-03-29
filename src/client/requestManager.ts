@@ -16,6 +16,13 @@ import { nowSec } from '../utils/time.js';
 
 const logger = createLogger('RequestsRegistry');
 
+/**
+ * Creates request record schema
+ *
+ * @param {z.ZodType} querySchema Custom request query schema
+ * @param {z.ZodType} offerOptionsSchema
+ * @returns {z.ZodType} Request record schema
+ */
 export const createRequestRecordSchema = <
   TQuery extends z.ZodTypeAny,
   TOfferOptions extends z.ZodTypeAny,
@@ -25,14 +32,55 @@ export const createRequestRecordSchema = <
 ) =>
   z
     .object({
+      /** Raw request data */
       data: createRequestDataSchema<TQuery>(querySchema),
+      /** Offers associated with a request*/
       offers: z.array(
         createOfferDataSchema<TQuery, TOfferOptions>(querySchema, offerOptionsSchema),
       ),
+      /** Request cancelation flag */
       cancelled: z.boolean().default(false),
     })
     .strict();
 
+/**
+ * Request registry keys prefix schema
+ */
+export const RequestRegistryPrefixSchema = z.string().default('requestsRegistry');
+
+/**
+ * Request manager initialization options schema
+ *
+ * @template CustomRequestQuery
+ * @template CustomOfferOptions
+ */
+const createRequestManagerOptionsSchema = <
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+>() =>
+  z
+    .object({
+      /** Instance of Client */
+      client: z.instanceof(Client<CustomRequestQuery, CustomOfferOptions>),
+      /** Instance of storage */
+      storage: z.instanceof(Storage),
+      prefix: RequestRegistryPrefixSchema,
+    })
+    .strict();
+
+/**
+ * Request manager initialization options type
+ */
+export type RequestManagerOptions<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> = z.infer<
+  ReturnType<typeof createRequestManagerOptionsSchema<CustomRequestQuery, CustomOfferOptions>>
+>;
+
+/**
+ * Request record type
+ */
 export type RequestRecord<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
@@ -42,6 +90,9 @@ export type RequestRecord<
   >
 >;
 
+/**
+ * Request manager events interface
+ */
 export interface RequestEvents<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
@@ -146,7 +197,14 @@ export interface RequestEvents<
   clear: CustomEvent<void>;
 }
 
-// Requests manager
+/**
+ * Requests manager
+ *
+ * @class RequestsRegistry
+ * @extends {EventEmitter<RequestEvents<CustomRequestQuery, CustomOfferOptions>>}
+ * @template CustomRequestQuery
+ * @template CustomOfferOptions
+ */
 export class RequestsRegistry<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
@@ -158,20 +216,13 @@ export class RequestsRegistry<
   private storageKey: string;
 
   // @todo Refactor a RequestsRegistry arguments into options (with validation schema)
-  constructor(
-    client: Client<CustomRequestQuery, CustomOfferOptions>,
-    storage: Storage,
-    prefix = 'requestsRegistry',
-  ) {
+  constructor(options: RequestManagerOptions<CustomRequestQuery, CustomOfferOptions>) {
     super();
 
-    if (!(client instanceof Client)) {
-      throw new Error('Invalid client reference');
-    }
-
-    if (!(storage instanceof Storage)) {
-      throw new Error('Invalid storage reference');
-    }
+    const { client, storage, prefix } = createRequestManagerOptionsSchema<
+      CustomRequestQuery,
+      CustomOfferOptions
+    >().parse(options);
 
     this.client = client;
     this.requests = new Map<string, RequestRecord<CustomRequestQuery, CustomOfferOptions>>();
