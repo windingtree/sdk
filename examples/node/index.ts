@@ -54,7 +54,9 @@ interface DealHandlerOptions {
   node: Node<RequestQuery, OfferOptions>;
 }
 
-// This handler looking up for a deal
+/**
+ * This handler looking up for a deal
+ */
 const dealHandler = createJobHandler<OfferData<RequestQuery, OfferOptions>, DealHandlerOptions>(
   // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
   async ({ name, id, data: offer }, options) => {
@@ -139,6 +141,7 @@ const createRequestsHandler =
  */
 const main = async (): Promise<void> => {
   const storage = await memoryStorage.init()();
+
   const queue = new Queue({
     storage,
     hashKey: 'jobs',
