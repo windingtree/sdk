@@ -48,45 +48,33 @@ await generatePeerKey();
 ### Coordination server
 
 ```typescript
-interface NodeKeyJson {
-  id: string; // Peer Id
-  privKey: string; // Private key
-  pubKey: string; // Public key
-}
-
-// Storage initializer configuration options
-interface StorageOptions {
-  engine(options?: StorageEngineOptions): void; // A storage engine initialization callback
-  options?: Record<string, unknown>; // Optional storage initialization options
-}
-
-// Peer configuration options
-interface PeerOptions {
-  peerKey?: NodeKeyJson; // Peer key
-}
-
-interface ServerOptions extends PeerOptions {
-  address?: string; // Optional IP address of the server, defaults to '0.0.0.0'
-  port: number; // libp2p listening port
-  storage?: StorageOptions; // Optional the servers' data storage
-}
+type ServerOptions = {
+  /** Peer key in JSON format */
+  peerKey: {
+    id: string;
+    privKey: string;
+    pubKey: string;
+  };
+  /** Server port */
+  port: number;
+  /** Messages storage initializer */
+  messagesStorageInit: (...args: unknown[]) => Promise<Storage>;
+  /** Optional IP address of the server, defaults to '0.0.0.0' */
+  address?: string | undefined;
+};
 ```
-
-> `storage` is optional. If this option is not provided the server will fall back to in-memory storage. This is not recommended in production.
 
 Here is an example of the coordination server configuration:
 
 ```typescript
-import { ServerOptions, redisStorage } from '@windingtree/sdk';
+import { ServerOptions, storage } from '@windingtree/sdk';
 import { peerKey } from './config.js';
 
 const options: ServerOptions = {
   address: '0.0.0.0',
   port: 33333,
-  storage: {
-    engine: redisStorage,
-  },
   peerKey,
+  messagesStorageInit: storage.memoryStorage.init(),
 };
 ```
 
@@ -95,127 +83,124 @@ const options: ServerOptions = {
 A base options type definitions:
 
 ```typescript
-interface NetworkOptions {
-  chainId: number; // Target network chainId
-  rpc: string; // Target network  RPC
-  contract: string; // The protocol smart contract address (on target network)
-}
-
-interface RequestQueueOptions {
-  repeat: number; // Number of retries before the failing task will be marked as failed
-}
-
-// Coordination server client configuration
-interface ServerClientOptions {
-  serverAddress?: string; // The coordination server multiaddr. If not provided for a client node the address will be obtained from the smart contract
-}
-
-interface NodeOptions extends PeerOptions, ServerClientOptions {
-  chains: NetworkOptions[]; // Supported chains
-  storage?: StorageOptions; // Optional the nodes' data storage
-  signer: Wallet; // Ethers.js Wallet instance
-  subjects?: string[]; // Subjects for subscription
-  requestQueue?: RequestQueueOptions; // Request queue configuration
-  availabilityManager?: AvailabilityManagerApiOptions;
-}
+type NodeOptions<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> = {
+  /** Period while the node waits and accepting requests with the same Id */
+  noncePeriod: number;
+  /** The protocol smart contract configuration */
+  contractConfig: {
+    address: string;
+    name: string;
+    version: string;
+    chainId: string | number | bigint;
+  };
+  /** Multiaddr of the coordination server */
+  serverAddress: string;
+  /** Seed phrase of the node signer wallet */
+  signerSeedPhrase: string;
+  /** Subscription topics of node */
+  topics: string[];
+  /** Unique supplier Id */
+  supplierId: string;
+  /** Query validation schema */
+  querySchema: ZodType<CustomRequestQuery>;
+  /** Offer options validation schema instance */
+  offerOptionsSchema: ZodType<CustomOfferOptions>;
+  /** Ethers.js provider instance */
+  provider?: AbstractProvider | undefined;
+  /** Additional Libp2p initialization options */
+  libp2p?: Libp2pOptions | undefined;
+};
 ```
-
-> To learn more about `availabilityManager` options please follow this [link](/docs/availability.md).
 
 Here is an example of a supplier node configuration:
 
 ```typescript
-import { Wallet } from 'ethers';
-import { NodeOptions, redisStorage } from '@windingtree/sdk';
+import { NodeOptions } from '@windingtree/sdk';
 import { latLngToCell } from '@windingtree/sdk/utils';
-import { signerPrivateKey, peerKey, coordinates } from './config.js';
+import {
+  RequestQuerySchema,
+  OfferOptionsSchema,
+  RequestQuery,
+  OfferOptions,
+  supplierId,
+  signerSeedPhrase,
+  coordinates,
+} from './config.js';
 
-const options: NodeOptions = {
-  chains: [
-    {
-      chainId: 000,
-      rpc: 'https://RpcUri',
-      contract: '0x1dfe9Ca09e99d10833Bf73044a23B73Fc20523DF',
-    },
-  ],
-  serverAddress: '/ip4/127.0.0.1/tcp/33333/ws/p2p/QmcXbDrzUU5ERqRaronWmAJXwe6c7AEkS7qdcsjgEuWPCf',
-  peerKey,
-  storage: {
-    engine: redisStorage,
+const options: NodeOptions<RequestQuery, OfferOptions> = {
+  querySchema: RequestQuerySchema, // zod schema
+  offerOptionsSchema: OfferOptionsSchema, // zod schema
+  topics: ['hello', latLngToCell(coordinates)],
+  contractConfig: {
+    name: 'WtMarket',
+    version: '1',
+    chainId: '1',
+    address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
   },
-  signer: new Wallet(signerPrivateKey),
-  subjects: [latLngToCell(coordinates.lat, coordinates.lng)],
-  requestQueue: {
-    repeat: 3,
-  },
+  serverAddress: '/ip4/127.0.0.1/tcp/33333/ws/p2p/QmcXbDr...jgEuWPCf',
+  noncePeriod: 5,
+  supplierId,
+  signerSeedPhrase,
 };
 ```
 
 ### Client node
 
 ```typescript
-interface BridgeOptions {
-  name: string;
-  income: {
-    chainId: number;
-    address: string; // source smart contract address
+type ClientOptionsClientOptions<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> = {
+  /** The protocol smart contract configuration */
+  contractConfig: {
+    address: string;
+    name: string;
+    version: string;
+    chainId: string | number | bigint;
   };
-  outcome: {
-    chainId: number;
-    address: string; // destination smart contract address
-  };
-}
-
-interface ClientOptions extends PeerOptions, ServerClientOptions {
-  chains: NetworkOptions[]; // Supported chains
-  bridges?: BridgeOptions[]; // Optional assets bridges configuration
-  storage?: StorageOptions; // Optional data storage configuration
-  wallet?: Wallet; // Optional wallet configuration. Make sense in the `electron.js` environment
-}
+  /** Multiaddr of the coordination server */
+  serverAddress: string;
+  /** Query validation schema */
+  querySchema: ZodType<CustomRequestQuery>;
+  /** Offer options validation schema instance */
+  offerOptionsSchema: ZodType<CustomOfferOptions>;
+  /** Client key-value storage initializer */
+  storageInitializer: (...args: unknown[]) => Promise<Storage>;
+  /** Request registry keys prefix */
+  requestRegistryPrefix: string;
+  /** Ethers.js provider instance */
+  provider?: AbstractProvider | undefined;
+  /** Additional Libp2p initialization options */
+  libp2p?: Libp2pOptions | undefined;
+};
 ```
 
 Here is an example of a client configuration:
 
 ```typescript
 import { Wallet } from 'ethers';
-import { ClientOptions, clientLocalStorage } from '@windingtree/sdk';
-import { serializationFunction } from './utils.js';
-import { walletPrivateKey } from './config.js';
+import { ClientOptions, storage } from '@windingtree/sdk';
+import { RequestQuerySchema, OfferOptionsSchema, RequestQuery, OfferOptions } from './config.js';
 
-const options: ClientOptions = {
-  chains: [
-    {
-      chainId: 000,
-      rpc: 'https://RpcUri',
-      contract: '0x1dfe9Ca09e99d10833Bf73044a23B73Fc20523DF',
-    },
-  ],
-  serverAddress: '/ip4/127.0.0.1/tcp/33333/ws/p2p/QmcXbDrzUU5ERqRaronWmAJXwe6c7AEkS7qdcsjgEuWPCf',
-  bridges: [
-    {
-      name: 'polygon',
-      income: {
-        chainId: 137,
-        address: '0x5771449C72ED80f28b3bE3a962Bf7E88adFA58bd',
-      },
-      outcome: {
-        chainId: 000,
-        address: '0xbf3db410a05b3864a45074713150779b5b99880e',
-      },
-    },
-  ],
-  storage: {
-    engine: clientLocalStorage,
-    options: {
-      prefix: '_client',
-      serialize: serializationFunction,
-    },
+const options: ClientOptions<RequestQuery, OfferOptions> = {
+  querySchema: RequestQuerySchema,
+  offerOptionsSchema: OfferOptionsSchema,
+  contractConfig: {
+    name: 'WtMarket',
+    version: '1',
+    chainId: '1',
+    address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
   },
-  wallet: new Wallet(walletPrivateKey),
+  serverAddress: '/ip4/127.0.0.1/tcp/33333/ws/p2p/QmcXbDr...jgEuWPCf',
+  storageInitializer: storage.localStorage.init({
+    session: true,
+  }),
+  requestRegistryPrefix: 'requestsRegistry',
 };
 ```
-
-> In the browser environment the `wallet` configuration is not required. In the browser the client will automatically select a connected wallet (e.q. MetaMask, WalletConnect, etc).
 
 ## SDK development
 
