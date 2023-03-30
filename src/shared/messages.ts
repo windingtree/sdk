@@ -192,12 +192,18 @@ export const createOfferDataSchema = <
   offerOptionsSchema: TOfferOptions,
 ) =>
   GenericMessageSchema.extend({
-    request: createRequestDataSchema<TQuery>(querySchema), // Copy of request
-    options: offerOptionsSchema, // Offer options
-    payment: z.array(PaymentOptionSchema), // Payment options
-    cancel: z.array(CancelOptionSchema), // Cancellation options
-    payload: UnsignedOfferPayloadSchema, // Raw offer payload
-    signature: z.string(), // EIP-712 TypedSignature(UnsignedOffer)
+    /** Copy of request */
+    request: createRequestDataSchema<TQuery>(querySchema),
+    /** Offer options */
+    options: offerOptionsSchema,
+    /** Payment options */
+    payment: z.array(PaymentOptionSchema),
+    /** Cancellation options */
+    cancel: z.array(CancelOptionSchema),
+    /** Raw offer payload */
+    payload: UnsignedOfferPayloadSchema,
+    //** EIP-712 TypedSignature(UnsignedOffer) */
+    signature: z.string(),
   }).strict();
 
 /**
