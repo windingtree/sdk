@@ -86,7 +86,7 @@ More about the node configuration options is [here](./index.md#supplier-node).
 ```typescript
 import { NodeOptions, createNode } from '@windingtree/sdk';
 
-const options: NodeOptions = {
+const options: NodeOptions<RequestQuery, OfferOptions> = {
   /*...*/
 };
 
@@ -99,47 +99,49 @@ await node.stop(); // Stop the client
 
 A node allows subscribing to the following event types.
 
-- `connect`: emitted when the node is connected to the coordination server
-- `disconnect`: emitted when the node is disconnected
-- `pause`: emitted when the coordination server moves in paused state
+- `connected`: emitted when the node is connected to the coordination server
+- `disconnected`: emitted when the node is disconnected
+- `start`: emitted when the node is started
+- `stop`: emitted when the node is stopped
 - `heartbeat`: emitted every second, useful for performing utility functions
 - `request`: emitted on every incoming request
 
 ```typescript
-node.subscribe('connect', () => {
+node.addEventListener('connected', () => {
   console.log('Connected!');
 });
 
-node.subscribe('disconnect', () => {
+node.addEventListener('disconnected', () => {
   console.log('Disconnected!');
 });
 
-node.subscribe('pause', ({ reason }) => {
-  console.log(`Server paused due to: ${reason}`);
+node.addEventListener('start', () => {
+  console.log('Node started');
 });
 ```
 
 ## Subscribing to requests
 
-To start listening to requests the supplier must provide a list of `subjects` in the node configuration options. If this option has not been provided during the configuration step it will be possible to subscribe to requests later using the `addSubjects` method of the node and `removeSubjects` for removing subscriptions.
+To start listening to requests the supplier must provide a list of `topics` in the node configuration options.
 
 ```typescript
 import { latLngToCell } from '@windingtree/sdk/utils';
 
-const subject = latLngToCell(coordinates.lat, coordinates.lng);
-node.addSubjects([subject]);
-node.getSubjects();
+const topic = latLngToCell(coordinates.lat, coordinates.lng);
 // -> ['87283472bffffff']
 
-node.removeSubjects([subject]);
-node.getSubjects();
-// -> null
+const options: NodeOptions<RequestQuery, OfferOptions> = {
+  /** ... */
+  topics: [topic], // <-- When started the node will be subscribed to these topics
+};
+
+const node = createNode(options);
 ```
 
 To add a requests handler you should subscribe to the `request` event of the node.
 
 ```typescript
-node.subscribe('request', async ({ data }: Request): Promise<void> => {
+node.addEventListener('request', async ({ data }): Promise<void> => {
   console.log(`Got the request #${data.id} with query: ${data.query}`);
   // - validation of the request: expiration time, query parameters, etc
   // - adding the request to the processing queue
@@ -152,293 +154,180 @@ It is recommended that all incoming requests that are passed validation should b
 
 > It is not mandatory to add requests to the queue. If you want, you can skip this step and process requests right in the `request` event handler. However, you should be aware that this approach can cause requests to drop between application restarts. Also, this approach will consume more system resources because all request handlers will be processed in system memory at the same time.
 
-Before start using the requests queue you should configure an asynchronous processing callback. You can do it using the `register` method of the `node.requestQueue`.
+Before start using the requests queue you should configure an asynchronous processing callback and register it in the `Queue` utility instance.
 
 ```typescript
-interface RequestsQueueTask {
-  id: string;
-  status:
-    | 'REQUEST_TASK_PENDING'
-    | 'REQUEST_TASK_PROCESSING'
-    | 'REQUEST_TASK_FAILED'
-    | 'REQUEST_TASK_DONE';
-  request: Request;
-  errors: Error[];
+import { storage, Queue, createJobHandler } from '@windingtree/sdk/utils';
+
+const queue = new Queue({
+  /** You can use any other available storage options */
+  storage: await storage.memoryStorage.init()(),
+  hashKey: 'jobs',
+  concurrentJobsNumber: 10,
+});
+
+/**
+ * This is interface of object that you want to pass to the job handler as options
+ */
+interface RequestHandlerOptions {
+  node: Node<RequestQuery, OfferOptions>;
 }
 
-node.requestsQueue.register(async (task: RequestsQueueTask): Promise<void> => {
-  // ...do something with the request
-  // see "Building of offer" below
+/**
+ * Handler should be created using createJobHandler factory function
+ */
+const requestsHandler = createJobHandler<RequestData<CustomRequestQuery>, RequestHandlerOptions>(
+  async (data, options) => {
+    // data - raw request
+    // options - object with everything else you want pass into the handler at run time
+  },
+);
+
+/**
+ * Registering of the request handler in the queue
+ */
+queue.addJobHandler(
+  'request',
+  requestsHandler({
+    /**
+     * Passing a node reference.
+     * This reference will be available in the handler through the `options` argument
+     * */
+    node,
+  }),
+);
+```
+
+To add a request to the queue you should use the `addJob` method of the `Queue` utility instance.
+
+```typescript
+/**
+ * Creation of the job
+ */
+queue.addJob('request', rawRequest, {
+  /** Forget about this request if it is expired */
+  expire: rawRequest.expire,
 });
 ```
 
-To add a request to the queue you should use the `add` method of the `node.requestQueue`.
+## Building and publishing of offer
 
-```typescript
-const taskId = node.requestsQueue.add(request);
-const task = await node.requestsQueue.get(taskId);
-// -> RequestsQueueTask instance
-```
-
-## Building of offer
-
-It is the idea to generate an offer on every valid request. Associated logic should be incorporated into the request queue handler as explained in the previous chapter.
+It is the idea to generate an offer on every valid and acceptable request. Associated logic should be incorporated into the request queue handler as explained in the previous chapter.
 
 Every offer structure must follow the generic message data structure proposed by the protocol.
 
-Here is the types structure of an offer:
+Here is type of an offer:
 
 ```typescript
-// Common message structure
-interface GenericMessage {
-  id: string; // Unique message Id
-  expire: number; // Expiration time in seconds
-  nonce?: number; // A number that reflects the version of the message
-  [key: string]: unknown;
-}
-
-// Generic offer is just an object with props
-type GenericOfferOptions = Record<string, unknown>;
-
-// Offered payment option
-interface PaymentOption {
-  id: string; // Unique payment option Id
-  price: string; // Asset price in WEI
-  asset: string; // ERC20 asset contract address
-}
-
-// Offered cancellation option
-interface CancelOption {
-  time: number; // Seconds before checkIn
-  penalty: number; // percents of total sum
-}
-
-// Offer payload
-interface UnsignedOffer {
-  supplierId: string; // Unique supplier Id registered on the protocol contract
-  chainId: number; // Target network chain Id
-  requestHash: string; // <keccak256(request.hash())>
-  optionsHash: string; // <keccak256(JSON.stringify(offer.options))>
-  paymentHash: string; // <keccak256(JSON.stringify(offer.payment))>
-  cancelHash: string; // <keccak256(JSON.stringify(offer.cancel(sorted by time DESC) || []))>
-  transferable: boolean; // makes the deal NFT transferable or not
-  checkIn: number; // check-in time in seconds
-}
-
-interface SignedOffer extends UnsignedOffer {
-  signature: string; // EIP-712 TypedSignature(UnsignedOffer)
-}
-
-// Generic offer is just an object with props
-type GenericOfferOptions = Record<string, unknown>;
-
-interface BaseOfferData<OfferOptions extends GenericOfferOptions> {
-  options: OfferOptions; // Supplier-specific offer options
-  payment: PaymentOption[]; // Payment options
-  cancel?: CancelOption[]; // Cancellation options
-}
-
-interface OfferData<RequestQuery extends GenericQuery, OfferOptions extends GenericOfferOptions>
-  extends GenericMessage,
-    BaseOfferData<OfferOptions> {
-  request: RequestData<RequestQuery>; // Copy of associated request
-  offer: UnsignedOffer;
-  signature: string; // EIP-712 TypedSignature(UnsignedOffer)
-}
-```
-
-To build an offer you should use the `buildOffer` method of arrived `request` object.
-
-```typescript
-request.buildOffer<BaseOfferData<CustomOfferOptions>>(
-  baseData: BaseOfferData<CustomOfferOptions>,
-  expire: string,
-  validator?: (data: BaseOfferData<CustomOfferOptions>) => void
-): Offer<CustomRequestQuery, BaseOfferData<CustomOfferOptions>>
-```
-
-The `Offer` that produced by `request.buildOffer` is an object that implements the following interface:
-
-```typescript
-interface OfferMetadata {
-  id: string; // Offer Id
-  requestId: string; // Request Id to which the offer is stuck to
-  published?: string; // ISO DateTime
-  received?: string; // ISO DateTime
-  expire: number; // Time in seconds
-  valid: boolean; // Validation result
-  error?: string[]; // Validation errors
-}
-
-interface Offer<CustomRequestQuery extends GenericQuery, CustomBaseOfferData extends BaseOfferData<CustomOfferOptions>> {
-  data: OfferData<CustomRequestQuery, CustomBaseOfferData>;
-  metadata: OfferMetadata;
-  async validate(): Promise<void>;
-  async deal(paymentOptionId: number, txCallback?: (txHash: string) => void): Promise<void>;
-  subscribe(async function(tokeId: number): Promise<void>): void;
-  unsubscribe(): void;
-  toString(): string; // Serialize a OfferData<CustomRequestQuery, CustomBaseOfferData> into string
-}
-```
-
-The `Offer` object exposed the following methods:
-
-- `subscribe(callback)`: creates subscription to deals associated with the offer
-- `unsubscribe()`: removes the subscription to deals
-- `toString()`: serializes the offer object
-- `hash()`: creates a standardized hash of the serialized object data
-
-Here an example how you can build an offer:
-
-```typescript
-import { CustomQueryType } from './types';
-
-interface MyOfferOptions {
-  checkInDate: string; // ISO 8601 ISO Date
-  checkOutDate: string; // ISO 8601 ISO Date
-  guests: {
-    adults: number;
-    children?: number;
-  },
-  rooms?: number;
-  amenities?: string[];
-  lateCheckIn?: boolean;
-}
-
-const myOfferValidator = (data: MyOffer): void => {
-  // your validation logic
-  // - should validate an offer data
-  // - should throw an Error in case of mistakes
+type OfferData<RequestQuery, OfferOptions> = {
+  /** Custom offer options */
+  options: OfferOptions;
+  /** Uniquer offer id */
+  id: string;
+  /** Offer expiration time */
+  expire: number;
+  /** Offer nonce. Must be equal to 1 */
+  nonce: number;
+  /** Copy of request obtained */
+  request: {
+    id: string;
+    expire: number;
+    nonce: number;
+    topic: string;
+    query: RequestQuery;
+  };
+  /** Payment options */
+  payment: {
+    id: string;
+    price: string;
+    asset: string;
+  }[];
+  /** Cancellation rules */
+  cancel: {
+    time: number;
+    penalty: number;
+  }[];
+  /** Offer payload */
+  payload: {
+    supplierId: string;
+    chainId: number;
+    requestHash: string;
+    optionsHash: string;
+    paymentHash: string;
+    cancelHash: string;
+    transferable: boolean;
+    checkIn: number;
+  };
+  /** EIP-712 (Typed) signature */
+  signature: string;
 };
-
-const offer = node.buildOffer<CustomQueryType, MyOfferOptions>(
-  {
-    supplierId: '0x9300bad07f0b9d90...701db2539b7a5a119',
-    // Offer options
-    options: {
-      checkInDate: '2023-04-20',
-      checkOutDate: '2023-04-25',
-      guests: {
-        adults: 2,
-        children: 0,
-      },
-      rooms: 1,
-      amenities: [
-        'wifi',
-      ];
-      lateCheckIn: true,
-    },
-    // Payment options
-    payment: [
-      {
-        id: '1cf51a15-da09-4a68-929d-84e60901ca0f',
-        asset: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', // USD
-        price: '100000000000000000000',
-      },
-      {
-        id: '1937734a-e1e2-41c9-a8cf-1ffd650f6407',
-        asset: '0x55d398326f99059ff775485246999027b3197955', // EUR
-        price: '90000000000000000000'
-      }
-    ],
-    // Cancellation options
-    cancel: [
-      {
-        time: 86400 * 7 * 2, // two week before checkin
-        penalty: 50 // 50% penalty
-      },
-      {
-        time: 86400 * 7, // one week before checkin
-        penalty: 100 // 100% penalty (means "0")
-      }
-    ],
-    transferable: false, // a deal will not be transferrable
-  },
-  '30m',
-  1,
-  validator: myOfferValidator,
-);
-
-console.log(offer.toString());
-/*
-  {
-    "supplierId": "0x9300bad07f0b9d90...701db2539b7a5a119",
-    "chainId": 000,
-    "options": {
-      "checkInDate": "2023-04-20",
-      "checkOutDate": "2023-04-25",
-      "guests": {
-        "adults": 2,
-        "children": 0
-      },
-      "rooms": 1,
-      "amenities": [
-        "wifi"
-      ];
-      "lateCheckIn": true
-    },
-    "payment": [
-      {
-        "id": "1cf51a15-da09-4a68-929d-84e60901ca0f",
-        "asset": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
-        "price": "100000000000000000000"
-      },
-      {
-        "id": "1937734a-e1e2-41c9-a8cf-1ffd650f6407",
-        "asset": "0x55d398326f99059ff775485246999027b3197955",
-        "price": "90000000000000000000"
-      }
-    ],
-    "cancel": [
-      {
-        "id": "79528ee0-0300-4695-926e-065f485ce0c7",
-        "time": 1209600,
-        "penalty": 50
-      },
-      {
-        "id": "9b0a55e2-c276-46c7-a310-0c4f6c056070",
-        "time": 604800,
-        "penalty": 100
-      }
-    ],
-    "requestHash": "0x.."
-    "optionsHash": "0x.."
-    "paymentHash": "0x.."
-    "cancelHash": "0x.."
-    "transferable": false,
-    "checkIn": 1681948800,
-    "signature": "0xd398326f99059ff7754...3fe1ad97b32"
-  }
-*/
 ```
 
-## Sending of offer
+To build and publish an offer you should use the `buildOffer` method of a node instance.
 
 ```typescript
-offer.publish();
+const offer = await node.buildOffer({
+  /** Offer expiration time */
+  expire: '30s',
+  /** Copy of request */
+  request: detail.data,
+  /** Random options data. Just for testing */
+  options: {
+    date: DateTime.now().toISODate(),
+    buongiorno: Math.random() < 0.5,
+    buonasera: Math.random() < 0.5,
+  },
+  /**
+   * Dummy payment option.
+   * In production these options managed by supplier
+   */
+  payment: [
+    {
+      id: simpleUid(),
+      price: '1',
+      asset: ZeroAddress,
+    },
+  ],
+  /** Cancellation options */
+  cancel: [
+    {
+      time: nowSec() + 500,
+      penalty: 100,
+    },
+  ],
+  /** Check-in time */
+  checkIn: nowSec() + 1000,
+});
 ```
 
 ## Checking and processing a deal
 
+When a client receives one or many offers on his request he chooses one and sends a transaction to the smart contract. If this transaction is succeeded a `Deal` is registered and can be detected by the supplier node.
+
+Detecting a Deal is possible in two ways. The first option is listening for the smart contract events (`Deal` event). The second is continuous smart contract state monitoring.
+
+Listening to smart contract events is a simple but not scalable way in case of huge traffic of deals. In this case, all responsibility is moved to the blockchain network provider (JSON-RPC provider) side. A huge amount of listeners may bring the provider to an unstable state. Because of that the risk of a Deal event missing is rising.
+
+The second, alternative way is creating a queue-enabled poller that will repeatedly request the smart contract for concrete deals until related offers expired.
+
+Depending on the business and offer traffic scale both strategies can be implemented using SDK features.
+
+Here is demonstrated a variant that uses poller based on `Queue` utility.
+
 ```typescript
-offer.subscribe(async (tokenId: number): Promise<boolean> => {
-  console.log(`The deal # ${tokenId} is detected for offer ${offer.data.id}`);
-  // ...processing the availability
-  return false; // to remove the subscription
+/**
+ * A Deal job handler should be created in the same way as requests
+ */
+
+queue.addJob('deal', offer, {
+  expire: offer.expire,
+  every: 5000, // 5 sec
 });
 ```
 
 ## Checking for cancellation
 
-```typescript
-import { DEAL_CANCELLED } from '@windingtree/sdk';
-// Create the deal object
-const deal = await node.deal(chainId, tokenId);
-
-if (deal.status === DEAL_CANCELLED) {
-  console.log(`The deal #${tokenId} has been cancelled by the client`);
-}
-```
+The cancellation of a deal can be detected and processed in the same way as deal creation through smart contract events and using a queue-based poller.
 
 ## Checkin
 
