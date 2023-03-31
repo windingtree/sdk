@@ -215,7 +215,12 @@ export class RequestsRegistry<
   private storage?: Storage;
   private storageKey: string;
 
-  // @todo Refactor a RequestsRegistry arguments into options (with validation schema)
+  /**
+   * Creates an instance of RequestsRegistry.
+   *
+   * @param {RequestManagerOptions<CustomRequestQuery, CustomOfferOptions>} options
+   * @memberof RequestsRegistry
+   */
   constructor(options: RequestManagerOptions<CustomRequestQuery, CustomOfferOptions>) {
     super();
 
@@ -232,6 +237,13 @@ export class RequestsRegistry<
     this._storageUp().catch(logger.error);
   }
 
+  /**
+   * Restores class state from the storage
+   *
+   * @private
+   * @returns {Promise<void>}
+   * @memberof RequestsRegistry
+   */
   private async _storageUp(): Promise<void> {
     if (!this.storage) {
       throw new Error('Invalid requests registry storage');
@@ -266,6 +278,12 @@ export class RequestsRegistry<
     }
   }
 
+  /**
+   * Stores class state to the storage
+   *
+   * @private
+   * @memberof RequestsRegistry
+   */
   private _storageDown(): void {
     if (!this.storage) {
       throw new Error('Invalid requests registry storage');
@@ -274,6 +292,13 @@ export class RequestsRegistry<
     this.storage.set(this.storageKey, Array.from(this.requests.values())).catch(logger.error);
   }
 
+  /**
+   * Unsubscribes a request from listening to offers
+   *
+   * @private
+   * @param {string} id
+   * @memberof RequestsRegistry
+   */
   private _unsubscribe(id: string) {
     const timeout = this.subscriptions.get(id);
 
@@ -292,6 +317,14 @@ export class RequestsRegistry<
     }
   }
 
+  /**
+   * Subscribes a request
+   *
+   * @private
+   * @param {RequestRecord<CustomRequestQuery, CustomOfferOptions>} record
+   * @returns
+   * @memberof RequestsRegistry
+   */
   private _subscribe(record: RequestRecord<CustomRequestQuery, CustomOfferOptions>) {
     if (!this.client.libp2p || !this.client.connected) {
       throw new Error('Client not connected to the coordination server yet');
@@ -324,10 +357,23 @@ export class RequestsRegistry<
     );
   }
 
+  /**
+   * Checks if request is currently subscribed
+   *
+   * @param {string} id
+   * @returns
+   * @memberof RequestsRegistry
+   */
   subscribed(id: string) {
     return this.subscriptions.has(id);
   }
 
+  /**
+   * Adds request to the registry, publishes it and subscribes to offers
+   *
+   * @param {RequestData<CustomRequestQuery>} request
+   * @memberof RequestsRegistry
+   */
   add(request: RequestData<CustomRequestQuery>) {
     if (!this.client.libp2p || !this.client.connected) {
       throw new Error('Client not connected to the coordination server yet');
@@ -366,16 +412,35 @@ export class RequestsRegistry<
       .catch(logger.error);
   }
 
+  /**
+   * Returns request record by Id
+   *
+   * @param {string} id
+   * @returns {(RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined)}
+   * @memberof RequestsRegistry
+   */
   get(id: string): RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined {
     return this.requests.get(id);
   }
 
+  /**
+   * Returns an array of all registered records
+   *
+   * @returns {Required<RequestRecord<CustomRequestQuery, CustomOfferOptions>>[]}
+   * @memberof RequestsRegistry
+   */
   getAll(): Required<RequestRecord<CustomRequestQuery, CustomOfferOptions>>[] {
     return Array.from(this.requests.values()) as Required<
       RequestRecord<CustomRequestQuery, CustomOfferOptions>
     >[];
   }
 
+  /**
+   * Cancels the request. This stops its subscription to offers
+   *
+   * @param {string} id
+   * @memberof RequestsRegistry
+   */
   cancel(id: string) {
     const record = this.requests.get(id);
 
@@ -402,6 +467,13 @@ export class RequestsRegistry<
     this._storageDown();
   }
 
+  /**
+   * Removes a request from registry by Id
+   *
+   * @param {string} id
+   * @returns
+   * @memberof RequestsRegistry
+   */
   delete(id: string) {
     this._unsubscribe(id);
     const deleted = this.requests.delete(id);
@@ -419,6 +491,11 @@ export class RequestsRegistry<
     throw new Error(`Unable to delete request #${id}`);
   }
 
+  /**
+   * Clear the registry
+   *
+   * @memberof RequestsRegistry
+   */
   clear() {
     for (const id of this.subscriptions.keys()) {
       this.cancel(id);
@@ -428,6 +505,12 @@ export class RequestsRegistry<
     this.dispatchEvent(new CustomEvent<void>('clear'));
   }
 
+  /**
+   * Adds an offer to the associated request record
+   *
+   * @param {OfferData<CustomRequestQuery, CustomOfferOptions>} offer
+   * @memberof RequestsRegistry
+   */
   addOffer(offer: OfferData<CustomRequestQuery, CustomOfferOptions>) {
     offer = createOfferDataSchema<z.ZodType<CustomRequestQuery>, z.ZodType<CustomOfferOptions>>(
       this.client.querySchema,
