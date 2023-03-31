@@ -6,12 +6,13 @@ More about the client configuration options is [here](./index.md#client-node).
 
 ```typescript
 import { ClientOptions, createClient } from '@windingtree/sdk';
+import { RequestQuery, OfferOptions } from './config.js';
 
-const options: ClientOptions = {
+const options: ClientOptions<RequestQuery, OfferOptions> = {
   /*...*/
 };
 
-const client = createClient(options);
+const client = createClient<RequestQuery, OfferOptions>(options);
 await client.start(); // Start the client
 await client.stop(); // Stop the client
 ```
@@ -20,22 +21,31 @@ await client.stop(); // Stop the client
 
 A client allows subscribing to the following event types.
 
-- `connect`: emitted when the client is connected to the coordination server
-- `disconnect`: emitted when the client is disconnected
-- `pause`: emitted when the coordination server moves in paused state
+- `start`: emitted when the client is started
+- `stop`: emitted when the client is stopped
+- `connected`: emitted when the client is connected to the coordination server
+- `disconnected`: emitted when the client is disconnected
 - `heartbeat`: emitted every second, useful for performing utility functions
 
+Requests events scope:
+
+- `request:create`: emitted when a request is created
+- `request:publish`: emitted when a request is published
+- `request:subscribe`: emitted when a request is subscribe to offers
+- `request:unsubscribe`: emitted when a request is unsubscribed
+- `request:expire`: emitted when a request is expired
+- `request:cancel`: emitted when a request is cancelled
+- `request:delete`: emitted when a request is deleted from registry
+- `request:offer`: emitted when offer on a request is received
+- `request:clear`: emitted when the request registry is cleared
+
 ```typescript
-client.subscribe('connect', () => {
-  console.log('Connected!');
+client.addEventListener('start', () => {
+  console.log('Started!');
 });
 
-client.subscribe('disconnect', () => {
-  console.log('Disconnected!');
-});
-
-client.subscribe('pause', ({ reason }) => {
-  console.log(`Server paused due to: ${reason}`);
+client.addEventListener('stop', () => {
+  console.log('Stopped!');
 });
 ```
 
@@ -46,236 +56,187 @@ Every request structure must follow the generic message data structure proposed 
 ```typescript
 type GenericQuery = Record<string, unknown>;
 
-// Common message structure
+/**
+ * Common message structure
+ */
 interface GenericMessage {
-  id: string; // Unique message Id
-  expire: number; // Expiration time in seconds
-  nonce?: number; // A number that reflects the version of the message
-  [key: string]: unknown;
+  /** Unique message Id */
+  id: string;
+  /** Expiration time in seconds */
+  expire: number;
+  /** A number that reflects the version of the message */
+  nonce: number;
 }
 
-// Request data structure
+/**
+ * Request data structure
+ */
 interface RequestData<RequestQuery extends GenericQuery> extends GenericMessage {
-  query: RequestQuery; // Industry specific query type
+  /** Industry specific query type */
+  query: RequestQuery;
 }
 ```
 
-To build a request you should use the `buildRequest` method of SDK.
+The protocol SDK uses the `zod` library for data structures validation. Ready-made data structures validation schemes and static typescript types can be imported from the SDK module.
 
 ```typescript
-buildRequest<CustomRequestQuery>(
-  data: CustomRequestQuery,
-  expire: string,
-  nonce?: number,
-  validator?: (data: CustomRequestQuery) => void
-): Request<CustomRequestQuery>
-```
+import { z } from 'zod';
+import { GenericQuerySchema, createRequestDataSchema, RequestData } from '@windingtree/sdk';
 
-The `Request` that produced by `buildRequest` is an object that implements the following interface:
+/**
+ * Custom query schema
+ */
+const MyCustomRequestQuerySchema = GenericQuerySchema.extend({
+  howMuch: z.number(),
+});
 
-```typescript
-interface RequestMetadata {
-  id: string; // Request Id
-  published?: string; // ISO DateTime
-  received?: string; // ISO DateTime
-  expire: number; // Time in seconds
-  offers: string[]; // Offers Ids
-}
+type MyCustomRequestQuery = z.infer<typeof MyCustomRequestQuerySchema>;
 
-interface Request<CustomRequestQuery> {
-  data: RequestData<CustomRequestQuery>;
-  metadata: RequestMetadata;
-  change(
-    data: CustomRequestQuery,
-    expire: string
-  ): void; // Updates `data`, also updates `expire` time and increases `nonce` in a RequestData
-  subscribe<CustomOfferType>(async function({ message: CustomOfferType }): Promise<void>, OffersSubscriptionOptions): () => void; // Returns `unsubscribe` function for current subscription
-  unsubscribe(): void; // Unsubscribe all subscriptions
-  toString(): string; // Serialize a RequestData<CustomRequestQuery> into string
-  hash(): string; // Standardized has of the serialized object data
-}
-```
-
-Here an example how you can build a request:
-
-```typescript
-import { buildRequest } from '@windingtree/sdk';
-
-interface MyQuery {
-  location: string; // H3 index. e.q. '8928342e20fffff'
-  checkInDate: string; // ISO 8601 Date e.q. '2023-04-20'
-  checkOutDate: string; // ISO 8601 Date e.q. '2023-04-25'
-  guests: {
-    adults: number;
-    children?: number;
-  };
-  rooms?: number;
-  amenities?: string[];
-  lateCheckIn?: boolean;
-}
-
-const myQueryValidator = (data: MyQuery): void => {
-  // your validation logic
-  // - should validate a query data
-  // - should throw an Error in case of mistakes
+const request: RequestData<MyCustomRequestQuery> = {
+  /** ... */
+  query: {
+    howMuch: 10,
+  },
 };
 
-const request = buildRequest<MyQuery>(
-  {
-    location: '8928342e20fffff',
-    checkInDate: '2023-04-20',
-    checkOutDate: '2023-04-25',
-    guests: {
-      adults: 2,
-      children: 0,
-    },
-    rooms: 1,
-    amenities: ['wifi', 'pets allowed', 'balcony'],
-  },
-  '1h',
-  1,
-  myQueryValidator,
+const requestSchema = createRequestDataSchema<typeof MyCustomRequestQuerySchema>(
+  MyCustomRequestQuerySchema,
 );
 
-console.log(request.toString());
-/*
-  {
-    "id": "19817818-9d87-43cd-b6cf-6b965685c2d4",
-    "expire": 1676548866,
-    "nonce": 1,
-    "query": {
-      "location": "8928342e20fffff",
-      "checkInDate": "2023-04-20",
-      "checkOutDate": "2023-04-25",
-      "guests": {
-        "adults": 2,
-        "children": 0,
-      },
-      "rooms": 1,
-      "amenities": [
-        "wifi",
-        "pets allowed,
-        "balcony,
-      ]
-    }
-  }
-*/
+// the `parse` method of schema is validating an object according to the schema rules
+const { query } = requestSchema.parse(request);
+console.log(query);
+// {
+//   howMuch: 10,
+// }
 ```
 
-Now we can change the request (update its data):
+To build a request you can use the `requests.create` method of the client instance.
 
 ```typescript
-request.change(
-  {
-    location: '8928342e20fffff',
-    checkInDate: '2023-04-22',
-    checkOutDate: '2023-04-27',
-    guests: {
-      adults: 3,
-      children: 0,
-    },
-    rooms: 2,
-    amenities: ['wifi'],
+const request = await client.requests.create({
+  topic: 'hello',
+  expire: '1m', // 1 minute
+  nonce: 1,
+  query: {
+    howMuch: 10,
   },
-  '1d',
-);
-
-console.log(request.toString());
-/*
-  {
-    "id": "19817818-9d87-43cd-b6cf-6b965685c2d4",
-    "expire": 1676638507,
-    "nonce": 2,
-    "query": {
-      "location": "8928342e20fffff",
-      "checkInDate": "2023-04-22",
-      "checkOutDate": "2023-04-27",
-      "guests": {
-        "adults": 3,
-        "children": 0,
-      },
-      "rooms": 2,
-      "amenities": [
-        "wifi"
-      ]
-    }
-  }
-*/
+});
+console.log(request);
+// {
+//   id: '27ef525f-2521-43c6-9e70-d9a12a37d532',
+//   expire: 1680258961,
+//   nonce: 1,
+//   topic: 'hello',
+//   query: {
+//     howMuch: 10
+//   };
+// }
 ```
 
 ## Subscribing to offers
 
+The protocol client automatically publishes the request when it is added to the requests management registry. You should use `requests.publish` method of the client instance to publish your request.
+
 ```typescript
-import { OffersSubscriptionOptions } from '@windingtree/sdk';
+client.addEventListener('request.publish', ({ detail: id }) => {
+  console.log(`Request #${id} is published`);
+});
 
-const options: OffersSubscriptionOptions = {
-  autoValidate: false,
-};
+client.requests.publish(request);
 
-request.subscribe<OfferData>(async ({ id, offer }, options) => {
-  console.log('Offer arrived!', id);
-  console.log('Offer:', offer.toString());
-  try {
-    const validationResult = await offer.validate();
-  } catch (error) {
-    console.log(`Offer #${is} is not valid: ${error.message}`);
-  }
+// Request #27ef525f-2521-43c6-9e70-d9a12a37d532 is published
+```
+
+## Requests API
+
+Here are the available methods of the clients' requests AP
+
+- `create`: Creates a new request
+
+```typescript
+const request = await client.request.create({
+  /** RequestData<RequestQuery> */
 });
 ```
 
-> The subscription will be started when the request published
-
-> The subscription will be automatically removed (unsubscribed) when the request expiration time is exhausted
-
-> Important! Suppliers can send multiple offers with different options and prices in response to the same request. The client should collect all of them in a special period of time and then propose to the user options to choose the best-fitted one.
-
-## Sending of request
+- `publish`: Publishes the request
 
 ```typescript
-try {
-  await client.publish(request);
-  console.log('Request is published!');
-} catch (error) {
-  console.log(`Publishing error: ${error.message}`);
-}
+client.request.publish(request);
 ```
+
+- `get`: Returns request registry record:
+
+```typescript
+type RequestRecord<RequestQuery, OfferOptions> = {
+  /** Request data */
+  data: RequestData<RequestQuery>;
+  /** Received offers */
+  offers: OfferData<RequestQuery, OfferOptions>[];
+};
+```
+
+```typescript
+const requestRecord = await client.request.get(request.id);
+```
+
+- `getAll`: Returns an array of all registered request records
+- `cancel`: Cancels the request subscription. Offers for this request will not be accepted.
+- `delete`: Removes the request from the client registry
+- `clear`: Removes all requests from the registry
+- `subscribed`: Checks if request is currently subscribed by its Id
 
 ## Processing offers
 
-Offers obtained in the requests handler will be objects that implement the following interface:
+An offer data type is describe [here](/docs/nodes.md#building-and-publishing-of-offer).
+
+All received offers are automatically added to the registry and accessible via the `offers` property of the associated request record.
+
+To get all offers from registry you need to fetch a request record using `get` method.
 
 ```typescript
-interface OfferMetadata {
-  id: string; // Offer Id
-  requestId: string; // Request Id to which the offer is stuck to
-  published?: string; // ISO DateTime
-  received?: string; // ISO DateTime
-  expire: number; // Time in seconds
-  valid: boolean; // Validation result
-  error?: string[]; // Validation errors
-}
-
-interface Offer<CustomQueryType, CustomOfferType> {
-  data: OfferData<CustomOfferType>;
-  metadata: OfferMetadata;
-  validate(): Promise<void>;
-  deal(paymentOptionId: number, txCallback?: (txHash: string) => void): Promise<void>;
-  toString(): string; // Serialize a RequestData<CustomQueryType> into string
-}
+const { offers } = client.requests.get(request.id);
 ```
 
-When you got an offer, if it acceptable, you should complete the following steps:
-
-1. Validate the offer by calling the `offer.validate()` method. This method will throw an error in case of any troubles. You can enable automatic validation on offers arrival time though a request subscription options
-2. Choose an acceptable payment option from the offer
-3. Bridge assets to L3 (if required)
-4. Make a deal on the offer using the `offer.deal(poId, txClb)`
-
-## Managing funds
+Every time a new offer is received the client emits a `request:offer` event. You can use this event to support your local environment up to date.
 
 ```typescript
-import { wallet } from '@windingtree/sdk';
+import { useEffect, useRef } from 'react';
+
+const OffersList = ({ client }: { client: Client<RequestQuery, OfferOptions> }) => {
+  const offers = useRef();
+
+  useEffect(() => {
+    /** Initialization of the component */
+    offers.current = new Map<string, OfferData<RequestQuery, OfferOptions>>(
+      client.requests.getAll().reduce((a, v) => [...a, [v.data.id, v.offers]], []),
+    );
+
+    /** Manage up-to-date state */
+    client.addEventListener('request:offer', ({ details: id }) => {
+      console.log(`Received an offer to request #${id}`);
+      const { offers } = client.requests.get(request.id);
+      offers.current.set(id, offers ?? []);
+    });
+  });
+
+  return (
+    <table>
+      {[...(offers?.current.entries() ?? [])].map(
+        ((record, i) = (
+          <tr key={i}>
+            <td>{record[0]}</td>
+            <td>{record[1].length}</td>
+          </tr>
+        )),
+      )}
+    </table>
+  );
+};
 ```
+
+<!-- ## Managing funds
 
 ### Checking of balances
 
@@ -514,4 +475,4 @@ await deal.cancel((txHash) => {
 });
 
 console.log(`The deal #${deal.tokenId} has been successfully cancelled`);
-```
+``` -->
