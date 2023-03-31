@@ -240,7 +240,7 @@ export const App = () => {
         },
       });
 
-      client.current.requests.add(request);
+      client.current.requests.publish(request);
     } catch (error) {
       setError((error as Error).message);
     }

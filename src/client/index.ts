@@ -445,7 +445,7 @@ export class Client<
    */
 
   /**
-   * Create new request
+   * Creates a new request
    *
    * @private
    * @param {(Omit<BuildRequestOptions<CustomRequestQuery>, 'querySchema' | 'idOverride'>)} requestOptions
@@ -586,7 +586,7 @@ export class Client<
       /** @see _createRequest */
       create: this._createRequest.bind(this),
       /** @see _addRequest */
-      add: this._addRequest.bind(this),
+      publish: this._addRequest.bind(this),
       /** @see _getRequest */
       get: this._getRequest.bind(this),
       /** @see _getRequests */
