@@ -90,7 +90,7 @@ export class MemoryStorage extends Storage {
 }
 
 // Storage configuration
-export const init = (options?: MemoryStorageOptions) =>
+export const createInitializer = (options?: MemoryStorageOptions) =>
   createStorageInitializerFactorySchema<typeof MemoryStorageOptionsSchema>(
     MemoryStorageOptionsSchema,
   )

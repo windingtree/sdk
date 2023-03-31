@@ -149,9 +149,9 @@ export class LocalStorage extends Storage {
 /**
  * Local storage configuration
  */
-export const init = createStorageInitializerFactorySchema<typeof LocalStorageOptionsSchema>(
-  LocalStorageOptionsSchema,
-)
+export const createInitializer = createStorageInitializerFactorySchema<
+  typeof LocalStorageOptionsSchema
+>(LocalStorageOptionsSchema)
   // eslint-disable-next-line @typescript-eslint/require-await
   .implement((options) => async (): Promise<LocalStorage> => {
     return new LocalStorage(options);

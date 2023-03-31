@@ -140,7 +140,7 @@ const createRequestsHandler =
  * @returns {Promise<void>}
  */
 const main = async (): Promise<void> => {
-  const storage = await memoryStorage.init()();
+  const storage = await memoryStorage.createInitializer()();
 
   const queue = new Queue({
     storage,

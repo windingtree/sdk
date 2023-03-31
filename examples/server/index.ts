@@ -24,7 +24,7 @@ const main = async (): Promise<void> => {
      * This example uses MemoryStorage
      * but in production it is recommended to use Redis
      * */
-    messagesStorageInit: memoryStorage.init(),
+    messagesStorageInit: memoryStorage.createInitializer(),
   };
   const server = createServer(options);
 

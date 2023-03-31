@@ -57,9 +57,9 @@ describe('Shared.Queue', () => {
   });
 
   beforeEach(async () => {
-    const storage = await memoryStorage.init()();
+    const storageInit = memoryStorage.createInitializer();
     queue = new Queue({
-      storage,
+      storage: await storageInit(),
       hashKey: 'jobs',
       concurrentJobsNumber: 2,
     });

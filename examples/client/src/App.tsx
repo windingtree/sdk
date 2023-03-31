@@ -165,7 +165,7 @@ export const App = () => {
           offerOptionsSchema: OfferOptionsSchema,
           contractConfig,
           serverAddress,
-          storageInitializer: localStorage.init({
+          storageInitializer: localStorage.createInitializer({
             session: true,
           }),
           requestRegistryPrefix: 'requestsRegistry',
