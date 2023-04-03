@@ -1,3 +1,5 @@
+[![@windingtree/sdk](https://img.shields.io/npm/v/@windingtree/sdk.svg)](https://www.npmjs.com/package/@windingtree/sdk)
+
 # @windingtree/sdk
 
 The WindingTree market protocol SDK
