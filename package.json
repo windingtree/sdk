@@ -19,7 +19,6 @@
     "typescript"
   ],
   "license": "MIT",
-  "private": true,
   "type": "module",
   "exports": {
     ".": {
