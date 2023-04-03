@@ -7,9 +7,7 @@ import {
   contractConfig,
   serverAddress,
 } from '../../shared/types.js';
-import { RequestRecord } from '../../../src/client/requestsRegistry.js';
-import { Client, createClient } from '../../../src/client/index.js';
-import { ClientOptions, storage, utils } from '../../../src/index.js';
+import { Client, ClientOptions, createClient, RequestRecord, storage, utils } from '../../../src/index.js';
 // import { Client, ClientOptions, RequestRecord, createClient, storage, utils } from '@windingtree/sdk';
 
 /** Default request expiration time */
