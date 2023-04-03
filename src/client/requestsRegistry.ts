@@ -54,7 +54,7 @@ export const RequestRegistryPrefixSchema = z.string().default('requestsRegistry'
  * @template CustomRequestQuery
  * @template CustomOfferOptions
  */
-const createRequestManagerOptionsSchema = <
+const createRequestsRegistryOptionsSchema = <
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 >() =>
@@ -71,11 +71,11 @@ const createRequestManagerOptionsSchema = <
 /**
  * Request manager initialization options type
  */
-export type RequestManagerOptions<
+export type RequestsRegistryOptions<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 > = z.infer<
-  ReturnType<typeof createRequestManagerOptionsSchema<CustomRequestQuery, CustomOfferOptions>>
+  ReturnType<typeof createRequestsRegistryOptionsSchema<CustomRequestQuery, CustomOfferOptions>>
 >;
 
 /**
@@ -198,7 +198,7 @@ export interface RequestEvents<
 }
 
 /**
- * Requests manager
+ * Requests registry
  *
  * @class RequestsRegistry
  * @extends {EventEmitter<RequestEvents<CustomRequestQuery, CustomOfferOptions>>}
@@ -218,13 +218,13 @@ export class RequestsRegistry<
   /**
    * Creates an instance of RequestsRegistry.
    *
-   * @param {RequestManagerOptions<CustomRequestQuery, CustomOfferOptions>} options
+   * @param {RequestsRegistryOptions<CustomRequestQuery, CustomOfferOptions>} options
    * @memberof RequestsRegistry
    */
-  constructor(options: RequestManagerOptions<CustomRequestQuery, CustomOfferOptions>) {
+  constructor(options: RequestsRegistryOptions<CustomRequestQuery, CustomOfferOptions>) {
     super();
 
-    const { client, storage, prefix } = createRequestManagerOptionsSchema<
+    const { client, storage, prefix } = createRequestsRegistryOptionsSchema<
       CustomRequestQuery,
       CustomOfferOptions
     >().parse(options);

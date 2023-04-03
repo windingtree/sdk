@@ -374,3 +374,8 @@ export const createNode = <
 ): Node<CustomRequestQuery, CustomOfferOptions> => {
   return new Node<CustomRequestQuery, CustomOfferOptions>(options);
 };
+
+/**
+ * Request manager exports
+ */
+export * from './requestManager.js';

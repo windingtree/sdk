@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import {
   RequestQuerySchema,
   RequestQuery,
@@ -6,11 +7,11 @@ import {
   contractConfig,
   serverAddress,
 } from '../../shared/types.js';
-import { useState, useEffect, useRef } from 'react';
-import { createClient, Client, ClientOptions } from '../../../src/index.js';
-import { localStorage } from '../../../src/storage/index.js';
 import { isExpired } from '../../../src/utils/time.js';
-import { RequestRecord } from '../../../src/client/requestManager.js';
+import { RequestRecord } from '../../../src/client/requestsRegistry.js';
+import { createClient, Client } from '../../../src/client/index.js';
+import { ClientOptions, storage } from '@windingtree/sdk';
+// import { isExpired } from '@windingtree/sdk/utils';
 
 /** Default request expiration time */
 const defaultExpire = '30s';
@@ -165,7 +166,7 @@ export const App = () => {
           offerOptionsSchema: OfferOptionsSchema,
           contractConfig,
           serverAddress,
-          storageInitializer: localStorage.createInitializer({
+          storageInitializer: storage.localStorage.createInitializer({
             session: true,
           }),
           requestRegistryPrefix: 'requestsRegistry',

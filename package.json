@@ -13,25 +13,26 @@
     "windingtree",
     "market",
     "protocol",
-    "p2p",
     "libp2p",
     "sdk",
-    "typescript"
+    "typescript",
+    "p2p",
+    "peer",
+    "peer-to-peer",
+    "network"
   ],
   "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
-      "import": {
-        "default": "./lib/esm/index.mjs",
-        "types": "./lib/esm/types/index.d.ts",
-        "utils": "./lib/esm/utils"
-      },
-      "require": {
-        "default": "./lib/cjs/index.js",
-        "types": "./lib/cjs/types/index.d.ts",
-        "utils": "./lib/cjs/utils"
-      }
+      "types": "./lib/cjs/types/index.d.ts",
+      "import": "./lib/esm/index.mjs",
+      "require": "./lib/cjs/index.js"
+    },
+    "./utils": {
+      "types": "./lib/cjs/types/utils/index.d.ts",
+      "import": "./lib/esm/utils/index.js",
+      "require": "./lib/cjs/utils/index.js"
     }
   },
   "types": "./lib/cjs/types/index.d.ts",
