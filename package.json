@@ -23,22 +23,6 @@
   ],
   "license": "MIT",
   "type": "module",
-  "exports": {
-    ".": {
-      "import": "./lib/src/index.js"
-    },
-    "./utils": {
-      "import": "./lib/utils/index.js"
-    }
-  },
-  "typesVersions": {
-    "*": {
-      "*": [
-        "lib/types/*",
-        "lib/types/utils/*"
-      ]
-    }
-  },
   "types": "./lib/types/index.d.ts",
   "main": "./lib/src/index.js",
   "files": [
