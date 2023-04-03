@@ -155,6 +155,8 @@ describe('Shared.Queue', () => {
       if (job.state.attempts >= counter) {
         return true;
       }
+
+      return;
     };
 
     queue.addJobHandler(name, handler);
