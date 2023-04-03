@@ -1,4 +1,5 @@
-[![@windingtree/sdk](https://img.shields.io/npm/v/@windingtree/sdk.svg)](https://www.npmjs.com/package/@windingtree/sdk)
+[![@windingtree/sdk](https://img.shields.io/npm/v/@windingtree/sdk)](https://www.npmjs.com/package/@windingtree/sdk)
+[![Beta Release](https://github.com/windingtree/sdk/actions/workflows/release.yml/badge.svg?branch=beta)](https://github.com/windingtree/sdk/actions/workflows/release.yml)
 
 # @windingtree/sdk
 

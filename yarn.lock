@@ -101,10 +101,10 @@
     uint8arraylist "^2.3.2"
     uint8arrays "^4.0.2"
 
-"@chainsafe/libp2p-noise@^11.0.2":
-  version "11.0.2"
-  resolved "https://registry.yarnpkg.com/@chainsafe/libp2p-noise/-/libp2p-noise-11.0.2.tgz#c3f7c31557eb82ec77ed11c0412ea0f4807f5aa1"
-  integrity sha512-DscY1r3npdi2ZQU1VKdaU56MV7tBWjP1lQmCZaxNCqNmp8mBVMKbVz8qsPqXO48gtpuNNm3K3vfzJw1qMi7euQ==
+"@chainsafe/libp2p-noise@^11.0.4":
+  version "11.0.4"
+  resolved "https://registry.yarnpkg.com/@chainsafe/libp2p-noise/-/libp2p-noise-11.0.4.tgz#b4806e7605e44fa279130c60a95faad13ed01d93"
+  integrity sha512-X7kA6a3/QPFxNFwgUJ8vubDu5qBDcDT0nhD+jL7g60IFKZu//HFH7oqsNCZa12yx0oR1fEYOR62iHDt2GHyWBQ==
   dependencies:
     "@libp2p/crypto" "^1.0.11"
     "@libp2p/interface-connection-encrypter" "^3.0.5"
@@ -643,10 +643,10 @@
     interface-datastore "^7.0.0"
     multiformats "^11.0.0"
 
-"@libp2p/mplex@^7.1.2":
-  version "7.1.2"
-  resolved "https://registry.yarnpkg.com/@libp2p/mplex/-/mplex-7.1.2.tgz#7bc4be3ff28848b51e07ce06dbd9737c108c7a13"
-  integrity sha512-7E9JXBrLdltE/c2EMX7B14SRu7auO8SrvXlExCDv8fzUUlqUWKnI8ahbW100y0CEgw9vxe2vsTSq2xnbYLJjog==
+"@libp2p/mplex@^7.1.3":
+  version "7.1.3"
+  resolved "https://registry.yarnpkg.com/@libp2p/mplex/-/mplex-7.1.3.tgz#5f9e93844e0adac848a00e9d870d33283f6564ef"
+  integrity sha512-CBjN6otOYyJzogS0rgMnE7NwIC0c6OP6qLc/LybOcI16PJHn1gP25QWrWfNOl+K5M92ybwykMnB2cPi3blLH6Q==
   dependencies:
     "@libp2p/interface-connection" "^3.0.1"
     "@libp2p/interface-stream-muxer" "^3.0.0"
@@ -831,10 +831,10 @@
     private-ip "^3.0.0"
     uint8arraylist "^2.3.2"
 
-"@libp2p/websockets@^5.0.7":
-  version "5.0.7"
-  resolved "https://registry.yarnpkg.com/@libp2p/websockets/-/websockets-5.0.7.tgz#5bbc8bba329cda0deb541b1a8a3b1722d848090a"
-  integrity sha512-N/tbngkT+eX4/9MQJtSD4S6EkVwWkD86Qt3VRw2cH0ksYiLc2oEZoCxuVhp8Fj708xnw+3ozF2RuQNmhkXAOSw==
+"@libp2p/websockets@^5.0.8":
+  version "5.0.8"
+  resolved "https://registry.yarnpkg.com/@libp2p/websockets/-/websockets-5.0.8.tgz#e406a21d7f41d4d8ef404a8bd3726c11d996ada3"
+  integrity sha512-zeEiK7yozC4ebyqFP8y7RnRYKsClyrWn7QxKh2/n5xiUYwnavSocpeayOB57AOSs4WeBsdkunrJ2WbCyXEDLcQ==
   dependencies:
     "@libp2p/interface-connection" "^3.0.2"
     "@libp2p/interface-transport" "^2.0.0"
@@ -1260,6 +1260,16 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
 
+"@semantic-release/changelog@^6.0.3":
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/@semantic-release/changelog/-/changelog-6.0.3.tgz#6195630ecbeccad174461de727d5f975abc23eeb"
+  integrity sha512-dZuR5qByyfe3Y03TpmCvAxCyTnp7r5XwtHRf/8vD9EAn4ZWbavUX8adMtXYzE86EVh0gyLA7lm5yW4IV30XUag==
+  dependencies:
+    "@semantic-release/error" "^3.0.0"
+    aggregate-error "^3.0.0"
+    fs-extra "^11.0.0"
+    lodash "^4.17.4"
+
 "@semantic-release/commit-analyzer@^9.0.2":
   version "9.0.2"
   resolved "https://registry.yarnpkg.com/@semantic-release/commit-analyzer/-/commit-analyzer-9.0.2.tgz#a78e54f9834193b55f1073fa6258eecc9a545e03"
@@ -1319,7 +1329,7 @@
     semver "^7.1.2"
     tempy "^3.0.0"
 
-"@semantic-release/release-notes-generator@^10.0.0", "@semantic-release/release-notes-generator@^10.0.3":
+"@semantic-release/release-notes-generator@^10.0.0":
   version "10.0.3"
   resolved "https://registry.yarnpkg.com/@semantic-release/release-notes-generator/-/release-notes-generator-10.0.3.tgz#85f7ca78bfa6b01fb5fda0ac48112855d69171dc"
   integrity sha512-k4x4VhIKneOWoBGHkx0qZogNjCldLPRiAjnIpMnlUh6PtaWXp/T+C9U7/TaNDDtgDa5HMbHl4WlREdxHio6/3w==
@@ -3813,12 +3823,12 @@ end-of-stream@^1.0.0, end-of-stream@^1.1.0:
   dependencies:
     once "^1.4.0"
 
-env-ci@^8.0.0:
-  version "8.0.0"
-  resolved "https://registry.yarnpkg.com/env-ci/-/env-ci-8.0.0.tgz#97a6605c6639b2a74c74b1557500bc152c1c6e7e"
-  integrity sha512-W+3BqGZozFua9MPeXpmTm5eYEBtGgL76jGu/pwMVp/L8PdECSCEWaIp7d4Mw7kuUrbUldK0oV0bNd6ZZjLiMiA==
+env-ci@^9.0.0:
+  version "9.0.0"
+  resolved "https://registry.yarnpkg.com/env-ci/-/env-ci-9.0.0.tgz#53df706b4b841f5f05413402ef82049eba8e4af3"
+  integrity sha512-Q3cjr1tX9xwigprw4G8M3o7PIOO/1LYji6TyGsbD1WfMmD23etZvhgmPXJqkP788yH4dgSSK7oaIMuaayUJIfg==
   dependencies:
-    execa "^6.1.0"
+    execa "^7.0.0"
     java-properties "^1.0.2"
 
 env-paths@^2.2.0:
@@ -4137,21 +4147,6 @@ execa@^5.0.0:
     onetime "^5.1.2"
     signal-exit "^3.0.3"
     strip-final-newline "^2.0.0"
-
-execa@^6.1.0:
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/execa/-/execa-6.1.0.tgz#cea16dee211ff011246556388effa0818394fb20"
-  integrity sha512-QVWlX2e50heYJcCPG0iWtf8r0xjEYfz/OYLGDYH+IyjWezzPNxz63qNFOu0l4YftGWuizFVZHHs8PrLU5p2IDA==
-  dependencies:
-    cross-spawn "^7.0.3"
-    get-stream "^6.0.1"
-    human-signals "^3.0.1"
-    is-stream "^3.0.0"
-    merge-stream "^2.0.0"
-    npm-run-path "^5.1.0"
-    onetime "^6.0.0"
-    signal-exit "^3.0.7"
-    strip-final-newline "^3.0.0"
 
 execa@^7.0.0:
   version "7.0.0"
@@ -5005,11 +5000,6 @@ human-signals@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/human-signals/-/human-signals-2.1.0.tgz#dc91fcba42e4d06e4abaed33b3e7a3c02f514ea0"
   integrity sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==
-
-human-signals@^3.0.1:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/human-signals/-/human-signals-3.0.1.tgz#c740920859dafa50e5a3222da9d3bf4bb0e5eef5"
-  integrity sha512-rQLskxnM/5OCldHo+wNXbpVgDn5A17CUoKX+7Sokwaknlq7CdSnphy0W39GU8dw59XiCXmFXDg4fRuckQRKewQ==
 
 human-signals@^4.3.0:
   version "4.3.0"
@@ -9053,10 +9043,10 @@ semantic-release-cli@^5.4.4:
     user-home "^2.0.0"
     validator "^12.0.0"
 
-semantic-release@^21.0.0:
-  version "21.0.0"
-  resolved "https://registry.yarnpkg.com/semantic-release/-/semantic-release-21.0.0.tgz#ac52310be34ac2831f70500c5322a17d393b5520"
-  integrity sha512-zks0jVk2Hbyhn014vshcwQ6e6gM9jDPr8SdujqfAzPJBvvvSXa8GHz/x+W0VaW2aBNawWFAlx6N45dp1H1XCCw==
+semantic-release@^21.0.1:
+  version "21.0.1"
+  resolved "https://registry.yarnpkg.com/semantic-release/-/semantic-release-21.0.1.tgz#f2cb0eb1d0b1883efdac2883ec40342ac5c6ff30"
+  integrity sha512-UhGxTUXHJQCBFgEQRZszLOHDpMduDSHGq3Q+30Bu+g0GbXh/EW508+kuFHezP5m0mN8xINW8hooiR3dzSV5ZLA==
   dependencies:
     "@semantic-release/commit-analyzer" "^9.0.2"
     "@semantic-release/error" "^3.0.0"
@@ -9066,7 +9056,7 @@ semantic-release@^21.0.0:
     aggregate-error "^4.0.1"
     cosmiconfig "^8.0.0"
     debug "^4.0.0"
-    env-ci "^8.0.0"
+    env-ci "^9.0.0"
     execa "^7.0.0"
     figures "^5.0.0"
     find-versions "^5.1.0"
