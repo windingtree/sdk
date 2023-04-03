@@ -25,7 +25,7 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./lib/index.js"
+      "import": "./lib/src/index.js"
     },
     "./utils": {
       "import": "./lib/utils/index.js"
@@ -40,7 +40,7 @@
     }
   },
   "types": "./lib/types/index.d.ts",
-  "main": "./lib/index.js",
+  "main": "./lib/src/index.js",
   "files": [
     "lib/**/*",
     "!**/*.tsbuildinfo"

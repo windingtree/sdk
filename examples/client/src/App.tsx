@@ -10,7 +10,7 @@ import {
 import { RequestRecord } from '../../../src/client/requestsRegistry.js';
 import { Client, createClient } from '../../../src/client/index.js';
 import { ClientOptions, storage, utils } from '../../../src/index.js';
-// import { Client, ClientOptions, RequestRecord, createClient, storage } from '@windingtree/sdk';
+// import { Client, ClientOptions, RequestRecord, createClient, storage, utils } from '@windingtree/sdk';
 
 /** Default request expiration time */
 const defaultExpire = '30s';
