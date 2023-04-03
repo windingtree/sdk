@@ -2177,10 +2177,10 @@
     magic-string "^0.27.0"
     react-refresh "^0.14.0"
 
-"@windingtree/sdk@^0.1.0-beta.7":
-  version "0.1.0-beta.7"
-  resolved "https://registry.yarnpkg.com/@windingtree/sdk/-/sdk-0.1.0-beta.7.tgz#4d7572c3720c0ec954b171aac9b6bf5b6c1259c7"
-  integrity sha512-Q9e6O9ywNDHmwnLUO+Q5MC2rGuLpKi/lizp1VE0IO/Z3Jkz1/zVGHzlJURtzZTaEBNZAMmHCWkwE/S6IsHe4BQ==
+"@windingtree/sdk@0.1.0-beta.8":
+  version "0.1.0-beta.8"
+  resolved "https://registry.yarnpkg.com/@windingtree/sdk/-/sdk-0.1.0-beta.8.tgz#1f15455a889121092cba46be34f3f0acbba8831f"
+  integrity sha512-uc7BYeuJ2Llr4RY6RUlIW1by3O8d2gng7ew/swaoEyhsDTwl6NtNn/Iz3STQ2+34tQSTsNvKv/9YHrna2Guexw==
   dependencies:
     "@chainsafe/libp2p-gossipsub" "^6.2.0"
     "@chainsafe/libp2p-noise" "^11.0.4"
