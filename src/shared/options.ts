@@ -5,7 +5,7 @@ import { ContractConfigSchema } from '../utils/contract.js';
 import { parseSeconds } from '../utils/time.js';
 import { noncePeriod } from '../constants.js';
 import { StorageInitializerSchema } from '../storage/abstract.js';
-import { RequestRegistryPrefixSchema } from '../client/requestManager.js';
+import { RequestRegistryPrefixSchema } from '../client/requestsRegistry.js';
 
 export const createQuerySchemaOptionSchema = <CustomRequestQuery extends GenericQuery>() =>
   z.object({
