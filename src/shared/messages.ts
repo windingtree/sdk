@@ -1,5 +1,4 @@
-import { AbstractSigner, TypedDataField, getAddress, Signature } from 'ethers';
-import { verifyTypedData } from '@ethersproject/wallet';
+import { AbstractSigner, TypedDataField, getAddress, Signature, verifyTypedData } from 'ethers';
 import { z } from 'zod';
 import { ContractConfig, ContractConfigSchema } from '../utils/contract.js';
 import { hashObject } from '../utils/hash.js';

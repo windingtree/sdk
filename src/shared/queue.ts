@@ -142,16 +142,15 @@ export type JobHandlerClosure = (job: any) => ReturnType<JobHandler<any>>;
  *  },
  * );
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export const createJobHandler =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
-
-    <OfferData = any, HandlerOptions extends object = object>(
-      handler: JobHandler<OfferData, HandlerOptions>,
-    ) =>
-    (options?: HandlerOptions) =>
-    (job: Job<OfferData>) =>
-      handler(job, options);
+  <OfferData = any, HandlerOptions extends object = object>(
+    handler: JobHandler<OfferData, HandlerOptions>,
+  ) =>
+  (options?: HandlerOptions) =>
+  (job: Job<OfferData>) =>
+    handler(job, options);
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
  * Queue events interface
