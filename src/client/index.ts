@@ -20,7 +20,7 @@ import {
   RequestData,
 } from '../shared/messages.js';
 import { ClientOptions, createClientOptionsSchema } from '../shared/options.js';
-import { RequestRecord, RequestsRegistry } from './requestManager.js';
+import { RequestRecord, RequestsRegistry } from './requestsRegistry.js';
 import { decodeText } from '../utils/text.js';
 import { ContractConfig } from '../utils/contract.js';
 import { StorageInitializer } from '../storage/index.js';
@@ -617,3 +617,8 @@ export const createClient = <
 ): Client<CustomRequestQuery, CustomOfferOptions> => {
   return new Client(options);
 };
+
+/**
+ * Requests registry exports
+ */
+export * from './requestsRegistry.js';
