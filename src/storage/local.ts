@@ -96,6 +96,7 @@ export class LocalStorage extends Storage {
     if (value !== null) {
       return this.deserialize<ValueType>(value);
     }
+    return;
   }
 
   /**

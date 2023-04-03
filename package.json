@@ -25,26 +25,29 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./lib/cjs/types/index.d.ts",
-      "import": "./lib/esm/index.mjs",
-      "require": "./lib/cjs/index.js"
+      "import": "./lib/index.js"
     },
     "./utils": {
-      "types": "./lib/cjs/types/utils/index.d.ts",
-      "import": "./lib/esm/utils/index.js",
-      "require": "./lib/cjs/utils/index.js"
+      "import": "./lib/utils/index.js"
     }
   },
-  "types": "./lib/cjs/types/index.d.ts",
-  "main": "./lib/cjs/index.js",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "lib/types/*",
+        "lib/types/utils/*"
+      ]
+    }
+  },
+  "types": "./lib/types/index.d.ts",
+  "main": "./lib/index.js",
   "files": [
-    "lib/**/*"
+    "lib/**/*",
+    "!**/*.tsbuildinfo"
   ],
   "scripts": {
     "clean": "rm -rf ./lib",
-    "build": "npm run clean && npm run build:esm && npm run build:cjs",
-    "build:esm": "tsc -p ./tsconfig.esm.json && mv lib/esm/index.js lib/esm/index.mjs",
-    "build:cjs": "tsc -p ./tsconfig.cjs.json",
+    "build": "npm run clean && tsc -p ./tsconfig.build.json",
     "test": "mocha -t 60000 --extension spec.ts",
     "semantic-release": "semantic-release",
     "prepack": "npm run build",

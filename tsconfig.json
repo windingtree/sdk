@@ -2,7 +2,10 @@
   "compilerOptions": {
     "strict": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "lib": ["ES2022", "DOM"],
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "NodeNext",
     "skipLibCheck": true,
     "checkJs": true,
     "allowJs": true,
@@ -11,10 +14,12 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "noErrorTruncation": true,
-    "lib": ["ES2022", "DOM"],
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "NodeNext"
+    "incremental": true,
+    "composite": true,
+    "forceConsistentCasingInFileNames": true,
+    "useUnknownInCatchVariables": true,
+    "importsNotUsedAsValues": "remove",
+    "noImplicitReturns": true
   },
   "include": ["./src/**/*.ts", "./examples/**/*.ts", "./test/**/*.ts"]
 }

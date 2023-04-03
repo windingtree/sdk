@@ -7,11 +7,10 @@ import {
   contractConfig,
   serverAddress,
 } from '../../shared/types.js';
-import { isExpired } from '../../../src/utils/time.js';
 import { RequestRecord } from '../../../src/client/requestsRegistry.js';
-import { createClient, Client } from '../../../src/client/index.js';
-import { ClientOptions, storage } from '@windingtree/sdk';
-// import { isExpired } from '@windingtree/sdk/utils';
+import { Client, createClient } from '../../../src/client/index.js';
+import { ClientOptions, storage, utils } from '../../../src/index.js';
+// import { Client, ClientOptions, RequestRecord, createClient, storage } from '@windingtree/sdk';
 
 /** Default request expiration time */
 const defaultExpire = '30s';
@@ -114,10 +113,10 @@ export const Requests = ({ requests, subscribed, onClear, onCancel }: RequestsPr
               <td>{r.data.id}</td>
               <td>{JSON.stringify(r.data.query)}</td>
               <td>{subscribed && subscribed(r.data.id) ? '✅' : 'no'}</td>
-              <td>{isExpired(r.data.expire) || r.cancelled ? '✅' : 'no'}</td>
+              <td>{utils.isExpired(r.data.expire) || r.cancelled ? '✅' : 'no'}</td>
               <td>{r.offers.length}</td>
               <td>
-                {!r.cancelled && !isExpired(r.data.expire) ? (
+                {!r.cancelled && !utils.isExpired(r.data.expire) ? (
                   <button
                     onClick={() => {
                       onCancel(r.data.id);
