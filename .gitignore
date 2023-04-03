@@ -10,3 +10,4 @@ lib
 temp
 *.level
 coverage
+typedoc
