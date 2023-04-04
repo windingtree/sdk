@@ -2177,10 +2177,10 @@
     magic-string "^0.27.0"
     react-refresh "^0.14.0"
 
-"@windingtree/sdk@0.1.0-beta.11":
-  version "0.1.0-beta.11"
-  resolved "https://registry.yarnpkg.com/@windingtree/sdk/-/sdk-0.1.0-beta.11.tgz#571129b5265649a780fd976a19fa98205dbee692"
-  integrity sha512-/5mwrss7eaXcJx6OtVQl3ZiO8o3F7VtMGmNN8i0P2yJMox85bJWj1ROXvSUjwJyD/rjlH1EVgnvDCCtm63RRKw==
+"@windingtree/sdk@0.1.0-beta.12":
+  version "0.1.0-beta.12"
+  resolved "https://registry.yarnpkg.com/@windingtree/sdk/-/sdk-0.1.0-beta.12.tgz#8a1e3b06691ea5f804c1bff21fc535fbb121145b"
+  integrity sha512-LyH9TyyHhsk6RQISC3fomJmnr0hmsHcpO8nDUmo5Bkr/KXcGijuex8rkbpFziwPDPOhhzoLmHSXHbbXdOUDxNQ==
   dependencies:
     "@chainsafe/libp2p-gossipsub" "^6.2.0"
     "@chainsafe/libp2p-noise" "^11.0.4"
@@ -2191,7 +2191,6 @@
     h3-js "^4.1.0"
     libp2p "^0.43.3"
     luxon "^3.3.0"
-    zod "^3.21.4"
 
 abortable-iterator@^4.0.2:
   version "4.0.2"
@@ -4707,8 +4706,3 @@ yaml@^1.10.0:
   version "1.10.2"
   resolved "https://registry.yarnpkg.com/yaml/-/yaml-1.10.2.tgz#2301c5ffbf12b467de8da2333a459e29e7920e4b"
   integrity sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==
-
-zod@^3.21.4:
-  version "3.21.4"
-  resolved "https://registry.yarnpkg.com/zod/-/zod-3.21.4.tgz#10882231d992519f0a10b5dd58a38c9dabbb64db"
-  integrity sha512-m46AKbrzKVzOzs/DZgVnG5H55N1sv1M8qZU3A8RIKbs3mrACDNeIOeilDymVb2HdmP8uwshOCF4uJ8uM9rCqJw==

@@ -5,8 +5,7 @@ import {
   contractConfig,
   serverAddress,
 } from '../../shared/index.js';
-import { Client, ClientOptions, createClient, RequestRecord, storage, utils } from '../../../src/index.js';
-// import { Client, ClientOptions, RequestRecord, createClient, storage, utils } from '@windingtree/sdk';
+import { Client, ClientOptions, RequestRecord, createClient, storage, utils } from '@windingtree/sdk';
 
 /** Default request expiration time */
 const defaultExpire = '30s';
