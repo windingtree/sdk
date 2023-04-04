@@ -2177,7 +2177,7 @@
     magic-string "^0.27.0"
     react-refresh "^0.14.0"
 
-"@windingtree/sdk@0.1.0-beta.12":
+"@windingtree/sdk@^0.1.0-beta.12":
   version "0.1.0-beta.12"
   resolved "https://registry.yarnpkg.com/@windingtree/sdk/-/sdk-0.1.0-beta.12.tgz#8a1e3b06691ea5f804c1bff21fc535fbb121145b"
   integrity sha512-LyH9TyyHhsk6RQISC3fomJmnr0hmsHcpO8nDUmo5Bkr/KXcGijuex8rkbpFziwPDPOhhzoLmHSXHbbXdOUDxNQ==
