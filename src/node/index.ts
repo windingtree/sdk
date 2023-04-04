@@ -249,7 +249,7 @@ export class Node<
     }
 
     const offer = await buildOffer<CustomRequestQuery, CustomOfferOptions>(
-      createBuildOfferOptions<z.ZodType<CustomRequestQuery>, z.ZodType<CustomOfferOptions>>(
+      createBuildOfferOptions<CustomRequestQuery, CustomOfferOptions>(
         this.querySchema,
         this.offerOptionsSchema,
       ).parse({

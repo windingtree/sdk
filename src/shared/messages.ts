@@ -36,10 +36,13 @@ export type GenericQuery = z.infer<typeof GenericQuerySchema>;
 /**
  * Creates request data structure schema
  *
- * @param {z.ZodType} querySchema
+ * @template {CustomRequestQuery}
+ * @param {z.ZodType<CustomRequestQuery>} querySchema
  * @returns {z.ZodType}
  */
-export const createRequestDataSchema = <T extends z.ZodTypeAny>(querySchema: T) =>
+export const createRequestDataSchema = <CustomRequestQuery extends GenericQuery>(
+  querySchema: z.ZodType<CustomRequestQuery>,
+) =>
   GenericMessageSchema.extend({
     /** Request topic */
     topic: z.string(),
@@ -51,16 +54,19 @@ export const createRequestDataSchema = <T extends z.ZodTypeAny>(querySchema: T) 
  * Request data type
  */
 export type RequestData<CustomRequestQuery extends GenericQuery> = z.infer<
-  ReturnType<typeof createRequestDataSchema<z.ZodType<CustomRequestQuery>>>
+  ReturnType<typeof createRequestDataSchema<CustomRequestQuery>>
 >;
 
 /**
  * Creates schema for buildRequest method options
  *
- * @param {z.ZodType} querySchema
+ * @template {CustomRequestQuery}
+ * @param {z.ZodType<CustomRequestQuery>} querySchema
  * @returns {z.ZodType}
  */
-export const createBuildRequestOptions = <T extends z.ZodTypeAny>(querySchema: T) =>
+export const createBuildRequestOptions = <CustomRequestQuery extends GenericQuery>(
+  querySchema: z.ZodType<CustomRequestQuery>,
+) =>
   z
     .object({
       /** Expiration time */
@@ -82,23 +88,25 @@ export const createBuildRequestOptions = <T extends z.ZodTypeAny>(querySchema: T
  * buildRequest method options type
  */
 export type BuildRequestOptions<CustomRequestQuery extends GenericQuery> = z.infer<
-  ReturnType<typeof createBuildRequestOptions<z.ZodType<CustomRequestQuery>>>
+  ReturnType<typeof createBuildRequestOptions<CustomRequestQuery>>
 >;
 
 /**
  * Builds a request
  *
- * @template CustomRequestQuery
+ * @template {CustomRequestQuery}
  * @param {BuildRequestOptions<CustomRequestQuery>} requestOptions
  * @returns
  */
 export const buildRequest = async <CustomRequestQuery extends GenericQuery>(
   requestOptions: BuildRequestOptions<CustomRequestQuery>,
 ) => {
-  const { expire, nonce, topic, query, querySchema, idOverride } = createBuildRequestOptions<
-    typeof requestOptions.querySchema
-  >(requestOptions.querySchema).parse(requestOptions);
-  const request = createRequestDataSchema<typeof querySchema>(querySchema);
+  const { expire, nonce, topic, query, idOverride } = createBuildRequestOptions<CustomRequestQuery>(
+    requestOptions.querySchema as z.ZodType<CustomRequestQuery>,
+  ).parse(requestOptions);
+  const request = createRequestDataSchema<CustomRequestQuery>(
+    requestOptions.querySchema as z.ZodType<CustomRequestQuery>,
+  );
   return (await request.parseAsync({
     id: idOverride ?? uuid4(),
     expire: typeof expire === 'number' ? parseSeconds(expire) : nowSec() + parseSeconds(expire),
@@ -178,21 +186,21 @@ export type GenericOfferOptions = z.infer<typeof GenericOfferOptionsSchema>;
 /**
  * Creates a final offer data schema
  *
- * @template TQuery
- * @template TOfferOptions
- * @param {TQuery} querySchema
- * @param {TOfferOptions} offerOptionsSchema
+ * @template {CustomRequestQuery}
+ * @template {CustomOfferOptions}
+ * @param {z.ZodType<CustomRequestQuery>} querySchema
+ * @param {z.ZodType<CustomOfferOptions>} offerOptionsSchema
  */
 export const createOfferDataSchema = <
-  TQuery extends z.ZodTypeAny,
-  TOfferOptions extends z.ZodTypeAny,
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
 >(
-  querySchema: TQuery,
-  offerOptionsSchema: TOfferOptions,
+  querySchema: z.ZodType<CustomRequestQuery>,
+  offerOptionsSchema: z.ZodType<CustomOfferOptions>,
 ) =>
   GenericMessageSchema.extend({
     /** Copy of request */
-    request: createRequestDataSchema<TQuery>(querySchema),
+    request: createRequestDataSchema<CustomRequestQuery>(querySchema),
     /** Offer options */
     options: offerOptionsSchema,
     /** Payment options */
@@ -211,11 +219,7 @@ export const createOfferDataSchema = <
 export type OfferData<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
-> = z.infer<
-  ReturnType<
-    typeof createOfferDataSchema<z.ZodType<CustomRequestQuery>, z.ZodType<CustomOfferOptions>>
-  >
->;
+> = z.infer<ReturnType<typeof createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>>>;
 
 /**
  * EIP-712 JSON schema types for offer
@@ -260,17 +264,17 @@ export const offerEip712Types: Record<string, Array<TypedDataField>> = {
 /**
  * Creates a schema for `buildOffer` method options
  *
- * @template TQuery
- * @template TOfferOptions
- * @param {TQuery} querySchema
- * @param {TOfferOptions} offerOptionsSchema
+ * @template {CustomRequestQuery}
+ * @template {CustomOfferOptions}
+ * @param {z.ZodType<CustomRequestQuery>} querySchema
+ * @param {z.ZodType<CustomOfferOptions>} offerOptionsSchema
  */
 export const createBuildOfferOptions = <
-  TQuery extends z.ZodTypeAny,
-  TOfferOptions extends z.ZodTypeAny,
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
 >(
-  querySchema: TQuery,
-  offerOptionsSchema: TOfferOptions,
+  querySchema: z.ZodType<CustomRequestQuery>,
+  offerOptionsSchema: z.ZodType<CustomOfferOptions>,
 ) =>
   z
     .object({
@@ -280,7 +284,7 @@ export const createBuildOfferOptions = <
       optionsSchema: z.instanceof(z.ZodType),
       supplierId: z.string(),
       expire: z.string().or(z.number()),
-      request: createRequestDataSchema<TQuery>(querySchema),
+      request: createRequestDataSchema<CustomRequestQuery>(querySchema),
       options: offerOptionsSchema,
       payment: z.array(PaymentOptionSchema),
       cancel: z.array(CancelOptionSchema),
@@ -293,26 +297,17 @@ export const createBuildOfferOptions = <
 
 /**
  * Type for `buildOffer` method options
- *
- * @template TQuery
- * @template TOfferOptions
- * @param {TQuery} querySchema
- * @param {TOfferOptions} offerOptionsSchema
  */
 export type BuildOfferOptions<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
-> = z.infer<
-  ReturnType<
-    typeof createBuildOfferOptions<z.ZodType<CustomRequestQuery>, z.ZodType<CustomOfferOptions>>
-  >
->;
+> = z.infer<ReturnType<typeof createBuildOfferOptions<CustomRequestQuery, CustomOfferOptions>>>;
 
 /**
  * Builds an offer
  *
- * @template CustomRequestQuery
- * @template CustomOfferOptions
+ * @template {CustomRequestQuery}
+ * @template {CustomOfferOptions}
  * @param {BuildOfferOptions<CustomRequestQuery, CustomOfferOptions>} offerOptions
  * @returns
  */
@@ -333,13 +328,11 @@ export const buildOffer = async <
     transferable,
     signer,
     signatureOverride,
-    querySchema,
-    optionsSchema,
     idOverride,
     expire,
-  } = createBuildOfferOptions<typeof offerOptions.querySchema, typeof offerOptions.optionsSchema>(
-    offerOptions.querySchema,
-    offerOptions.optionsSchema,
+  } = createBuildOfferOptions<CustomRequestQuery, CustomOfferOptions>(
+    offerOptions.querySchema as z.ZodType<CustomRequestQuery>,
+    offerOptions.optionsSchema as z.ZodType<CustomOfferOptions>,
   ).parse(offerOptions);
 
   const unsignedOfferPayload = UnsignedOfferPayloadSchema.parse({
@@ -372,10 +365,10 @@ export const buildOffer = async <
     throw new Error('Either signer or signatureOverride must be provided');
   }
 
-  const offerSchema = createOfferDataSchema<
-    typeof offerOptions.querySchema,
-    typeof offerOptions.optionsSchema
-  >(querySchema, optionsSchema);
+  const offerSchema = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
+    offerOptions.querySchema as z.ZodType<CustomRequestQuery>,
+    offerOptions.optionsSchema as z.ZodType<CustomOfferOptions>,
+  );
 
   return (await offerSchema.parseAsync({
     id: idOverride ?? uuid4(),
@@ -393,8 +386,8 @@ export const buildOffer = async <
 /**
  * Verifies signed offer
  *
- * @template CustomRequestQuery
- * @template CustomOfferOptions
+ * @template {CustomRequestQuery}
+ * @template {CustomOfferOptions}
  * @param {ContractConfig} contract
  * @param {string} supplierAddress
  * @param {OfferData<CustomRequestQuery, CustomOfferOptions>} offer

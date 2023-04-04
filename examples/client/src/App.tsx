@@ -16,6 +16,8 @@ const defaultExpire = '30s';
 /** Default topic to publish requests the same as for the supplier node */
 const defaultTopic = 'hello';
 
+type RequestsRegistryRecord = Required<RequestRecord<RequestQuery, OfferOptions>>;
+
 interface FormValues {
   topic: string;
   message: string;
@@ -27,7 +29,7 @@ interface RequestFormProps {
 }
 
 interface RequestsProps {
-  requests: Required<RequestRecord<RequestQuery, OfferOptions>>[];
+  requests: RequestsRegistryRecord[];
   subscribed?: (id: string) => boolean;
   onClear(): void;
   onCancel(id: string): void;
@@ -147,7 +149,7 @@ export const Requests = ({ requests, subscribed, onClear, onCancel }: RequestsPr
 export const App = () => {
   const client = useRef<Client<RequestQuery, OfferOptions> | undefined>();
   const [connected, setConnected] = useState<boolean>(false);
-  const [requests, setRequests] = useState<Required<RequestRecord<RequestQuery, OfferOptions>>[]>(
+  const [requests, setRequests] = useState<RequestsRegistryRecord[]>(
     [],
   );
   const [error, setError] = useState<string | undefined>();

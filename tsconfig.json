@@ -14,8 +14,6 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "noErrorTruncation": true,
-    "incremental": true,
-    "composite": true,
     "forceConsistentCasingInFileNames": true,
     "useUnknownInCatchVariables": true,
     "importsNotUsedAsValues": "remove",
