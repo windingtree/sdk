@@ -1,5 +1,4 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { z } from 'zod';
 import { Storage } from '../storage/index.js';
 import { queueConcurrentJobsNumber, queueJobAttemptsDelay, queueHeartbeat } from '../constants.js';
 import { simpleUid } from '../utils/uid.js';
@@ -7,53 +6,40 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Queue');
 
-/**
- * Queue options schema
- */
-export const QueueOptionsSchema = z
-  .object({
-    /** Queue storage object. See available options here: ./storage */
-    storage: z.instanceof(Storage),
-    /** Name of key for storing current queued jobs */
-    hashKey: z.string().default('jobKeys'),
-    /** Maximum jobs at once */
-    concurrentJobsNumber: z.number().int().default(queueConcurrentJobsNumber),
-    /** Queue heartbeat interval time in milliseconds */
-    heartbeat: z.number().int().default(queueHeartbeat),
-  })
-  .strict();
-
-export type QueueOptions = z.infer<typeof QueueOptionsSchema>;
+export interface QueueOptions {
+  /** Queue storage object. See available options here: ./storage */
+  storage: Storage;
+  /** Name of key for storing current queued jobs */
+  hashKey: string;
+  /** Maximum jobs at once */
+  concurrentJobsNumber: number;
+  /** Queue heartbeat interval time in milliseconds */
+  heartbeat: number;
+}
 
 /**
- * Queue initialization options schema
+ * Queue initialization options
  */
-export const QueueInitSchema = QueueOptionsSchema.partial().required({ storage: true });
-
-export type QueueInit = z.infer<typeof QueueInitSchema>;
+export type QueueInit = Partial<QueueOptions> & Pick<QueueOptions, 'storage'>;
 
 /**
- * Job configuration options schema
+ * Queue job options
  */
-export const JobOptionsSchema = z
-  .object({
-    /** Maximum number of attempts when a job is failing */
-    attempts: z.number().int().nonnegative().default(0),
-    /** Delay between attempts in milliseconds */
-    attemptsDelay: z.number().int().nonnegative().default(queueJobAttemptsDelay),
-    /** Interval time for scheduled jobs in milliseconds */
-    every: z.number().int().nonnegative().optional(),
-    /** Job expiration time in seconds */
-    expire: z.number().int().nonnegative().optional(),
-  })
-  .strict();
-
-export type JobOptions = z.infer<typeof JobOptionsSchema>;
+export interface JobOptions {
+  /** Maximum number of attempts when a job is failing */
+  attempts: number;
+  /** Delay between attempts in milliseconds */
+  attemptsDelay: number;
+  /** Interval time for scheduled jobs in milliseconds */
+  every?: number;
+  /** Job expiration time in seconds */
+  expire?: number;
+}
 
 /**
  * Allowed job statuses
  */
-export enum JobStatuses {
+export enum JobStatus {
   PENDING,
   STARTED,
   DONE,
@@ -63,63 +49,38 @@ export enum JobStatuses {
   EXPIRED,
 }
 
-export const JobStatusSchema = z.nativeEnum(JobStatuses);
-
-export type JobStatus = z.infer<typeof JobStatusSchema>;
-
 /**
- * Internal job state schema
+ * Internal job state type
  */
-export const JobStateSchema = z
-  .object({
-    /** Current job status */
-    status: JobStatusSchema.default(JobStatuses.PENDING),
-    /** Job run attempts made */
-    attempts: z.number().int().nonnegative().default(0),
-    /** Scheduled run time */
-    scheduled: z.number().int().nonnegative().optional(),
-    errors: z
-      /** Array with errors occurred */
-      .array(
-        z.object({
-          time: z.number(),
-          error: z.string(),
-        }),
-      )
-      .default([]),
-  })
-  .strict();
-
-export type JobState = z.infer<typeof JobStateSchema>;
-
-/**
- * Creates job schema
- *
- * @param {z.ZodType} dataSchema
- * @returns {z.ZodType}
- */
-export const createJobSchema = <JobDataType = unknown>(dataSchema: z.ZodType<JobDataType>) =>
-  z
-    .object({
-      id: z.string(),
-      name: z.string(),
-      data: dataSchema,
-      options: JobOptionsSchema,
-      state: JobStateSchema,
-    })
-    .strict();
+export interface JobState {
+  /** Current job status */
+  status: JobStatus;
+  /** Job run attempts made */
+  attempts: number;
+  /** Scheduled run time */
+  scheduled?: number;
+  /** Array with errors occurred */
+  errors: {
+    time: number;
+    error: string;
+  }[];
+}
 
 /**
  * Job type
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Job<JobDataType = any> = z.infer<ReturnType<typeof createJobSchema<JobDataType>>>;
+export interface Job<JobDataType = unknown> {
+  id: string;
+  name: string;
+  data: JobDataType;
+  options: JobOptions;
+  state: JobState;
+}
 
 /**
  * Job handler function type
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type JobHandler<OfferData = any, HandlerOptions extends object = object> = (
+export type JobHandler<OfferData = unknown, HandlerOptions extends object = object> = (
   job: Job<OfferData>,
   options?: HandlerOptions,
 ) => Promise<boolean | void>;
@@ -263,15 +224,14 @@ export class Queue extends EventEmitter<QueueEvents> {
   constructor(options: QueueInit) {
     super();
 
-    options = QueueOptionsSchema.parse(options);
+    const { hashKey, concurrentJobsNumber, heartbeat, storage } = options;
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    this.hashKey = options.hashKey!; // Has a default value
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    this.concurrentJobsNumber = options.concurrentJobsNumber!; // Has a default value
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    this.heartbeat = options.heartbeat!; // Has a default value
-    this.storage = options.storage;
+    // @todo Validate Queue initialization options
+
+    this.hashKey = hashKey ?? 'jobsKeys';
+    this.concurrentJobsNumber = concurrentJobsNumber ?? queueConcurrentJobsNumber;
+    this.heartbeat = heartbeat ?? queueHeartbeat;
+    this.storage = storage;
     this.jobs = new Set<string>();
     this.liveJobs = new Set<string>();
     this.jobHandlers = new Map<string, JobHandlerClosure>();
@@ -344,7 +304,7 @@ export class Queue extends EventEmitter<QueueEvents> {
           throw new Error(`Job #${key} not found`);
         }
 
-        if (job.state.status === JobStatuses.CANCELLED) {
+        if (job.state.status === JobStatus.CANCELLED) {
           logger.trace(`Cancelled job #${job.id} skipped`);
           continue;
         }
@@ -370,10 +330,12 @@ export class Queue extends EventEmitter<QueueEvents> {
    * @returns {Promise<Job>} Updated job
    */
   private async _updatedJobState(job: Job, state: Partial<JobState>): Promise<Job> {
-    job.state = JobStateSchema.parse({
+    // @todo Validate state argument
+
+    job.state = {
       ...job.state,
       ...state,
-    });
+    };
     await this.storage.set(job.id, job);
     logger.trace(`Job #${job.id} state updated`, job);
     return job;
@@ -393,7 +355,7 @@ export class Queue extends EventEmitter<QueueEvents> {
         throw new Error(`Handler for job #${job.id} not found`);
       }
 
-      if (job.state.status === JobStatuses.FAILED) {
+      if (job.state.status === JobStatus.FAILED) {
         throw new Error(`Job #${job.id} already failed`);
       }
 
@@ -402,15 +364,15 @@ export class Queue extends EventEmitter<QueueEvents> {
         logger.trace(`Job #${job.id} expired at: ${job.options.expire}`);
 
         const prevStatus =
-          job.state.status === JobStatuses.ERRORED ? JobStatuses.FAILED : JobStatuses.DONE;
-        job = await this._updatedJobState(job, { status: JobStatuses.EXPIRED });
+          job.state.status === JobStatus.ERRORED ? JobStatus.FAILED : JobStatus.DONE;
+        job = await this._updatedJobState(job, { status: JobStatus.EXPIRED });
 
         this.jobs.delete(job.id);
         await this._sync();
         this.liveJobs.delete(job.id);
 
         this.dispatchEvent(
-          new CustomEvent<Job>(prevStatus === JobStatuses.DONE ? 'done' : 'fail', {
+          new CustomEvent<Job>(prevStatus === JobStatus.DONE ? 'done' : 'fail', {
             detail: job,
           }),
         );
@@ -424,7 +386,7 @@ export class Queue extends EventEmitter<QueueEvents> {
       }
 
       job = await this._updatedJobState(job, {
-        status: JobStatuses.STARTED,
+        status: JobStatus.STARTED,
       });
       logger.trace(`Starting job #${job.id}`, job);
 
@@ -438,7 +400,7 @@ export class Queue extends EventEmitter<QueueEvents> {
         }
 
         job = await this._updatedJobState(job, {
-          status: JobStatuses.PENDING,
+          status: JobStatus.PENDING,
           scheduled: Date.now() + job.options.every,
           attempts: job.state.attempts + 1,
         });
@@ -461,7 +423,7 @@ export class Queue extends EventEmitter<QueueEvents> {
         return;
       } else {
         job = await this._updatedJobState(job, {
-          status: JobStatuses.DONE,
+          status: JobStatus.DONE,
         });
 
         this.jobs.delete(job.id);
@@ -480,7 +442,7 @@ export class Queue extends EventEmitter<QueueEvents> {
       logger.error(`Job #${job.id} error:`, error);
 
       job = await this._updatedJobState(job, {
-        status: JobStatuses.ERRORED,
+        status: JobStatus.ERRORED,
         errors: [
           ...(job.state.errors ?? []),
           {
@@ -519,7 +481,7 @@ export class Queue extends EventEmitter<QueueEvents> {
       }
 
       job = await this._updatedJobState(job, {
-        status: JobStatuses.FAILED,
+        status: JobStatus.FAILED,
       });
 
       this.jobs.delete(job.id);
@@ -600,24 +562,34 @@ export class Queue extends EventEmitter<QueueEvents> {
    * });
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addJob<JobDataType = any>(
+  addJob<JobDataType = unknown>(
     name: string,
     data: JobDataType,
     options?: Partial<JobOptions>,
-    dataSchema: z.ZodType<JobDataType> = z.any(),
   ): Job {
     if (!this.jobHandlers.has(name)) {
       throw new Error(`Job handler with name #${name} not registered yet`);
     }
 
     const jobId = simpleUid();
-    const job = createJobSchema(dataSchema).parse({
+    const job: Job<JobDataType> = {
       id: jobId,
       name,
       data,
-      options,
-      state: {},
-    });
+      options: {
+        attempts: 0,
+        attemptsDelay: queueJobAttemptsDelay,
+        ...options,
+      },
+      state: {
+        status: JobStatus.PENDING,
+        attempts: 0,
+        errors: [],
+      },
+    };
+
+    // @todo Validate job data
+
     this.storage
       .set<Job>(jobId, job)
       .then(() => {
@@ -673,7 +645,7 @@ export class Queue extends EventEmitter<QueueEvents> {
     }
 
     job = await this._updatedJobState(job, {
-      status: JobStatuses.CANCELLED,
+      status: JobStatus.CANCELLED,
     });
 
     this.jobs.delete(job.id);

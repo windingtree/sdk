@@ -1,20 +1,14 @@
-import { z } from 'zod';
-import { Storage, createStorageInitializerFactorySchema } from './abstract.js';
+import { Storage, StorageInitializerFunction } from './abstract.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('MemoryStorage');
 
 /**
- * Memory storage options
+ * Memory storage options type
  */
-export const MemoryStorageOptionsSchema = z.object({
-  entries: z.array(z.tuple([z.string(), z.any()])).optional(),
-});
-
-/**
- * Memory storage type
- */
-export type MemoryStorageOptions = z.infer<typeof MemoryStorageOptionsSchema>;
+export interface MemoryStorageOptions {
+  entries?: Array<[string, unknown]>;
+}
 
 /**
  * In-memory key-value storage implementation
@@ -34,7 +28,10 @@ export class MemoryStorage extends Storage {
    */
   constructor(options?: MemoryStorageOptions) {
     super();
-    options = MemoryStorageOptionsSchema.parse(options ?? {});
+    options = options ?? {};
+
+    // Validate MemoryStorageOptions
+
     this.db = new Map<string, unknown>(options?.entries);
     logger.trace('Memory storage initialized');
   }
@@ -90,11 +87,9 @@ export class MemoryStorage extends Storage {
 }
 
 // Storage configuration
-export const createInitializer = (options?: MemoryStorageOptions) =>
-  createStorageInitializerFactorySchema<typeof MemoryStorageOptionsSchema>(
-    MemoryStorageOptionsSchema,
-  )
-    // eslint-disable-next-line @typescript-eslint/require-await
-    .implement((options) => async (): Promise<MemoryStorage> => {
-      return new MemoryStorage(options);
-    })(options ?? {});
+export const createInitializer: StorageInitializerFunction =
+  (options?: MemoryStorageOptions) =>
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async (): Promise<MemoryStorage> => {
+    return new MemoryStorage(options);
+  };

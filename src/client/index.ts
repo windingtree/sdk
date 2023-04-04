@@ -9,17 +9,16 @@ import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
 import { AbstractProvider } from 'ethers';
-import { z } from 'zod';
 import { centerSub, CenterSub } from '../shared/pubsub.js';
 import {
   buildRequest,
   BuildRequestOptions,
-  createOfferDataSchema,
+  OfferData,
   GenericOfferOptions,
   GenericQuery,
   RequestData,
 } from '../shared/messages.js';
-import { ClientOptions, createClientOptionsSchema } from '../shared/options.js';
+import { ClientOptions } from '../shared/options.js';
 import { RequestRecord, RequestsRegistry } from './requestsRegistry.js';
 import { decodeText } from '../utils/text.js';
 import { ContractConfig } from '../utils/contract.js';
@@ -210,35 +209,30 @@ export class Client<
   serverMultiaddr: Multiaddr;
   /** Server peer Id */
   serverPeerId: PeerId;
-  /** Request query validation schema */
-  querySchema: z.ZodType<CustomRequestQuery>;
-  /** Offer options validation schema */
-  offerOptionsSchema: z.ZodType<CustomOfferOptions>;
   /** Smart contract configuration */
   contractConfig: ContractConfig;
   /** Ethers.js provider instance */
   provider?: AbstractProvider;
+
   /**
    *Creates an instance of Client.
-   * @param {ClientOptions<CustomRequestQuery, CustomOfferOptions>} options
+   * @param {ClientOptions} options
    * @memberof Client
    */
-  constructor(options: ClientOptions<CustomRequestQuery, CustomOfferOptions>) {
+  constructor(options: ClientOptions) {
     super();
 
     const {
-      querySchema,
-      offerOptionsSchema,
       contractConfig,
       libp2p,
       provider,
       serverAddress,
       storageInitializer,
       requestRegistryPrefix,
-    } = createClientOptionsSchema<CustomRequestQuery, CustomOfferOptions>().parse(options);
+    } = options;
 
-    this.querySchema = querySchema;
-    this.offerOptionsSchema = offerOptionsSchema;
+    // @todo Validate ClientOptions
+
     this.contractConfig = contractConfig;
     this.libp2pInit = (libp2p ?? {}) as Libp2pOptions;
     this.provider = provider;
@@ -329,10 +323,13 @@ export class Client<
         }
 
         /** Check is the message is an offer */
-        const offer = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
-          this.querySchema,
-          this.offerOptionsSchema,
-        ).parse(JSON.parse(decodeText(detail.data)));
+        const offer = JSON.parse(decodeText(detail.data)) as OfferData<
+          CustomRequestQuery,
+          CustomOfferOptions
+        >;
+
+        // @todo Validate offer
+
         logger.trace('Offer received:', offer);
 
         // Verify the offer
@@ -459,10 +456,7 @@ export class Client<
       throw new Error('Client not initialized yet');
     }
 
-    return await buildRequest<CustomRequestQuery>({
-      ...requestOptions,
-      querySchema: this.querySchema,
-    } as BuildRequestOptions<CustomRequestQuery>);
+    return await buildRequest<CustomRequestQuery>(requestOptions);
   }
 
   /**
@@ -606,14 +600,14 @@ export class Client<
 /**
  * Creates client instance
  *
- * @param {ClientOptions<CustomRequestQuery, CustomOfferOptions>} options Client initialization options
+ * @param {ClientOptions} options Client initialization options
  * @returns {Client}
  */
 export const createClient = <
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 >(
-  options: ClientOptions<CustomRequestQuery, CustomOfferOptions>,
+  options: ClientOptions,
 ): Client<CustomRequestQuery, CustomOfferOptions> => {
   return new Client(options);
 };

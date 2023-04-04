@@ -1,8 +1,7 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { z } from 'zod';
-import { RequestData, GenericQuery, createRequestDataSchema } from '../shared/messages.js';
-import { RequestManagerOptions, createRequestManagerOptionsSchema } from '../shared/options.js';
-import { isExpired, nowSec } from '../utils/time.js';
+import { RequestData, GenericQuery } from '../shared/messages.js';
+import { RequestManagerOptions } from '../shared/options.js';
+import { isExpired, nowSec, parseSeconds } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('RequestManager');
@@ -28,26 +27,24 @@ export interface RequestManagerEvents<CustomRequestQuery extends GenericQuery> {
 export class RequestManager<CustomRequestQuery extends GenericQuery> extends EventEmitter<
   RequestManagerEvents<CustomRequestQuery>
 > {
-  private querySchema: z.ZodType<CustomRequestQuery>;
   private noncePeriod: number;
   private cache: Map<string, RequestData<CustomRequestQuery>>;
   private cacheTopic: Map<string, string>;
 
-  constructor(options: RequestManagerOptions<CustomRequestQuery>) {
+  constructor(options: RequestManagerOptions) {
     super();
 
-    options = createRequestManagerOptionsSchema<CustomRequestQuery>().parse(options);
+    const { noncePeriod } = options;
+
+    // @todo Validate RequestManagerOptions
 
     this.cache = new Map<string, RequestData<CustomRequestQuery>>(); // requestId => request
     this.cacheTopic = new Map<string, string>(); // requestId => topic
-    this.querySchema = options.querySchema;
-    this.noncePeriod = options.noncePeriod;
+    this.noncePeriod = parseSeconds(noncePeriod);
   }
 
   add(topic: string, data: string) {
-    const requestData = createRequestDataSchema<CustomRequestQuery>(this.querySchema).parse(
-      JSON.parse(data),
-    );
+    const requestData = JSON.parse(data) as RequestData<CustomRequestQuery>;
 
     if (isExpired(requestData.expire)) {
       logger.trace(`Request #${requestData.id} is expired`);

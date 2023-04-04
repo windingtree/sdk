@@ -12,10 +12,9 @@ import type { Connection, Direction } from '@libp2p/interface-connection';
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
 import { Multiaddr } from '@multiformats/multiaddr';
 import { sha256 } from 'multiformats/hashes/sha2';
-import { z } from 'zod';
 import { outboundStreamDelay } from '../constants.js';
 import { Storage } from '../storage/abstract.js';
-import { GenericMessageSchema, GenericMessage } from '../shared/messages.js';
+import { GenericMessage } from '../shared/messages.js';
 import { decodeText } from '../utils/text.js';
 import { CashedMessageEntry, MessagesCache } from './cache.js';
 import { createLogger } from '../utils/logger.js';
@@ -23,38 +22,19 @@ import { createLogger } from '../utils/logger.js';
 const logger = createLogger('PubSub');
 
 /**
- * Message transformer function schema
- */
-export const MessageTransformerSchema = z
-  .function()
-  .args(z.instanceof(ArrayBuffer))
-  .returns(GenericMessageSchema);
-
-/**
  * Message transformer function type
  */
-export type MessageTransformer = z.infer<typeof MessageTransformerSchema>;
-
-/**
- * CenterSub initialization options schema
- */
-export const CenterSubOptionsSchema = z.object({
-  isClient: z.boolean().optional(),
-  directPeers: z
-    .array(
-      z.object({
-        id: z.any().nullable(),
-        addrs: z.any(),
-      }),
-    )
-    .optional(),
-  messageTransformer: MessageTransformerSchema.optional(),
-});
+export type MessageTransformer = (message: ArrayBuffer) => GenericMessage;
 
 /**
  * CenterSub initialization options type
  */
-export type CenterSubOptions = z.infer<typeof CenterSubOptionsSchema>;
+export interface CenterSubOptions {
+  isClient?: boolean;
+  directPeers?: GossipsubOpts['directPeers'];
+  messageTransformer?: MessageTransformer;
+  messagesStorage?: Storage;
+}
 
 /**
  * Message details interface
@@ -75,7 +55,6 @@ export class CenterSub extends GossipSub {
   protected messages: MessagesCache | undefined;
   protected seenPeerMessageCache = new Map<string, Set<string>>();
   protected messageTransformer: MessageTransformer;
-  protected options: CenterSubOptions;
 
   /**
    * Creates an instance of CenterSub.
@@ -85,31 +64,30 @@ export class CenterSub extends GossipSub {
    * @param {Storage} [messagesStorage]
    * @memberof CenterSub
    */
-  constructor(
-    components: GossipSubComponents,
-    options: CenterSubOptions,
-    messagesStorage?: Storage,
-  ) {
-    options = CenterSubOptionsSchema.parse(options);
+  constructor(components: GossipSubComponents, options: CenterSubOptions) {
+    const { isClient, directPeers, messageTransformer, messagesStorage } = options;
+
+    // @todo Validate CenterSub options
 
     const opts = {
       allowPublishToZeroPeers: true,
-      directPeers: (options.directPeers as unknown as GossipsubOpts['directPeers']) ?? [],
+      directPeers: directPeers ?? [],
     };
 
-    // A client node must be configured to be connected to the direct peers (servers)
-    if (options.isClient && opts.directPeers.length === 0) {
+    /**
+     * A client node must be configured to be connected to the direct peers (servers)
+     */
+    if (isClient && opts.directPeers.length === 0) {
       throw new Error('Address of the server must be provided with "directPeers" option');
     }
 
     super(components, opts);
-    this.options = options;
 
-    if (!this.options.isClient && !messagesStorage) {
+    if (!isClient && !messagesStorage) {
       throw new Error('Invalid messages storage');
     }
 
-    if (!this.options.isClient && messagesStorage) {
+    if (!isClient && messagesStorage) {
       this.messages = new MessagesCache(messagesStorage);
     }
 
@@ -118,9 +96,9 @@ export class CenterSub extends GossipSub {
     this['handleReceivedMessage'] = this.onHandleReceivedMessage.bind(this);
     this['addPeer'] = this.onAddPeer.bind(this);
 
-    this.isClient = !!this.options.isClient;
-    this.messageTransformer = this.options.messageTransformer
-      ? this.options.messageTransformer
+    this.isClient = !!isClient;
+    this.messageTransformer = messageTransformer
+      ? messageTransformer
       : (message) => JSON.parse(decodeText(message)) as GenericMessage;
     this.addEventListener('gossipsub:heartbeat', this.handleHeartbeat.bind(this));
     components.connectionManager.addEventListener(
@@ -337,13 +315,10 @@ export class CenterSub extends GossipSub {
  * Create CenterSub instance
  *
  * @param {CenterSubOptions} options
- * @param {Storage} [messagesStorage]
  * @returns {((components: GossipSubComponents) => PubSub<GossipsubEvents>)}
  */
 export const centerSub = (
   options: CenterSubOptions,
-  messagesStorage?: Storage,
 ): ((components: GossipSubComponents) => PubSub<GossipsubEvents>) => {
-  return (components: GossipSubComponents) =>
-    new CenterSub(components, options ?? {}, messagesStorage);
+  return (components: GossipSubComponents) => new CenterSub(components, options ?? {});
 };

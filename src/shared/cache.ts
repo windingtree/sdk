@@ -1,14 +1,8 @@
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
-import { z } from 'zod';
 import { Storage } from '../storage/abstract.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('MessagesCache');
-
-/**
- * Cached message schema
- */
-export const CachedMessageSchema = z.object({});
 
 /**
  * Cached message type

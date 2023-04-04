@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  RequestQuerySchema,
   RequestQuery,
-  OfferOptionsSchema,
   OfferOptions,
   contractConfig,
   serverAddress,
-} from '../../shared/types.js';
+} from '../../shared/index.js';
 import { Client, ClientOptions, createClient, RequestRecord, storage, utils } from '../../../src/index.js';
 // import { Client, ClientOptions, RequestRecord, createClient, storage, utils } from '@windingtree/sdk';
 
@@ -160,9 +158,7 @@ export const App = () => {
       try {
         setError(undefined);
 
-        const options: ClientOptions<RequestQuery, OfferOptions> = {
-          querySchema: RequestQuerySchema,
-          offerOptionsSchema: OfferOptionsSchema,
+        const options: ClientOptions = {
           contractConfig,
           serverAddress,
           storageInitializer: storage.localStorage.createInitializer({

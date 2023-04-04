@@ -1,23 +1,15 @@
-import { z } from 'zod';
-
-/**
- * BigNumberish schema
- */
-export const bigNumberishSchema = z.bigint().or(z.number()).or(z.string());
-
-/**
- * Smart contract configuration schema
- */
-export const ContractConfigSchema = z
-  .object({
-    name: z.string(),
-    version: z.string(),
-    chainId: bigNumberishSchema,
-    address: z.string(),
-  })
-  .strict();
+import { BigNumberish } from 'ethers';
 
 /**
  * Smart contract configuration type
  */
-export type ContractConfig = z.infer<typeof ContractConfigSchema>;
+export interface ContractConfig {
+  /** Smart contract name */
+  name: string;
+  /** Internal smart contract version */
+  version: string;
+  /** Chain Id */
+  chainId: BigNumberish;
+  /** Smart contract address */
+  address: string;
+}
