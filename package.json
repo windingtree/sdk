@@ -23,8 +23,8 @@
   ],
   "license": "MIT",
   "type": "module",
-  "types": "./lib/src/index.d.ts",
-  "main": "./lib/src/index.js",
+  "types": "./lib/index.d.ts",
+  "main": "./lib/index.js",
   "files": [
     "lib/**/*",
     "!**/*.tsbuildinfo"
