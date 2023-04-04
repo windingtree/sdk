@@ -329,10 +329,10 @@ export class Client<
         }
 
         /** Check is the message is an offer */
-        const offer = createOfferDataSchema<
-          z.ZodType<CustomRequestQuery>,
-          z.ZodType<CustomOfferOptions>
-        >(this.querySchema, this.offerOptionsSchema).parse(JSON.parse(decodeText(detail.data)));
+        const offer = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
+          this.querySchema,
+          this.offerOptionsSchema,
+        ).parse(JSON.parse(decodeText(detail.data)));
         logger.trace('Offer received:', offer);
 
         // Verify the offer

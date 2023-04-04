@@ -19,24 +19,29 @@ const logger = createLogger('RequestsRegistry');
 /**
  * Creates request record schema
  *
- * @param {z.ZodType} querySchema Custom request query schema
- * @param {z.ZodType} offerOptionsSchema
+ * @template {CustomRequestQuery}
+ * @template {CustomOfferOptions}
+ * @param {z.ZodType<CustomRequestQuery>} querySchema Custom request query schema
+ * @param {z.ZodType<CustomOfferOptions>} offerOptionsSchema
  * @returns {z.ZodType} Request record schema
  */
 export const createRequestRecordSchema = <
-  TQuery extends z.ZodTypeAny,
-  TOfferOptions extends z.ZodTypeAny,
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
 >(
-  querySchema: TQuery,
-  offerOptionsSchema: TOfferOptions,
+  querySchema: z.ZodType<CustomRequestQuery>,
+  offerOptionsSchema: z.ZodType<CustomOfferOptions>,
 ) =>
   z
     .object({
       /** Raw request data */
-      data: createRequestDataSchema<TQuery>(querySchema),
+      data: createRequestDataSchema<CustomRequestQuery>(querySchema),
       /** Offers associated with a request*/
       offers: z.array(
-        createOfferDataSchema<TQuery, TOfferOptions>(querySchema, offerOptionsSchema),
+        createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
+          querySchema,
+          offerOptionsSchema,
+        ),
       ),
       /** Request cancelation flag */
       cancelled: z.boolean().default(false),
@@ -84,11 +89,7 @@ export type RequestsRegistryOptions<
 export type RequestRecord<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
-> = z.infer<
-  ReturnType<
-    typeof createRequestRecordSchema<z.ZodType<CustomRequestQuery>, z.ZodType<CustomOfferOptions>>
-  >
->;
+> = z.infer<ReturnType<typeof createRequestRecordSchema<CustomRequestQuery, CustomOfferOptions>>>;
 
 /**
  * Request manager events interface
@@ -260,10 +261,10 @@ export class RequestsRegistry<
 
       for (let requestRecord of rawRecords) {
         try {
-          requestRecord = createRequestRecordSchema<
-            z.ZodType<CustomRequestQuery>,
-            z.ZodType<CustomOfferOptions>
-          >(this.client.querySchema, this.client.offerOptionsSchema).parse(requestRecord);
+          requestRecord = createRequestRecordSchema<CustomRequestQuery, CustomOfferOptions>(
+            this.client.querySchema,
+            this.client.offerOptionsSchema,
+          ).parse(requestRecord);
 
           // `record.data` marked as optional because of Zod generics issue
           this.requests.set(
@@ -379,13 +380,11 @@ export class RequestsRegistry<
       throw new Error('Client not connected to the coordination server yet');
     }
 
-    request = createRequestDataSchema<z.ZodType<CustomRequestQuery>>(this.client.querySchema).parse(
-      request,
-    );
-    const requestRecord = createRequestRecordSchema<
-      z.ZodType<CustomRequestQuery>,
-      z.ZodType<CustomOfferOptions>
-    >(this.client.querySchema, this.client.offerOptionsSchema).parse({
+    request = createRequestDataSchema<CustomRequestQuery>(this.client.querySchema).parse(request);
+    const requestRecord = createRequestRecordSchema<CustomRequestQuery, CustomOfferOptions>(
+      this.client.querySchema,
+      this.client.offerOptionsSchema,
+    ).parse({
       data: request,
       offers: [],
     });
@@ -452,7 +451,7 @@ export class RequestsRegistry<
 
     this.requests.set(
       id,
-      createRequestRecordSchema<z.ZodType<CustomRequestQuery>, z.ZodType<CustomOfferOptions>>(
+      createRequestRecordSchema<CustomRequestQuery, CustomOfferOptions>(
         this.client.querySchema,
         this.client.offerOptionsSchema,
       ).parse(record),
@@ -512,7 +511,7 @@ export class RequestsRegistry<
    * @memberof RequestsRegistry
    */
   addOffer(offer: OfferData<CustomRequestQuery, CustomOfferOptions>) {
-    offer = createOfferDataSchema<z.ZodType<CustomRequestQuery>, z.ZodType<CustomOfferOptions>>(
+    offer = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
       this.client.querySchema,
       this.client.offerOptionsSchema,
     ).parse(offer);
@@ -529,7 +528,7 @@ export class RequestsRegistry<
 
     this.requests.set(
       requestId,
-      createRequestRecordSchema<z.ZodType<CustomRequestQuery>, z.ZodType<CustomOfferOptions>>(
+      createRequestRecordSchema<CustomRequestQuery, CustomOfferOptions>(
         this.client.querySchema,
         this.client.offerOptionsSchema,
       ).parse({
