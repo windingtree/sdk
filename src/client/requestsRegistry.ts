@@ -1,14 +1,6 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { z } from 'zod';
 import { Client } from '../index.js';
-import {
-  GenericOfferOptions,
-  GenericQuery,
-  createRequestDataSchema,
-  createOfferDataSchema,
-  RequestData,
-  OfferData,
-} from '../shared/messages.js';
+import { GenericOfferOptions, GenericQuery, RequestData, OfferData } from '../shared/messages.js';
 import { Storage } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
 import { encodeText } from '../utils/text.js';
@@ -17,79 +9,38 @@ import { nowSec } from '../utils/time.js';
 const logger = createLogger('RequestsRegistry');
 
 /**
- * Creates request record schema
- *
- * @template {CustomRequestQuery}
- * @template {CustomOfferOptions}
- * @param {z.ZodType<CustomRequestQuery>} querySchema Custom request query schema
- * @param {z.ZodType<CustomOfferOptions>} offerOptionsSchema
- * @returns {z.ZodType} Request record schema
+ * Request record type
  */
-export const createRequestRecordSchema = <
+export interface RequestRecord<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
->(
-  querySchema: z.ZodType<CustomRequestQuery>,
-  offerOptionsSchema: z.ZodType<CustomOfferOptions>,
-) =>
-  z
-    .object({
-      /** Raw request data */
-      data: createRequestDataSchema<CustomRequestQuery>(querySchema),
-      /** Offers associated with a request*/
-      offers: z.array(
-        createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
-          querySchema,
-          offerOptionsSchema,
-        ),
-      ),
-      /** Request cancelation flag */
-      cancelled: z.boolean().default(false),
-    })
-    .strict();
+> {
+  /** Raw request data */
+  data: RequestData<CustomRequestQuery>;
+  /** Offers associated with a request*/
+  offers: OfferData<CustomRequestQuery, CustomOfferOptions>[];
+  /** Request cancelation flag */
+  cancelled: boolean;
+}
 
 /**
  * Request registry keys prefix schema
  */
-export const RequestRegistryPrefixSchema = z.string().default('requestsRegistry');
-
-/**
- * Request manager initialization options schema
- *
- * @template CustomRequestQuery
- * @template CustomOfferOptions
- */
-const createRequestsRegistryOptionsSchema = <
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
->() =>
-  z
-    .object({
-      /** Instance of Client */
-      client: z.instanceof(Client<CustomRequestQuery, CustomOfferOptions>),
-      /** Instance of storage */
-      storage: z.instanceof(Storage),
-      prefix: RequestRegistryPrefixSchema,
-    })
-    .strict();
+export type RequestRegistryPrefix = string;
 
 /**
  * Request manager initialization options type
  */
-export type RequestsRegistryOptions<
+export interface RequestsRegistryOptions<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
-> = z.infer<
-  ReturnType<typeof createRequestsRegistryOptionsSchema<CustomRequestQuery, CustomOfferOptions>>
->;
-
-/**
- * Request record type
- */
-export type RequestRecord<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
-> = z.infer<ReturnType<typeof createRequestRecordSchema<CustomRequestQuery, CustomOfferOptions>>>;
+> {
+  /** Instance of Client */
+  client: Client<CustomRequestQuery, CustomOfferOptions>;
+  /** Instance of storage */
+  storage: Storage;
+  prefix: RequestRegistryPrefix;
+}
 
 /**
  * Request manager events interface
@@ -225,10 +176,9 @@ export class RequestsRegistry<
   constructor(options: RequestsRegistryOptions<CustomRequestQuery, CustomOfferOptions>) {
     super();
 
-    const { client, storage, prefix } = createRequestsRegistryOptionsSchema<
-      CustomRequestQuery,
-      CustomOfferOptions
-    >().parse(options);
+    const { client, storage, prefix } = options;
+
+    // @todo Validate RequestsRegistryOptions
 
     this.client = client;
     this.requests = new Map<string, RequestRecord<CustomRequestQuery, CustomOfferOptions>>();
@@ -259,18 +209,9 @@ export class RequestsRegistry<
         throw new Error('libp2p not initialized yet');
       }
 
-      for (let requestRecord of rawRecords) {
+      for (const requestRecord of rawRecords) {
         try {
-          requestRecord = createRequestRecordSchema<CustomRequestQuery, CustomOfferOptions>(
-            this.client.querySchema,
-            this.client.offerOptionsSchema,
-          ).parse(requestRecord);
-
-          // `record.data` marked as optional because of Zod generics issue
-          this.requests.set(
-            (requestRecord.data as RequestData<CustomRequestQuery>).id,
-            requestRecord,
-          );
+          this.requests.set(requestRecord.data.id, requestRecord);
           this._subscribe(requestRecord);
         } catch (error) {
           logger.error(error);
@@ -331,29 +272,27 @@ export class RequestsRegistry<
       throw new Error('Client not connected to the coordination server yet');
     }
 
-    const request = record.data as RequestData<CustomRequestQuery>;
-
     const now = nowSec();
 
-    if (request.expire < nowSec() || record.cancelled) {
+    if (record.data.expire < nowSec() || record.cancelled) {
       return;
     }
 
-    this.client.libp2p.pubsub.subscribe(request.id);
+    this.client.libp2p.pubsub.subscribe(record.data.id);
     this.subscriptions.set(
-      request.id,
+      record.data.id,
       setTimeout(() => {
         this.dispatchEvent(
           new CustomEvent<string>('expire', {
-            detail: request.id,
+            detail: record.data.id,
           }),
         );
-        this._unsubscribe(request.id);
-      }, (request.expire - now) * 1000),
+        this._unsubscribe(record.data.id);
+      }, (record.data.expire - now) * 1000),
     );
     this.dispatchEvent(
       new CustomEvent<string>('subscribe', {
-        detail: request.id,
+        detail: record.data.id,
       }),
     );
   }
@@ -380,14 +319,15 @@ export class RequestsRegistry<
       throw new Error('Client not connected to the coordination server yet');
     }
 
-    request = createRequestDataSchema<CustomRequestQuery>(this.client.querySchema).parse(request);
-    const requestRecord = createRequestRecordSchema<CustomRequestQuery, CustomOfferOptions>(
-      this.client.querySchema,
-      this.client.offerOptionsSchema,
-    ).parse({
+    // @todo Validate RequestData
+
+    const requestRecord: RequestRecord<CustomRequestQuery, CustomOfferOptions> = {
       data: request,
       offers: [],
-    });
+      cancelled: false,
+    };
+
+    // @todo Validate requestRecord
 
     this.requests.set(request.id, requestRecord);
     this.dispatchEvent(
@@ -447,15 +387,10 @@ export class RequestsRegistry<
       throw new Error(`Request #${id} not found`);
     }
 
-    record.cancelled = true;
-
-    this.requests.set(
-      id,
-      createRequestRecordSchema<CustomRequestQuery, CustomOfferOptions>(
-        this.client.querySchema,
-        this.client.offerOptionsSchema,
-      ).parse(record),
-    );
+    this.requests.set(id, {
+      ...record,
+      cancelled: true,
+    });
     this.dispatchEvent(
       new CustomEvent<string>('cancel', {
         detail: id,
@@ -511,12 +446,9 @@ export class RequestsRegistry<
    * @memberof RequestsRegistry
    */
   addOffer(offer: OfferData<CustomRequestQuery, CustomOfferOptions>) {
-    offer = createOfferDataSchema<CustomRequestQuery, CustomOfferOptions>(
-      this.client.querySchema,
-      this.client.offerOptionsSchema,
-    ).parse(offer);
+    // @todo Validate offer
 
-    const requestId = (offer.request as RequestData<CustomRequestQuery>).id;
+    const requestId = offer.request.id;
     const request = this.get(requestId);
 
     if (!request) {
@@ -526,16 +458,11 @@ export class RequestsRegistry<
     const offers = new Set(request.offers);
     offers.add(offer);
 
-    this.requests.set(
-      requestId,
-      createRequestRecordSchema<CustomRequestQuery, CustomOfferOptions>(
-        this.client.querySchema,
-        this.client.offerOptionsSchema,
-      ).parse({
-        data: request.data,
-        offers: Array.from(offers),
-      }),
-    );
+    this.requests.set(requestId, {
+      data: request.data,
+      offers: Array.from(offers),
+      cancelled: false,
+    });
     this.dispatchEvent(
       new CustomEvent<string>('offer', {
         detail: requestId,

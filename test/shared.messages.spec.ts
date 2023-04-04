@@ -1,11 +1,10 @@
 import { expect } from './setup.js';
-import { z } from 'zod';
 import { Wallet } from 'ethers';
 import { ContractConfig } from '../src/utils/contract.js';
 import { randomSalt, supplierId as spId, uuid4 } from '../src/utils/uid.js';
 import {
-  GenericQuerySchema,
-  GenericOfferOptionsSchema,
+  GenericQuery,
+  GenericOfferOptions,
   RequestData,
   OfferData,
   buildRequest,
@@ -13,20 +12,19 @@ import {
   verifyOffer,
 } from '../src/shared/messages.js';
 
+interface CustomQuery extends GenericQuery {
+  guests: number;
+  rooms: number;
+}
+
+interface CustomOfferOptions extends GenericOfferOptions {
+  room: string;
+  checkIn: string;
+  checkOut: string;
+}
+
 describe('Shared.messages', () => {
   const topic = 'test';
-  const CustomQuerySchema = GenericQuerySchema.extend({
-    guests: z.number(),
-    rooms: z.number(),
-  });
-  type CustomQuery = z.infer<typeof CustomQuerySchema>;
-
-  const CustomOfferOptionsSchema = GenericOfferOptionsSchema.extend({
-    room: z.string(),
-    checkIn: z.string(),
-    checkOut: z.string(),
-  });
-  type CustomOfferOptions = z.infer<typeof CustomOfferOptionsSchema>;
 
   const createRequest = (expire: number | string = 1) =>
     buildRequest<CustomQuery>({
@@ -37,7 +35,6 @@ describe('Shared.messages', () => {
         guests: 2,
         rooms: 1,
       },
-      querySchema: CustomQuerySchema,
     });
 
   const signer = Wallet.createRandom();
@@ -53,8 +50,6 @@ describe('Shared.messages', () => {
     buildOffer<CustomQuery, CustomOfferOptions>({
       contract: contractConfig,
       signer,
-      querySchema: CustomQuerySchema,
-      optionsSchema: CustomOfferOptionsSchema,
       supplierId,
       expire,
       request,
@@ -114,8 +109,6 @@ describe('Shared.messages', () => {
       it('should restore an offer from raw data', async () => {
         const fromRaw = await buildOffer<CustomQuery, CustomOfferOptions>({
           contract: contractConfig,
-          querySchema: CustomQuerySchema,
-          optionsSchema: CustomOfferOptionsSchema,
           supplierId,
           expire: offer.expire,
           request: offer.request,
@@ -134,8 +127,6 @@ describe('Shared.messages', () => {
         await expect(
           buildOffer<CustomQuery, CustomOfferOptions>({
             contract: contractConfig,
-            querySchema: CustomQuerySchema,
-            optionsSchema: CustomOfferOptionsSchema,
             supplierId,
             expire: offer.expire,
             request: offer.request,

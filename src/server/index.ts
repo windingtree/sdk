@@ -5,7 +5,7 @@ import { mplex } from '@libp2p/mplex';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { NodeKeyJson, ServerOptions, ServerOptionsSchema } from '../shared/options.js';
+import { NodeKeyJson, ServerOptions } from '../shared/options.js';
 import { centerSub, CenterSub } from '../shared/pubsub.js';
 import { decodeText } from '../utils/text.js';
 import { StorageInitializer } from '../storage/abstract.js';
@@ -61,7 +61,10 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
    */
   constructor(options: ServerOptions) {
     super();
-    const { port, peerKey, messagesStorageInit } = ServerOptionsSchema.parse(options);
+    const { port, peerKey, messagesStorageInit } = options;
+
+    // @todo Validate ServerOptions
+
     this.messagesStorageInit = messagesStorageInit;
     this.port = port;
     this.peerKey = peerKey;
@@ -97,7 +100,9 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
       transports: [webSockets({ filter: all })],
       streamMuxers: [mplex()],
       connectionEncryption: [noise()],
-      pubsub: centerSub({}, messagesStorage),
+      pubsub: centerSub({
+        messagesStorage,
+      }),
     };
 
     const peerId = await createFromJSON(this.peerKey);

@@ -9,21 +9,20 @@ import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { peerIdFromString } from '@libp2p/peer-id';
 import { AbstractProvider, AbstractSigner, Wallet } from 'ethers';
-import { z } from 'zod';
+import { noncePeriod as defaultNoncePeriod } from '../constants.js';
 import {
   buildOffer,
   BuildOfferOptions,
-  createBuildOfferOptions,
   GenericOfferOptions,
   GenericQuery,
   OfferData,
-  RequestData,
 } from '../shared/messages.js';
 import { CenterSub, centerSub } from '../shared/pubsub.js';
 import { RequestManager, RequestEvent } from './requestManager.js';
 import { decodeText, encodeText } from '../utils/text.js';
 import { ContractConfig } from '../utils/contract.js';
-import { NodeOptions, createNodeOptionsSchema } from '../shared/options.js';
+import { NodeOptions } from '../shared/options.js';
+import { parseSeconds } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Node');
@@ -116,8 +115,6 @@ export class Node<
   serverMultiaddr: Multiaddr;
   serverPeerId: PeerId;
   supplierId: string;
-  querySchema: z.ZodType<CustomRequestQuery>;
-  offerOptionsSchema: z.ZodType<CustomOfferOptions>;
   contractConfig: ContractConfig;
   signer: AbstractSigner;
   provider?: AbstractProvider;
@@ -126,22 +123,31 @@ export class Node<
   private requestManager: RequestManager<CustomRequestQuery>;
 
   /**
-   * @param {NodeOptions<CustomRequestQuery, CustomOfferOptions>} options Node initialization options
+   * @param {NodeOptions} options Node initialization options
    */
-  constructor(options: NodeOptions<CustomRequestQuery, CustomOfferOptions>) {
+  constructor(options: NodeOptions) {
     super();
 
-    options = createNodeOptionsSchema<CustomRequestQuery, CustomOfferOptions>().parse(options);
+    const {
+      contractConfig,
+      libp2p,
+      provider,
+      topics,
+      supplierId,
+      signerSeedPhrase,
+      serverAddress,
+      noncePeriod,
+    } = options;
 
-    this.querySchema = options.querySchema;
-    this.offerOptionsSchema = options.offerOptionsSchema;
-    this.contractConfig = options.contractConfig;
-    this.libp2pInit = (options.libp2p ?? {}) as Libp2pOptions;
-    this.provider = options.provider;
-    this.topics = options.topics;
-    this.supplierId = options.supplierId;
-    this.signer = Wallet.fromPhrase(options.signerSeedPhrase);
-    this.serverMultiaddr = multiaddr(options.serverAddress);
+    // @validate NodeOptions
+
+    this.contractConfig = contractConfig;
+    this.libp2pInit = libp2p ?? {};
+    this.provider = provider;
+    this.topics = topics;
+    this.supplierId = supplierId;
+    this.signer = Wallet.fromPhrase(signerSeedPhrase);
+    this.serverMultiaddr = multiaddr(serverAddress);
     const serverPeerIdString = this.serverMultiaddr.getPeerId();
 
     if (!serverPeerIdString) {
@@ -150,8 +156,7 @@ export class Node<
 
     this.serverPeerId = peerIdFromString(serverPeerIdString);
     this.requestManager = new RequestManager<CustomRequestQuery>({
-      querySchema: this.querySchema,
-      noncePeriod: options.noncePeriod,
+      noncePeriod: parseSeconds(noncePeriod ?? defaultNoncePeriod),
     });
     this.requestManager.addEventListener('request', (e) => this.handleRequest(e));
     logger.trace('Node instantiated');
@@ -248,25 +253,15 @@ export class Node<
       throw new Error('libp2p not initialized yet');
     }
 
-    const offer = await buildOffer<CustomRequestQuery, CustomOfferOptions>(
-      createBuildOfferOptions<CustomRequestQuery, CustomOfferOptions>(
-        this.querySchema,
-        this.offerOptionsSchema,
-      ).parse({
-        ...offerOptions,
-        contract: this.contractConfig,
-        supplierId: this.supplierId,
-        signer: this.signer,
-        querySchema: this.querySchema,
-        optionsSchema: this.offerOptionsSchema,
-      }),
-    );
+    const offer = await buildOffer<CustomRequestQuery, CustomOfferOptions>({
+      ...offerOptions,
+      contract: this.contractConfig,
+      supplierId: this.supplierId,
+      signer: this.signer,
+    });
     logger.trace(`Offer #${offer.id} is built`);
 
-    await this.libp2p.pubsub.publish(
-      (offer.request as RequestData<CustomRequestQuery>).id,
-      encodeText(JSON.stringify(offer)),
-    );
+    await this.libp2p.pubsub.publish(offer.request.id, encodeText(JSON.stringify(offer)));
     logger.trace(`Offer #${offer.id} is published`);
 
     return offer;
@@ -370,7 +365,7 @@ export const createNode = <
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 >(
-  options: NodeOptions<CustomRequestQuery, CustomOfferOptions>,
+  options: NodeOptions,
 ): Node<CustomRequestQuery, CustomOfferOptions> => {
   return new Node<CustomRequestQuery, CustomOfferOptions>(options);
 };

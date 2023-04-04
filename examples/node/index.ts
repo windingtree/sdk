@@ -1,14 +1,7 @@
 import { EventHandler } from '@libp2p/interfaces/events';
 import { ZeroAddress } from 'ethers';
 import { DateTime } from 'luxon';
-import {
-  RequestQuerySchema,
-  RequestQuery,
-  OfferOptionsSchema,
-  OfferOptions,
-  contractConfig,
-  serverAddress,
-} from '../shared/types.js';
+import { RequestQuery, OfferOptions, contractConfig, serverAddress } from '../shared/index.js';
 import {
   createNode,
   Node,
@@ -148,9 +141,7 @@ const main = async (): Promise<void> => {
     concurrentJobsNumber: 3,
   });
 
-  const options: NodeOptions<RequestQuery, OfferOptions> = {
-    querySchema: RequestQuerySchema,
-    offerOptionsSchema: OfferOptionsSchema,
+  const options: NodeOptions = {
     topics: ['hello'],
     contractConfig,
     serverAddress,
@@ -158,7 +149,7 @@ const main = async (): Promise<void> => {
     supplierId,
     signerSeedPhrase: signerMnemonic,
   };
-  const node = createNode(options);
+  const node = createNode<RequestQuery, OfferOptions>(options);
 
   queue.addJobHandler('deal', dealHandler({ node }));
 

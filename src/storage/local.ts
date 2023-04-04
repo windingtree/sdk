@@ -1,5 +1,4 @@
-import { z } from 'zod';
-import { Storage, createStorageInitializerFactorySchema } from './abstract.js';
+import { Storage, StorageInitializerFunction } from './abstract.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('LocalStorage');
@@ -16,13 +15,11 @@ export interface WindowStorage {
 }
 
 /**
- * Local storage options
+ * Local storage options type
  */
-export const LocalStorageOptionsSchema = z.object({
-  session: z.boolean().default(false),
-});
-
-export type LocalStorageOptions = z.infer<typeof LocalStorageOptionsSchema>;
+export interface LocalStorageOptions {
+  session?: boolean;
+}
 
 /**
  * In-memory key-value storage implementation
@@ -41,7 +38,10 @@ export class LocalStorage extends Storage {
    */
   constructor(options?: LocalStorageOptions) {
     super();
-    options = LocalStorageOptionsSchema.parse(options ?? {});
+    options = options ?? {};
+
+    // @todo Validate LocalStorageOptions
+
     this.db = options.session ? sessionStorage : localStorage;
     logger.trace('Local storage initialized');
   }
@@ -150,10 +150,9 @@ export class LocalStorage extends Storage {
 /**
  * Local storage configuration
  */
-export const createInitializer = createStorageInitializerFactorySchema<
-  typeof LocalStorageOptionsSchema
->(LocalStorageOptionsSchema)
+export const createInitializer: StorageInitializerFunction =
+  (options?: LocalStorageOptions) =>
   // eslint-disable-next-line @typescript-eslint/require-await
-  .implement((options) => async (): Promise<LocalStorage> => {
+  async (): Promise<LocalStorage> => {
     return new LocalStorage(options);
-  });
+  };
