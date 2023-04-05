@@ -18,14 +18,16 @@ abstract class Storage {
 Every storage connector has `createInitializer` function that is a factory that returns async storage initializer function.
 
 ```typescript
-type StorageInitializer<Options = object> = (options: Options) => Promise<Storage>;
+type StorageInitializer = () => Promise<Storage>;
+
+type StorageInitializerFunction = (options?: GenericStorageOptions) => StorageInitializer;
 ```
 
 ```typescript
 import { storage } from '@windingtree/sdk';
 
 const storageInit = storage.{'memoryStorage' | 'localStorage'}.createInitializer(
-  /** initializer options */
+  /** initializer options: configuration, password, etc... */
 );
 
 /** Somewhere in the app */
@@ -64,7 +66,7 @@ type MemoryStorageOptions = {
 ```typescript
 type LocalStorageOptions = {
   /** local OR session storage */
-  session: boolean;
+  session?: boolean;
 };
 ```
 
@@ -73,24 +75,18 @@ type LocalStorageOptions = {
 Here is a simple connector template:
 
 ```typescript
-import { Storage, createStorageInitializerFactorySchema } from '@windingtree/sdk';
+import { Storage, StorageInitializerFunction } from '@windingtree/sdk';
 import { createLogger } from '@windingtree/sdk/utils';
-import { z } from 'zod';
 
 const logger = createLogger('MyStorage');
 
 /**
- * My storage options
+ * My storage options type
  */
-export const MyStorageOptionsSchema = z.object({
-  login: z.string(),
-  password: z.string(),
-});
-
-/**
- * My storage type
- */
-export type MyStorageOptions = z.infer<typeof MyStorageOptionsSchema>;
+export interface MyStorageOptions {
+  login: string;
+  password: string;
+}
 
 /**
  * My storage class
@@ -98,7 +94,7 @@ export type MyStorageOptions = z.infer<typeof MyStorageOptionsSchema>;
  * @class MyStorage
  * @extends {Storage}
  */
-export class MemoryStorage extends Storage {
+export class MyStorage extends Storage {
   /**
    * Creates an instance of MyStorage.
    *
@@ -107,51 +103,53 @@ export class MemoryStorage extends Storage {
    */
   constructor(options?: MyStorageOptions) {
     super();
-    options = MemoryStorageOptionsSchema.parse(options ?? {});
-    /** My storage constructor logic */
+    /**
+     * - Validate options
+     * - Constructor logic
+     **/
     logger.trace('My storage initialized');
   }
 
   /**
-   * My storage implementation
+   * My storage interface implementation
    */
 }
 
-export const createInitializer = (options?: MyStorageOptions) =>
-  createStorageInitializerFactorySchema<typeof MyStorageOptionsSchema>(MyStorageOptionsSchema)
-    // eslint-disable-next-line @typescript-eslint/require-await
-    .implement((options) => async (): Promise<MyStorage> => {
-      return new MyStorage(options);
-    })(options ?? {});
+export const createInitializer: StorageInitializerFunction =
+  (options?: MyStorageOptions) =>
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async (): Promise<MyStorage> => {
+    return new MyStorage(options);
+  };
 ```
 
 If your database requires graceful shutdown it is recommended to include this logic right inside the initializer.
 
 ```typescript
-export const createInitializer = (options?: MyStorageOptions) =>
-  createStorageInitializerFactorySchema<typeof MyStorageOptionsSchema>(MyStorageOptionsSchema)
-    // eslint-disable-next-line @typescript-eslint/require-await
-    .implement((options) => async (): Promise<MyStorage> => {
-      const stor = new MyStorage(options);
+export const createInitializer: StorageInitializerFunction =
+  (options?: MyStorageOptions) =>
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async (): Promise<MyStorage> => {
+    const stor = new MyStorage(options);
 
-      /**
-       * Graceful database shutdown handler
-       */
-      const shutdown = () => {
-        const stopHandler = async () => {
-          await stor.stop();
-        };
-        stopHandler()
-          .catch((error) => {
-            logger.trace(error);
-            process.exit(1);
-          })
-          .finally(() => process.exit(0));
+    /**
+     * Graceful database shutdown handler
+     */
+    const shutdown = () => {
+      const stopHandler = async () => {
+        await stor.stop();
       };
+      stopHandler()
+        .catch((error) => {
+          logger.trace(error);
+          process.exit(1);
+        })
+        .finally(() => process.exit(0));
+    };
 
-      process.once('SIGTERM', shutdown);
-      process.once('SIGINT', shutdown);
+    process.once('SIGTERM', shutdown);
+    process.once('SIGINT', shutdown);
 
-      return stor;
-    })(options ?? {});
+    return stor;
+  };
 ```

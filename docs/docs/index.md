@@ -33,7 +33,7 @@ yarn add @windingtree/sdk ethers
 The peer key is part of p2p security schema. It uses for peer identification and establishing secured connections between peers.
 
 ```typescript
-import { generatePeerKey } from '@windingtree.sdk';
+import { generatePeerKey } from '@windingtree/sdk';
 
 await generatePeerKey();
 /*
@@ -74,7 +74,7 @@ const options: ServerOptions = {
   address: '0.0.0.0',
   port: 33333,
   peerKey,
-  messagesStorageInit: storage.memoryStorage.init(),
+  messagesStorageInit: storage.memoryStorage.createInitializer(),
 };
 ```
 
@@ -83,19 +83,23 @@ const options: ServerOptions = {
 A base options type definitions:
 
 ```typescript
-type NodeOptions<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
-> = {
+/** smart contract configuration */
+interface ContractConfig {
+  /** Smart contract name */
+  name: string;
+  /** Internal smart contract version */
+  version: string;
+  /** Chain Id */
+  chainId: BigNumberish;
+  /** Smart contract address */
+  address: string;
+}
+
+type NodeOptions = {
   /** Period while the node waits and accepting requests with the same Id */
   noncePeriod: number;
   /** The protocol smart contract configuration */
-  contractConfig: {
-    address: string;
-    name: string;
-    version: string;
-    chainId: string | number | bigint;
-  };
+  contractConfig: ContractConfig;
   /** Multiaddr of the coordination server */
   serverAddress: string;
   /** Seed phrase of the node signer wallet */
@@ -104,14 +108,10 @@ type NodeOptions<
   topics: string[];
   /** Unique supplier Id */
   supplierId: string;
-  /** Query validation schema */
-  querySchema: ZodType<CustomRequestQuery>;
-  /** Offer options validation schema instance */
-  offerOptionsSchema: ZodType<CustomOfferOptions>;
   /** Ethers.js provider instance */
-  provider?: AbstractProvider | undefined;
+  provider?: AbstractProvider;
   /** Additional Libp2p initialization options */
-  libp2p?: Libp2pOptions | undefined;
+  libp2p?: Libp2pInit;
 };
 ```
 
@@ -120,19 +120,9 @@ Here is an example of a supplier node configuration:
 ```typescript
 import { NodeOptions } from '@windingtree/sdk';
 import { latLngToCell } from '@windingtree/sdk/utils';
-import {
-  RequestQuerySchema,
-  OfferOptionsSchema,
-  RequestQuery,
-  OfferOptions,
-  supplierId,
-  signerSeedPhrase,
-  coordinates,
-} from './config.js';
+import { supplierId, signerSeedPhrase, coordinates } from './config.js';
 
-const options: NodeOptions<RequestQuery, OfferOptions> = {
-  querySchema: RequestQuerySchema, // zod schema
-  offerOptionsSchema: OfferOptionsSchema, // zod schema
+const options: NodeOptions = {
   topics: ['hello', latLngToCell(coordinates)],
   contractConfig: {
     name: 'WtMarket',
@@ -150,31 +140,19 @@ const options: NodeOptions<RequestQuery, OfferOptions> = {
 ### Client node
 
 ```typescript
-type ClientOptionsClientOptions<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
-> = {
+type ClientOptions = {
   /** The protocol smart contract configuration */
-  contractConfig: {
-    address: string;
-    name: string;
-    version: string;
-    chainId: string | number | bigint;
-  };
+  contractConfig: ContractConfig; // See details in the supplier node section
   /** Multiaddr of the coordination server */
   serverAddress: string;
-  /** Query validation schema */
-  querySchema: ZodType<CustomRequestQuery>;
-  /** Offer options validation schema instance */
-  offerOptionsSchema: ZodType<CustomOfferOptions>;
   /** Client key-value storage initializer */
   storageInitializer: (...args: unknown[]) => Promise<Storage>;
   /** Request registry keys prefix */
   requestRegistryPrefix: string;
   /** Ethers.js provider instance */
-  provider?: AbstractProvider | undefined;
+  provider?: AbstractProvider;
   /** Additional Libp2p initialization options */
-  libp2p?: Libp2pOptions | undefined;
+  libp2p?: Libp2pInit;
 };
 ```
 
@@ -183,11 +161,8 @@ Here is an example of a client configuration:
 ```typescript
 import { Wallet } from 'ethers';
 import { ClientOptions, storage } from '@windingtree/sdk';
-import { RequestQuerySchema, OfferOptionsSchema, RequestQuery, OfferOptions } from './config.js';
 
-const options: ClientOptions<RequestQuery, OfferOptions> = {
-  querySchema: RequestQuerySchema,
-  offerOptionsSchema: OfferOptionsSchema,
+const options: ClientOptions = {
   contractConfig: {
     name: 'WtMarket',
     version: '1',
@@ -195,7 +170,7 @@ const options: ClientOptions<RequestQuery, OfferOptions> = {
     address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
   },
   serverAddress: '/ip4/127.0.0.1/tcp/33333/ws/p2p/QmcXbDr...jgEuWPCf',
-  storageInitializer: storage.localStorage.init({
+  storageInitializer: storage.localStorage.createInitializer({
     session: true,
   }),
   requestRegistryPrefix: 'requestsRegistry',
@@ -204,6 +179,6 @@ const options: ClientOptions<RequestQuery, OfferOptions> = {
 
 ## SDK development
 
-- WindingTree Discord server, [developers channel](https://discord.com/channels/898350336069218334/956614058323370014)
+- [WindingTree protocol discussions](https://github.com/windingtree/sdk/discussions)
 - Bug tracker: [https://github.com/windingtree/sdk/issues](https://github.com/windingtree/sdk/issues)
 - [Contribution](/docs/contribution.md)
