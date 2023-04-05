@@ -56,7 +56,7 @@ export type RequestManagerOptions = NoncePeriodOption;
  */
 export interface ClientOptions extends ContractConfigOption, ProviderOption, ServerAddressOption {
   /** libp2p configuration options */
-  libp2p?: Record<string, unknown>;
+  libp2p?: Libp2pInit;
   /** Storage initializer function */
   storageInitializer: StorageInitializer;
   /** Request registry keys prefix */
