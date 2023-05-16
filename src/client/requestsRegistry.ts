@@ -1,10 +1,11 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { Client } from '../index.js';
-import { GenericOfferOptions, GenericQuery, RequestData, OfferData } from '../shared/messages.js';
+import { GenericOfferOptions, GenericQuery, RequestData, OfferData } from '../shared/types.js';
 import { Storage } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
 import { encodeText } from '../utils/text.js';
 import { nowSec } from '../utils/time.js';
+import { stringify } from '../utils/hash.js';
 
 const logger = createLogger('RequestsRegistry');
 
@@ -272,9 +273,9 @@ export class RequestsRegistry<
       throw new Error('Client not connected to the coordination server yet');
     }
 
-    const now = nowSec();
+    const now = BigInt(nowSec());
 
-    if (record.data.expire < nowSec() || record.cancelled) {
+    if (BigInt(record.data.expire) < nowSec() || record.cancelled) {
       return;
     }
 
@@ -288,7 +289,7 @@ export class RequestsRegistry<
           }),
         );
         this._unsubscribe(record.data.id);
-      }, (record.data.expire - now) * 1000),
+      }, Number((BigInt(record.data.expire) - now) * BigInt(1000))),
     );
     this.dispatchEvent(
       new CustomEvent<string>('subscribe', {
@@ -339,7 +340,7 @@ export class RequestsRegistry<
     this._subscribe(requestRecord);
 
     this.client.libp2p.pubsub
-      .publish(request.topic, encodeText(JSON.stringify(request)))
+      .publish(request.topic, encodeText(stringify(request)))
       .then(() => {
         this.dispatchEvent(
           new CustomEvent<string>('published', {

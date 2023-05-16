@@ -26,12 +26,12 @@ The protocol provides with function for converting traditional lat/lng coordinat
 Here is an example:
 
 ```typescript
-import { latLngToCell, cellToLatLng } from '@windingtree/sdk/utils';
+import { utils } from '@windingtree/sdk';
 
-const h3Index = latLngToCell(37.3615593, -122.0553238);
+const h3Index = utils.latLngToCell(37.3615593, -122.0553238);
 // -> '87283472bffffff'
 
-const hexCenterCoordinates = cellToLatLng(h3Index);
+const hexCenterCoordinates = utils.cellToLatLng(h3Index);
 // -> [37.35171820183272, -122.05032565263946]
 ```
 
@@ -84,13 +84,21 @@ function lifDepositWithdraw(uint256 amount) external;
 More about the node configuration options is [here](./index.md#supplier-node).
 
 ```typescript
-import { NodeOptions, createNode } from '@windingtree/sdk';
+import { GenericQuery, GenericOfferOptions, NodeOptions, createNode } from '@windingtree/sdk';
 
-const options: NodeOptions<RequestQuery, OfferOptions> = {
-  /*...*/
+export interface RequestQuery extends GenericQuery {
+  /** your custom request interface */
+}
+
+export interface OfferOptions extends GenericOfferOptions {
+  /** suppliers' offer options interface */
+}
+
+const options: NodeOptions = {
+  /** ... */
 };
 
-const node = createNode(options);
+const node = createNode<RequestQuery, OfferOptions>(options);
 await node.start(); // Start the client
 await node.stop(); // Stop the client
 ```
@@ -125,12 +133,12 @@ node.addEventListener('start', () => {
 To start listening to requests the supplier must provide a list of `topics` in the node configuration options.
 
 ```typescript
-import { latLngToCell } from '@windingtree/sdk/utils';
+import { utils } from '@windingtree/sdk';
 
-const topic = latLngToCell(coordinates.lat, coordinates.lng);
+const topic = utils.latLngToCell(coordinates.lat, coordinates.lng);
 // -> ['87283472bffffff']
 
-const options: NodeOptions<RequestQuery, OfferOptions> = {
+const options: NodeOptions = {
   /** ... */
   topics: [topic], // <-- When started the node will be subscribed to these topics
 };
@@ -157,11 +165,13 @@ It is recommended that all incoming requests that are passed validation should b
 Before start using the requests queue you should configure an asynchronous processing callback and register it in the `Queue` utility instance.
 
 ```typescript
-import { storage, Queue, createJobHandler } from '@windingtree/sdk/utils';
+import { storage, Queue, createJobHandler } from '@windingtree/sdk';
+
+const storageInit = await storage.memoryStorage.createInitializer();
 
 const queue = new Queue({
   /** You can use any other available storage options */
-  storage: await storage.memoryStorage.init()(),
+  storage: storageInit(),
   hashKey: 'jobs',
   concurrentJobsNumber: 10,
 });
@@ -228,7 +238,10 @@ type OfferData<RequestQuery, OfferOptions> = {
   expire: number;
   /** Offer nonce. Must be equal to 1 */
   nonce: number;
-  /** Copy of request obtained */
+  /**
+   * Copy of request obtained
+   * {RequestData<RequestQuery>}
+   **/
   request: {
     id: string;
     expire: number;
@@ -236,26 +249,43 @@ type OfferData<RequestQuery, OfferOptions> = {
     topic: string;
     query: RequestQuery;
   };
-  /** Payment options */
+  /**
+   * Payment options
+   * {PaymentOption}
+   **/
   payment: {
     id: string;
     price: string;
     asset: string;
   }[];
-  /** Cancellation rules */
+  /**
+   * Cancellation rules
+   * {CancelOption}
+   **/
   cancel: {
     time: number;
     penalty: number;
   }[];
-  /** Offer payload */
+  /**
+   * Offer payload
+   * {UnsignedOfferPayload}
+   **/
   payload: {
+    /** Unique supplier Id registered on the protocol contract */
     supplierId: string;
+    /** Target network chain Id */
     chainId: number;
+    /** <keccak256(request.hash())> */
     requestHash: string;
+    /** <keccak256(JSON.stringify(offer.options))> */
     optionsHash: string;
+    /** <keccak256(JSON.stringify(offer.payment))> */
     paymentHash: string;
+    /** <keccak256(JSON.stringify(offer.cancel(sorted by time DESC) || []))> */
     cancelHash: string;
+    /** makes the deal NFT transferable or not */
     transferable: boolean;
+    /** check-in time in seconds */
     checkIn: number;
   };
   /** EIP-712 (Typed) signature */
@@ -384,14 +414,13 @@ interface CheckInEip712Values {
 Now, the supplier is able to check the signature validity and send the `check-in` transaction to the protocol smart contract.
 
 ```typescript
-import { CheckInVoucher, DEAL_ACCEPTED } from '@windingtree/sdk';
-import { verifyCheckInVoucher, verifyCheckInSignature } from '@windingtree/sdk/utils';
+import { CheckInVoucher, DealStatus, utils } from '@windingtree/sdk';
 
 // Your custom QR scanning logic
 const getVoucher = async (): Promise<CheckInVoucher> => {
   /* scan the QR code => rawVoucher */
   const voucher = JSON.parse(rawVoucher) as CheckInVoucher;
-  verifyCheckInVoucher(voucher);
+  utils.verifyCheckInVoucher(voucher);
   return voucher;
 };
 
@@ -399,19 +428,19 @@ const { payload, signature } = await getVoucher();
 
 const deal = await node.getDeal(payload.chainId, payload.tokenId); // will throw if the deal not found
 
-if (deal.status !== DEAL_ACCEPTED) {
+if (deal.status !== DealStatus.ACCEPTED) {
   throw new Error('Invalid deal');
 }
 
 const owner = await deal.owner();
 
-const buyerAddress = verifyCheckInSignature(payload, signature);
+const buyerAddress = utils.verifyCheckInSignature(payload, signature);
 
 if (buyerAddress !== owner) {
   throw new Error('Invalid signature');
 }
 
-await deal.checkIn(signature, (txHash) => {
+await node.checkIn(deal, (txHash) => {
   console.log(`CheckIn transaction ${txhash} is pending`);
 }); // will throw if not succeeded
 

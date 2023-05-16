@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { createLibp2p, Libp2pOptions, Libp2p } from 'libp2p';
 import { noise } from '@chainsafe/libp2p-noise';
@@ -9,15 +10,15 @@ import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
 import { AbstractProvider } from 'ethers';
-import { centerSub, CenterSub } from '../shared/pubsub.js';
 import {
-  buildRequest,
   BuildRequestOptions,
   OfferData,
   GenericOfferOptions,
   GenericQuery,
   RequestData,
-} from '../shared/messages.js';
+} from '../shared/types.js';
+import { centerSub, CenterSub } from '../shared/pubsub.js';
+import { buildRequest } from '../shared/messages.js';
 import { ClientOptions } from '../shared/options.js';
 import { RequestRecord, RequestsRegistry } from './requestsRegistry.js';
 import { decodeText } from '../utils/text.js';

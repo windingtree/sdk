@@ -1,52 +1,25 @@
-import { AbstractSigner, TypedDataField, getAddress, Signature, verifyTypedData } from 'ethers';
+import {
+  BigNumberish,
+  AbstractSigner,
+  TypedDataField,
+  getAddress,
+  Signature,
+  verifyTypedData,
+} from 'ethers';
+import {
+  BuildRequestOptions,
+  CancelOption,
+  GenericOfferOptions,
+  GenericQuery,
+  OfferData,
+  PaymentOption,
+  RequestData,
+  UnsignedOfferPayload,
+} from './types.js';
 import { ContractConfig } from '../utils/contract.js';
-import { hashObject } from '../utils/hash.js';
-import { uuid4 } from '../utils/uid.js';
-import { nowSec, parseSeconds } from '../utils/time.js';
-
-/**
- * Generic message data type
- */
-export interface GenericMessage {
-  /** Unique message Id */
-  id: string;
-  /** Expiration time in seconds */
-  expire: number;
-  /** A number that reflects the version of the message */
-  nonce: number;
-}
-
-/**
- * Generic query type
- */
-export type GenericQuery = Record<string, unknown>;
-
-/**
- * Request data type
- */
-export interface RequestData<CustomRequestQuery extends GenericQuery> extends GenericMessage {
-  /** Request topic */
-  topic: string;
-
-  /** Custom query validation schema */
-  query: CustomRequestQuery;
-}
-
-/**
- * buildRequest method options type
- */
-export interface BuildRequestOptions<CustomRequestQuery extends GenericQuery> {
-  /** Expiration time */
-  expire: string | number;
-  /** Nonce */
-  nonce: number;
-  /** Topic */
-  topic: string;
-  /** Request query */
-  query: CustomRequestQuery;
-  /** If allowed request Id override */
-  idOverride?: string;
-}
+import { hashCancelOptionArray, hashObject, hashPaymentOptionArray } from '../utils/hash.js';
+import { randomSalt } from '../utils/uid.js';
+import { parseExpire } from '../utils/time.js';
 
 /**
  * Builds a request
@@ -62,83 +35,13 @@ export const buildRequest = async <CustomRequestQuery extends GenericQuery>(
   const { expire, nonce, topic, query, idOverride } = requestOptions;
   // @todo Validate request options
   return {
-    id: idOverride ?? uuid4(),
-    expire: typeof expire === 'number' ? parseSeconds(expire) : nowSec() + parseSeconds(expire),
+    id: idOverride ?? randomSalt(),
+    expire: parseExpire(expire),
     nonce,
     topic,
     query,
   };
 };
-
-/**
- * Offered payment option type
- */
-export interface PaymentOption {
-  /** Unique payment option Id */
-  id: string;
-  /** Asset price in WEI */
-  price: string;
-  /** ERC20 asset contract address */
-  asset: string;
-}
-
-/**
- * Offered cancellation option type
- */
-export interface CancelOption {
-  /** Seconds before checkIn */
-  time: number;
-  /** Percents of total sum */
-  penalty: number;
-}
-
-/**
- * Unsigned offer payload type
- */
-export interface UnsignedOfferPayload {
-  /** Unique supplier Id registered on the protocol contract */
-  supplierId: string;
-  /** Target network chain Id */
-  chainId: number;
-  /** <keccak256(request.hash())> */
-  requestHash: string;
-  /** <keccak256(JSON.stringify(offer.options))> */
-  optionsHash: string;
-  /** <keccak256(JSON.stringify(offer.payment))> */
-  paymentHash: string;
-  /** <keccak256(JSON.stringify(offer.cancel(sorted by time DESC) || []))> */
-  cancelHash: string;
-  /** makes the deal NFT transferable or not */
-  transferable: boolean;
-  /** check-in time in seconds */
-  checkIn: number;
-}
-
-/**
- * Generic offer is just an object with props type
- */
-export type GenericOfferOptions = Record<string, unknown>;
-
-/**
- * Offer data type
- */
-export interface OfferData<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
-> extends GenericMessage {
-  /** Copy of request */
-  request: RequestData<CustomRequestQuery>;
-  /** Offer options */
-  options: CustomOfferOptions;
-  /** Payment options */
-  payment: PaymentOption[];
-  /** Cancellation options */
-  cancel: CancelOption[];
-  /** Raw offer payload */
-  payload: UnsignedOfferPayload;
-  //** EIP-712 TypedSignature(UnsignedOffer) */
-  signature: string;
-}
 
 /**
  * EIP-712 JSON schema types for offer
@@ -194,7 +97,7 @@ export interface BuildOfferOptions<
   /** Unique supplier Id */
   supplierId: string;
   /** Expiration time: duration (string) or seconds (number) */
-  expire: string | number;
+  expire: string | BigNumberish;
   /** Request data */
   request: RequestData<CustomRequestQuery>;
   /** Offer options */
@@ -203,8 +106,10 @@ export interface BuildOfferOptions<
   payment: PaymentOption[];
   /** Offer cancellation options */
   cancel: CancelOption[];
-  /** Check In time in seconds */
-  checkIn: number;
+  /** Check-in time in seconds */
+  checkIn: BigNumberish;
+  /** Check-out time in seconds */
+  checkOut: BigNumberish;
   /** Transferrable offer flag */
   transferable?: boolean;
   /** The possibility to override an offer Id flag */
@@ -235,23 +140,30 @@ export const buildOffer = async <
     payment,
     cancel,
     checkIn,
+    checkOut,
     transferable,
     signer,
     signatureOverride,
     idOverride,
-    expire,
   } = offerOptions;
+  let { expire } = offerOptions;
 
   // @todo Validate offer options
 
+  const id = idOverride ?? randomSalt();
+  expire = parseExpire(expire);
+
   const unsignedOfferPayload: UnsignedOfferPayload = {
+    id,
+    expire,
     supplierId,
-    chainId: Number(contract.chainId),
+    chainId: BigInt(contract.chainId),
     requestHash: hashObject(request),
     optionsHash: hashObject(options),
-    paymentHash: hashObject(payment),
-    cancelHash: hashObject(cancel),
-    checkIn,
+    paymentHash: hashPaymentOptionArray(payment),
+    cancelHash: hashCancelOptionArray(cancel),
+    checkIn: BigInt(checkIn),
+    checkOut: BigInt(checkOut),
     transferable: transferable ?? true,
   };
 
@@ -262,7 +174,7 @@ export const buildOffer = async <
       {
         name: contract.name,
         version: contract.version,
-        chainId: contract.chainId,
+        chainId: BigInt(contract.chainId),
         verifyingContract: contract.address,
       },
       offerEip712Types,
@@ -275,9 +187,9 @@ export const buildOffer = async <
   }
 
   return {
-    id: idOverride ?? uuid4(),
-    expire: typeof expire === 'number' ? parseSeconds(expire) : nowSec() + parseSeconds(expire),
-    nonce: 1,
+    id,
+    expire,
+    nonce: BigInt(1),
     request,
     options,
     payment,

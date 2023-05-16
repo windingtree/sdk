@@ -25,25 +25,29 @@
   "type": "module",
   "types": "./lib/index.d.ts",
   "main": "./lib/index.js",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "*",
+        "lib/*",
+        "lib/*/index"
+      ]
+    }
+  },
   "files": [
-    "lib/**/*",
+    "src",
+    "lib",
     "!**/*.tsbuildinfo"
   ],
-  "scripts": {
-    "clean": "rm -rf ./lib",
-    "build": "npm run clean && tsc -p ./tsconfig.build.json",
-    "test": "mocha -t 60000 --extension spec.ts",
-    "semantic-release": "semantic-release",
-    "prepack": "npm run build",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix && prettier --write .",
-    "prepare": "husky install",
-    "commit": "git-cz -S",
-    "coverage": "c8 --all --exclude coverage --exclude lib --exclude test yarn test && c8 report --all --exclude coverage --exclude lib --exclude test -r html",
-    "example:server": "node --experimental-specifier-resolution=node --loader ts-node/esm ./examples/server/index.ts",
-    "example:client": "yarn --cwd ./examples/client dev",
-    "example:node": "node --experimental-specifier-resolution=node --loader ts-node/esm ./examples/node/index.ts",
-    "typedoc": "typedoc --options ./typedoc.json"
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./utils": {
+      "types": "./lib/utils/index.d.ts",
+      "import": "./lib/utils/index.js"
+    }
   },
   "release": {
     "branches": [
@@ -70,29 +74,29 @@
   "devDependencies": {
     "@types/node": "^18.15.11",
     "@types/mocha": "^10.0.1",
-    "@types/chai": "^4.3.4",
+    "@types/chai": "^4.3.5",
     "@types/debug": "^4.1.7",
     "@types/chai-as-promised": "^7.1.5",
-    "@types/luxon": "^3.2.0",
+    "@types/luxon": "^3.3.0",
     "mocha": "^10.2.0",
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.3",
-    "semantic-release": "^21.0.1",
+    "typescript": "^5.0.4",
+    "semantic-release": "^21.0.2",
     "semantic-release-cli": "^5.4.4",
     "@semantic-release/changelog": "^6.0.3",
-    "eslint": "^8.37.0",
-    "@typescript-eslint/eslint-plugin": "^5.57.0",
-    "@typescript-eslint/parser": "^5.57.0",
-    "prettier": "^2.8.7",
+    "eslint": "^8.40.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.5",
+    "@typescript-eslint/parser": "^5.59.5",
+    "prettier": "^2.8.8",
     "husky": "^8.0.3",
     "git-cz": "^4.9.0",
-    "@commitlint/config-conventional": "^17.4.4",
-    "@commitlint/cli": "^17.5.1",
-    "lint-staged": "^13.2.0",
+    "@commitlint/config-conventional": "^17.6.3",
+    "@commitlint/cli": "^17.6.3",
+    "lint-staged": "^13.2.2",
     "c8": "^7.13.0",
-    "typedoc": "^0.24.0-beta.7"
+    "typedoc": "^0.24.7"
   },
   "dependencies": {
     "libp2p": "^0.43.3",
@@ -103,6 +107,22 @@
     "ethers": "^6.2.3",
     "luxon": "^3.3.0",
     "h3-js": "^4.1.0",
-    "debug": "^4.3.4"
+    "debug": "^4.3.4",
+    "@windingtree/contracts": "^1.0.0-beta.5"
+  },
+  "scripts": {
+    "clean": "rm -rf ./lib",
+    "build": "npm run clean && tsc -p ./tsconfig.build.json",
+    "test": "mocha -t 60000 --extension spec.ts",
+    "semantic-release": "semantic-release",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix && prettier --write .",
+    "prepare": "husky install",
+    "commit": "git-cz -S",
+    "coverage": "c8 --all --exclude coverage --exclude lib --exclude test yarn test && c8 report --all --exclude coverage --exclude lib --exclude test -r html",
+    "example:server": "node --experimental-specifier-resolution=node --loader ts-node/esm ./examples/server/index.ts",
+    "example:client": "yarn --cwd ./examples/client dev",
+    "example:node": "node --experimental-specifier-resolution=node --loader ts-node/esm ./examples/node/index.ts",
+    "typedoc": "typedoc --options ./typedoc.json"
   }
 }

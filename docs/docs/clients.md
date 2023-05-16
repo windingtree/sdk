@@ -5,10 +5,17 @@
 More about the client configuration options is [here](./index.md#client-node).
 
 ```typescript
-import { ClientOptions, createClient } from '@windingtree/sdk';
-import { RequestQuery, OfferOptions } from './config.js';
+import { GenericQuery, GenericOfferOptions, ClientOptions, createClient } from '@windingtree/sdk';
 
-const options: ClientOptions<RequestQuery, OfferOptions> = {
+export interface RequestQuery extends GenericQuery {
+  /** your custom request interface */
+}
+
+export interface OfferOptions extends GenericOfferOptions {
+  /** suppliers' offer options interface */
+}
+
+const options: ClientOptions = {
   /*...*/
 };
 
@@ -54,6 +61,8 @@ client.addEventListener('stop', () => {
 Every request structure must follow the generic message data structure proposed by the protocol.
 
 ```typescript
+import { GenericQuery, GenericOfferOptions } from '@windingtree/sdk';
+
 type GenericQuery = Record<string, unknown>;
 
 /**
@@ -75,40 +84,6 @@ interface RequestData<RequestQuery extends GenericQuery> extends GenericMessage 
   /** Industry specific query type */
   query: RequestQuery;
 }
-```
-
-The protocol SDK uses the `zod` library for data structures validation. Ready-made data structures validation schemes and static typescript types can be imported from the SDK module.
-
-```typescript
-import { z } from 'zod';
-import { GenericQuerySchema, createRequestDataSchema, RequestData } from '@windingtree/sdk';
-
-/**
- * Custom query schema
- */
-const MyCustomRequestQuerySchema = GenericQuerySchema.extend({
-  howMuch: z.number(),
-});
-
-type MyCustomRequestQuery = z.infer<typeof MyCustomRequestQuerySchema>;
-
-const request: RequestData<MyCustomRequestQuery> = {
-  /** ... */
-  query: {
-    howMuch: 10,
-  },
-};
-
-const requestSchema = createRequestDataSchema<typeof MyCustomRequestQuerySchema>(
-  MyCustomRequestQuerySchema,
-);
-
-// the `parse` method of schema is validating an object according to the schema rules
-const { query } = requestSchema.parse(request);
-console.log(query);
-// {
-//   howMuch: 10,
-// }
 ```
 
 To build a request you can use the `requests.create` method of the client instance.
@@ -181,7 +156,10 @@ type RequestRecord<RequestQuery, OfferOptions> = {
 const requestRecord = await client.request.get(request.id);
 ```
 
-- `getAll`: Returns an array of all registered request records
+- `create`: Creates the request
+- `publish`: Publishes the request
+- `get`: Returns a request from the client registry
+- `getAll`: Returns an array of all registered request records from the client registry
 - `cancel`: Cancels the request subscription. Offers for this request will not be accepted.
 - `delete`: Removes the request from the client registry
 - `clear`: Removes all requests from the registry

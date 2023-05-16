@@ -11,3 +11,4 @@ temp
 *.level
 coverage
 typedoc
+typechain

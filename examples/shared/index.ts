@@ -1,4 +1,4 @@
-import { GenericQuery, GenericOfferOptions } from '../../src/index.js';
+import { GenericQuery, GenericOfferOptions } from '../../src/shared/types.js';
 import { ContractConfig } from '../../src/utils/contract.js';
 
 export interface RequestQuery extends GenericQuery {
@@ -6,7 +6,7 @@ export interface RequestQuery extends GenericQuery {
 }
 
 export interface OfferOptions extends GenericOfferOptions {
-  date: string;
+  date: string | null;
   buongiorno: boolean;
   buonasera: boolean;
 }
