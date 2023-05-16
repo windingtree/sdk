@@ -1,3 +1,4 @@
+import { BigNumberish } from 'ethers';
 import { DateTime } from 'luxon';
 
 /** Calculation bases */
@@ -44,8 +45,12 @@ export const validateDurationFormat = (str: string): DurationFormat => {
  * @param {(string | number)} str
  * @returns {number}
  */
-export const parseSeconds = (str: string | number): number => {
+export const parseSeconds = (str: string | number | bigint): bigint => {
   if (typeof str === 'number') {
+    return BigInt(str);
+  }
+
+  if (typeof str === 'bigint') {
     return str;
   }
 
@@ -82,8 +87,16 @@ export const parseSeconds = (str: string | number): number => {
       throw new Error('Unknown duration type');
   }
 
-  return Math.ceil(parsed);
+  return BigInt(Math.ceil(parsed));
 };
+
+/**
+ * Parses expiration time
+ * @param {string | BigNumberish} expire Given expiration time
+ * @returns {bigint}
+ */
+export const parseExpire = (expire: string | BigNumberish): bigint =>
+  typeof expire === 'string' ? BigInt(nowSec()) + parseSeconds(expire) : parseSeconds(expire);
 
 /**
  * Converts milliseconds to seconds
@@ -103,7 +116,7 @@ export const nowSec = () => Math.round(DateTime.now().toSeconds());
 /**
  * Checks expiration time
  *
- * @param {number} expire
+ * @param {BigNumberish} expire
  * @returns {boolean}
  */
-export const isExpired = (expire: number): boolean => nowSec() + 1 > expire;
+export const isExpired = (expire: BigNumberish): boolean => BigInt(nowSec()) + 1n > BigInt(expire);
