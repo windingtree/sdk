@@ -20,18 +20,6 @@ export const simpleUid = (length = 14): string => {
 };
 
 /**
- * Generates UUID v4
- *
- * @returns {string}
- */
-export const uuid4 = (): string =>
-  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c == 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(36);
-  });
-
-/**
  * Generates random salt (bytes32 string)
  *
  * @returns {string}
