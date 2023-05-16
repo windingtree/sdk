@@ -29,16 +29,16 @@ describe('Utils.time', () => {
     });
 
     it('should validate known types', () => {
-      expect(parseSeconds('1ms')).to.eq(0);
-      expect(parseSeconds('1s')).to.eq(1);
-      expect(parseSeconds('1m')).to.eq(60);
-      expect(parseSeconds('1h')).to.eq(60 * 60);
-      expect(parseSeconds('1d')).to.eq(60 * 60 * 24);
-      expect(parseSeconds('1y')).to.eq(60 * 60 * 24 * 365.25);
+      expect(parseSeconds('1ms')).to.eq(0n);
+      expect(parseSeconds('1s')).to.eq(1n);
+      expect(parseSeconds('1m')).to.eq(60n);
+      expect(parseSeconds('1h')).to.eq(BigInt(60 * 60));
+      expect(parseSeconds('1d')).to.eq(BigInt(60 * 60 * 24));
+      expect(parseSeconds('1y')).to.eq(BigInt(60 * 60 * 24 * 365.25));
     });
 
     it('should pass numbers', () => {
-      expect(parseSeconds(1)).to.eq(1);
+      expect(parseSeconds(1)).to.eq(1n);
     });
   });
 

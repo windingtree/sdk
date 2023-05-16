@@ -1,32 +1,25 @@
-import { expect } from './setup.js';
-import { Wallet } from 'ethers';
+import { expect, expectDeepEqual } from './setup.js';
+import { Wallet, BigNumberish } from 'ethers';
 import { ContractConfig } from '../src/utils/contract.js';
-import { randomSalt, supplierId as spId, uuid4 } from '../src/utils/uid.js';
-import {
-  GenericQuery,
-  GenericOfferOptions,
-  RequestData,
-  OfferData,
-  buildRequest,
-  buildOffer,
-  verifyOffer,
-} from '../src/shared/messages.js';
+import { randomSalt, supplierId as spId } from '../src/utils/uid.js';
+import { GenericQuery, GenericOfferOptions, RequestData, OfferData } from '../src/shared/types.js';
+import { buildRequest, buildOffer, verifyOffer } from '../src/shared/messages.js';
 
 interface CustomQuery extends GenericQuery {
-  guests: number;
-  rooms: number;
+  guests: BigNumberish;
+  rooms: BigNumberish;
 }
 
 interface CustomOfferOptions extends GenericOfferOptions {
   room: string;
-  checkIn: string;
-  checkOut: string;
+  checkIn: BigNumberish;
+  checkOut: BigNumberish;
 }
 
 describe('Shared.messages', () => {
   const topic = 'test';
 
-  const createRequest = (expire: number | string = 1) =>
+  const createRequest = (expire: BigNumberish | string = 1) =>
     buildRequest<CustomQuery>({
       expire,
       nonce: 1,
@@ -46,7 +39,7 @@ describe('Shared.messages', () => {
     address: signer.address,
   };
 
-  const createOffer = (request: RequestData<CustomQuery>, expire: number | string = 1) =>
+  const createOffer = (request: RequestData<CustomQuery>, expire: BigNumberish | string = 1) =>
     buildOffer<CustomQuery, CustomOfferOptions>({
       contract: contractConfig,
       signer,
@@ -55,23 +48,24 @@ describe('Shared.messages', () => {
       request,
       options: {
         room: 'big',
-        checkIn: '1',
-        checkOut: '2',
+        checkIn: 1n,
+        checkOut: 2n,
       },
       payment: [
         {
-          id: uuid4(),
-          asset: '0x0',
-          price: '1',
+          id: randomSalt(),
+          asset: '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199',
+          price: 1n,
         },
       ],
       cancel: [
         {
-          time: 1,
-          penalty: 1,
+          time: 1n,
+          penalty: 1n,
         },
       ],
-      checkIn: 1,
+      checkIn: 1n,
+      checkOut: 1n,
       transferable: true,
     });
 
@@ -116,11 +110,12 @@ describe('Shared.messages', () => {
           payment: offer.payment,
           cancel: offer.cancel,
           checkIn: offer.payload.checkIn,
+          checkOut: offer.payload.checkOut,
           transferable: offer.payload.transferable,
           idOverride: offer.id,
           signatureOverride: offer.signature,
         });
-        expect(fromRaw).to.deep.eq(offer);
+        expectDeepEqual(fromRaw, offer);
       });
 
       it('should throw is signatureOverride not been provided', async () => {
@@ -134,6 +129,7 @@ describe('Shared.messages', () => {
             payment: offer.payment,
             cancel: offer.cancel,
             checkIn: offer.payload.checkIn,
+            checkOut: offer.payload.checkOut,
             transferable: offer.payload.transferable,
             idOverride: offer.id,
           }),
