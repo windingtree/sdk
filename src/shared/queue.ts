@@ -276,7 +276,7 @@ export class Queue extends EventEmitter<QueueEvents> {
    *
    * @returns {Promise<void>}
    */
-  private async _sync() {
+  private async _sync(): Promise<void> {
     await this.storage.set(this.hashKey, JSON.stringify(Array.from(this.jobs)));
     logger.trace('Storage synced');
   }
@@ -289,7 +289,6 @@ export class Queue extends EventEmitter<QueueEvents> {
   private async _pickJobs(): Promise<Job[]> {
     const size = this.concurrentJobsNumber - this.liveJobs.size;
     const jobs: Job[] = [];
-    logger.trace(`Trying to pick #${size} jobs. Keys size #${this.jobs.size}`);
 
     for (const key of this.jobs.values()) {
       if (jobs.length === size) {
@@ -310,7 +309,6 @@ export class Queue extends EventEmitter<QueueEvents> {
         }
 
         if (job.state.scheduled && job.state.scheduled > Date.now()) {
-          logger.trace(`Scheduled job #${job.id} skipped`);
           continue;
         }
 
@@ -502,16 +500,17 @@ export class Queue extends EventEmitter<QueueEvents> {
    *
    * @returns {Promise<void>}
    */
-  private async _process() {
+  private async _process(): Promise<void> {
     if (this.processing) {
       return;
     }
 
     this.processing = true;
     const jobs = await this._pickJobs();
-    logger.trace(`Picked #${jobs.length} jobs`);
 
     if (jobs.length > 0) {
+      logger.trace(`Picked #${jobs.length} jobs`);
+
       await Promise.allSettled(
         jobs.map((job) =>
           this._doJob(job)

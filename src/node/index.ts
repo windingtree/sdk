@@ -10,13 +10,8 @@ import { PeerId } from '@libp2p/interface-peer-id';
 import { peerIdFromString } from '@libp2p/peer-id';
 import { AbstractProvider, AbstractSigner, Wallet } from 'ethers';
 import { noncePeriod as defaultNoncePeriod } from '../constants.js';
-import {
-  buildOffer,
-  BuildOfferOptions,
-  GenericOfferOptions,
-  GenericQuery,
-  OfferData,
-} from '../shared/messages.js';
+import { GenericOfferOptions, GenericQuery, OfferData } from '../shared/types.js';
+import { buildOffer, BuildOfferOptions } from '../shared/messages.js';
 import { CenterSub, centerSub } from '../shared/pubsub.js';
 import { RequestManager, RequestEvent } from './requestManager.js';
 import { decodeText, encodeText } from '../utils/text.js';
@@ -24,6 +19,7 @@ import { ContractConfig } from '../utils/contract.js';
 import { NodeOptions } from '../shared/options.js';
 import { parseSeconds } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
+import { stringify } from '../utils/hash.js';
 
 const logger = createLogger('Node');
 
@@ -156,7 +152,7 @@ export class Node<
 
     this.serverPeerId = peerIdFromString(serverPeerIdString);
     this.requestManager = new RequestManager<CustomRequestQuery>({
-      noncePeriod: parseSeconds(noncePeriod ?? defaultNoncePeriod),
+      noncePeriod: Number(parseSeconds(noncePeriod ?? defaultNoncePeriod)),
     });
     this.requestManager.addEventListener('request', (e) => this.handleRequest(e));
     logger.trace('Node instantiated');
@@ -261,7 +257,7 @@ export class Node<
     });
     logger.trace(`Offer #${offer.id} is built`);
 
-    await this.libp2p.pubsub.publish(offer.request.id, encodeText(JSON.stringify(offer)));
+    await this.libp2p.pubsub.publish(offer.request.id, encodeText(stringify(offer)));
     logger.trace(`Offer #${offer.id} is published`);
 
     return offer;

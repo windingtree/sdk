@@ -8,13 +8,13 @@ import { ToSendGroupCount } from '@chainsafe/libp2p-gossipsub/metrics';
 import { PeerIdStr, TopicStr } from '@chainsafe/libp2p-gossipsub/types';
 import { PubSub, Message } from '@libp2p/interface-pubsub';
 import { PeerId } from '@libp2p/interface-peer-id';
-import type { Connection, Direction } from '@libp2p/interface-connection';
+import type { Direction } from '@libp2p/interface-connection';
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
 import { Multiaddr } from '@multiformats/multiaddr';
 import { sha256 } from 'multiformats/hashes/sha2';
 import { outboundStreamDelay } from '../constants.js';
 import { Storage } from '../storage/abstract.js';
-import { GenericMessage } from '../shared/messages.js';
+import { GenericMessage } from '../shared/types.js';
 import { decodeText } from '../utils/text.js';
 import { CashedMessageEntry, MessagesCache } from './cache.js';
 import { createLogger } from '../utils/logger.js';
@@ -61,7 +61,6 @@ export class CenterSub extends GossipSub {
    *
    * @param {GossipSubComponents} components
    * @param {CenterSubOptions} options
-   * @param {Storage} [messagesStorage]
    * @memberof CenterSub
    */
   constructor(components: GossipSubComponents, options: CenterSubOptions) {
@@ -95,16 +94,13 @@ export class CenterSub extends GossipSub {
     this['selectPeersToPublish'] = this.onSelectPeersToPublish.bind(this);
     this['handleReceivedMessage'] = this.onHandleReceivedMessage.bind(this);
     this['addPeer'] = this.onAddPeer.bind(this);
+    this['removePeer'] = this.onRemovePeer.bind(this);
 
     this.isClient = !!isClient;
     this.messageTransformer = messageTransformer
       ? messageTransformer
       : (message) => JSON.parse(decodeText(message)) as GenericMessage;
     this.addEventListener('gossipsub:heartbeat', this.handleHeartbeat.bind(this));
-    components.connectionManager.addEventListener(
-      'peer:disconnect',
-      this.handlePeerDisconnect.bind(this),
-    );
   }
 
   /**
@@ -182,8 +178,8 @@ export class CenterSub extends GossipSub {
         msgIdStr,
         rpcMsg.from.toString(),
         rpcMsg,
-        transformed.expire,
-        transformed.nonce,
+        Number(transformed.expire),
+        Number(transformed.nonce),
       );
     } catch (error) {
       logger.error(error);
@@ -236,16 +232,17 @@ export class CenterSub extends GossipSub {
   }
 
   /**
-   * Handles actions on peer disconnection
+   * Handles actions on peer removal
    *
    * @private
    * @param {CustomEvent<Connection>} { detail }
    * @memberof CenterSub
    */
-  private handlePeerDisconnect({ detail }: CustomEvent<Connection>): void {
+  private onRemovePeer(peerId: PeerId): void {
     try {
-      const id = detail.id.toString();
-      this.seenPeerMessageCache.delete(id);
+      this.seenPeerMessageCache.delete(peerId.toString());
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this['removePeer'](peerId);
     } catch (error) {
       logger.error(error);
     }

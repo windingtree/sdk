@@ -1,5 +1,5 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { RequestData, GenericQuery } from '../shared/messages.js';
+import { RequestData, GenericQuery } from '../shared/types.js';
 import { RequestManagerOptions } from '../shared/options.js';
 import { isExpired, nowSec, parseSeconds } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
@@ -40,7 +40,7 @@ export class RequestManager<CustomRequestQuery extends GenericQuery> extends Eve
 
     this.cache = new Map<string, RequestData<CustomRequestQuery>>(); // requestId => request
     this.cacheTopic = new Map<string, string>(); // requestId => topic
-    this.noncePeriod = parseSeconds(noncePeriod);
+    this.noncePeriod = Number(parseSeconds(noncePeriod));
   }
 
   add(topic: string, data: string) {
@@ -51,7 +51,7 @@ export class RequestManager<CustomRequestQuery extends GenericQuery> extends Eve
       return;
     }
 
-    if (nowSec() + this.noncePeriod > requestData.expire) {
+    if (BigInt(nowSec() + this.noncePeriod) > BigInt(requestData.expire)) {
       logger.trace(`Request #${requestData.id} will expire before it can bee processed`);
       return;
     }

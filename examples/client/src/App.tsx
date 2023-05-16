@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
+import { RequestQuery, OfferOptions, contractConfig, serverAddress } from '../../shared/index.js';
 import {
-  RequestQuery,
-  OfferOptions,
-  contractConfig,
-  serverAddress,
-} from '../../shared/index.js';
-import { Client, ClientOptions, RequestRecord, createClient, storage, utils } from '@windingtree/sdk';
+  Client,
+  ClientOptions,
+  RequestRecord,
+  createClient,
+  storage,
+  utils,
+} from '../../../src/index.js'; //@windingtree/sdk
 
 /** Default request expiration time */
 const defaultExpire = '30s';
@@ -146,9 +148,7 @@ export const Requests = ({ requests, subscribed, onClear, onCancel }: RequestsPr
 export const App = () => {
   const client = useRef<Client<RequestQuery, OfferOptions> | undefined>();
   const [connected, setConnected] = useState<boolean>(false);
-  const [requests, setRequests] = useState<RequestsRegistryRecord[]>(
-    [],
-  );
+  const [requests, setRequests] = useState<RequestsRegistryRecord[]>([]);
   const [error, setError] = useState<string | undefined>();
 
   /** This hook starts the client that will be available via `client.current` */
@@ -237,6 +237,7 @@ export const App = () => {
 
       client.current.requests.publish(request);
     } catch (error) {
+      console.log('@@@', error);
       setError((error as Error).message);
     }
   };
