@@ -2,18 +2,12 @@ import { EventHandler } from '@libp2p/interfaces/events';
 import { ZeroAddress } from 'ethers';
 import { DateTime } from 'luxon';
 import { RequestQuery, OfferOptions, contractConfig, serverAddress } from '../shared/index.js';
-import {
-  createNode,
-  Node,
-  NodeOptions,
-  Queue,
-  OfferData,
-  createJobHandler,
-} from '../../src/index.js';
+import { createNode, Node, NodeOptions, Queue, createJobHandler } from '../../src/index.js';
+import { OfferData } from '../../src/shared/types.js';
 import { noncePeriod } from '../../src/constants.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
-import { supplierId as generateSupplierId, randomSalt, simpleUid } from '../../src/utils/uid.js';
+import { supplierId as generateSupplierId, randomSalt } from '../../src/utils/uid.js';
 import { generateMnemonic, deriveAccount } from '../../src/utils/wallet.js';
 import { RequestEvent } from '../../src/node/requestManager.js';
 import { createLogger } from '../../src/utils/logger.js';
@@ -94,7 +88,7 @@ const createRequestsHandler =
          */
         payment: [
           {
-            id: simpleUid(),
+            id: randomSalt(),
             price: '1',
             asset: ZeroAddress,
           },
@@ -108,6 +102,7 @@ const createRequestsHandler =
         ],
         /** Check-in time */
         checkIn: nowSec() + 1000,
+        checkOut: nowSec() + 2000,
       });
 
       queue.addEventListener('expired', ({ detail: job }) => {
@@ -119,7 +114,7 @@ const createRequestsHandler =
        * So, we add a job for detection of deals
        */
       queue.addJob('deal', offer, {
-        expire: offer.expire,
+        expire: Number(offer.expire),
         every: 5000, // 5 sec
       });
     };
@@ -145,7 +140,7 @@ const main = async (): Promise<void> => {
     topics: ['hello'],
     contractConfig,
     serverAddress,
-    noncePeriod: parseSeconds(noncePeriod),
+    noncePeriod: Number(parseSeconds(noncePeriod)),
     supplierId,
     signerSeedPhrase: signerMnemonic,
   };
