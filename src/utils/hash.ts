@@ -8,7 +8,7 @@ import {
 } from '@windingtree/contracts';
 
 /**
- * Converts an object that contains bigint value to a JSON string representation.
+ * Converts an object that contains bigint values to a JSON string representation.
  *
  * @param {unknown} data The data to stringify.
  * @returns {string} The JSON string representation of the data.
