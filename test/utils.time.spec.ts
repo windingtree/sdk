@@ -62,8 +62,8 @@ describe('Utils.time', () => {
   describe('#isExpired', () => {
     it('should detect expired time', () => {
       const now = nowSec();
-      expect(isExpired(now + 2000)).to.be.false;
-      expect(isExpired(now - 1)).to.be.true;
+      expect(isExpired(BigInt(now + 2000))).to.be.false;
+      expect(isExpired(BigInt(now - 1))).to.be.true;
     });
   });
 });

@@ -1,48 +1,47 @@
 import { expect, expectDeepEqual } from './setup.js';
-import { Wallet, BigNumberish } from 'ethers';
-import { ContractConfig } from '../src/utils/contract.js';
+import { mnemonicToAccount } from 'viem/accounts';
+import { generateMnemonic } from '../src/utils/wallet.js';
 import { randomSalt, supplierId as spId } from '../src/utils/uid.js';
 import { GenericQuery, GenericOfferOptions, RequestData, OfferData } from '../src/shared/types.js';
 import { buildRequest, buildOffer, verifyOffer } from '../src/shared/messages.js';
 
 interface CustomQuery extends GenericQuery {
-  guests: BigNumberish;
-  rooms: BigNumberish;
+  guests: bigint;
+  rooms: bigint;
 }
 
 interface CustomOfferOptions extends GenericOfferOptions {
   room: string;
-  checkIn: BigNumberish;
-  checkOut: BigNumberish;
+  checkIn: bigint;
+  checkOut: bigint;
 }
 
 describe('Shared.messages', () => {
   const topic = 'test';
+  const signer = mnemonicToAccount(generateMnemonic());
+  const typedDomain = {
+    chainId: 1,
+    name: 'Test',
+    version: '1',
+    contract: signer.address,
+  };
+  const supplierId = spId(randomSalt(), signer.address);
 
-  const createRequest = (expire: BigNumberish | string = 1) =>
+  const createRequest = (expire: bigint | string = BigInt(1)) =>
     buildRequest<CustomQuery>({
       expire,
-      nonce: 1,
+      nonce: BigInt(1),
       topic,
       query: {
-        guests: 2,
-        rooms: 1,
+        guests: BigInt(2),
+        rooms: BigInt(1),
       },
     });
 
-  const signer = Wallet.createRandom();
-  const supplierId = spId(randomSalt(), signer.address);
-  const contractConfig: ContractConfig = {
-    name: 'Test',
-    version: '1',
-    chainId: BigInt(1),
-    address: signer.address,
-  };
-
-  const createOffer = (request: RequestData<CustomQuery>, expire: BigNumberish | string = 1) =>
+  const createOffer = (request: RequestData<CustomQuery>, expire: bigint | string = BigInt(1)) =>
     buildOffer<CustomQuery, CustomOfferOptions>({
-      contract: contractConfig,
-      signer,
+      domain: typedDomain,
+      hdAccount: signer,
       supplierId,
       expire,
       request,
@@ -54,7 +53,7 @@ describe('Shared.messages', () => {
       payment: [
         {
           id: randomSalt(),
-          asset: '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199',
+          asset: signer.address, // fake
           price: 1n,
         },
       ],
@@ -102,7 +101,8 @@ describe('Shared.messages', () => {
 
       it('should restore an offer from raw data', async () => {
         const fromRaw = await buildOffer<CustomQuery, CustomOfferOptions>({
-          contract: contractConfig,
+          domain: typedDomain,
+          hdAccount: signer,
           supplierId,
           expire: offer.expire,
           request: offer.request,
@@ -121,7 +121,7 @@ describe('Shared.messages', () => {
       it('should throw is signatureOverride not been provided', async () => {
         await expect(
           buildOffer<CustomQuery, CustomOfferOptions>({
-            contract: contractConfig,
+            domain: typedDomain,
             supplierId,
             expire: offer.expire,
             request: offer.request,
@@ -145,15 +145,25 @@ describe('Shared.messages', () => {
       offer = await createOffer(request);
     });
 
-    it('should throw if wrong signer provided', () => {
-      const unknownSigner = Wallet.createRandom();
-      expect(() => verifyOffer(contractConfig, unknownSigner.address, offer)).to.throw(
-        `Invalid offer signer ${unknownSigner.address}`,
-      );
+    it('should throw if wrong signer provided', async () => {
+      const unknownSigner = mnemonicToAccount(generateMnemonic());
+      await expect(
+        verifyOffer({
+          domain: typedDomain,
+          address: unknownSigner.address,
+          offer,
+        }),
+      ).to.rejectedWith(`Invalid offer signer ${unknownSigner.address}`);
     });
 
-    it('should verify an offer', () => {
-      expect(() => verifyOffer(contractConfig, signer.address, offer)).to.not.throws;
+    it('should verify an offer', async () => {
+      await expect(
+        verifyOffer({
+          domain: typedDomain,
+          address: signer.address,
+          offer,
+        }),
+      ).to.not.rejected;
     });
   });
 });
