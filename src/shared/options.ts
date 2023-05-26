@@ -1,22 +1,16 @@
-import { AbstractProvider } from 'ethers';
-import { ContractConfig } from '../utils/contract.js';
-import { StorageInitializer } from '../storage/abstract.js';
-import { RequestRegistryPrefix } from '../client/requestsRegistry.js';
 import { Libp2pInit } from 'libp2p';
+import { Hash, PublicClient, WalletClient } from 'viem';
+import { ProtocolChain } from '../utils/contracts.js';
+import { StorageInitializer } from '../storage/abstract.js';
 
 export type NoncePeriodOption = {
   /** Period while the node waits and accepting requests with the same Id */
   noncePeriod: number;
 };
 
-export type ContractConfigOption = {
-  /** The protocol smart contract configuration */
-  contractConfig: ContractConfig;
-};
-
-export type ProviderOption = {
-  /** Ethers.js provider instance */
-  provider?: AbstractProvider;
+export type ChainsConfigOption = {
+  /** The protocol chains configuration */
+  chain: ProtocolChain;
 };
 
 export type ServerAddressOption = {
@@ -34,8 +28,7 @@ export type SignerSeedOptions = {
  */
 export interface NodeOptions
   extends NoncePeriodOption,
-    ContractConfigOption,
-    ProviderOption,
+    ChainsConfigOption,
     ServerAddressOption,
     SignerSeedOptions {
   /** libp2p configuration options */
@@ -43,7 +36,11 @@ export interface NodeOptions
   /** Subscription topics of node */
   topics: string[];
   /** Unique supplier Id */
-  supplierId: string;
+  supplierId: Hash;
+  /** Ethereum public client */
+  publicClient?: PublicClient;
+  /** Ethereum wallet client */
+  walletClient?: WalletClient;
 }
 
 /**
@@ -54,13 +51,13 @@ export type RequestManagerOptions = NoncePeriodOption;
 /**
  * The protocol client initialization schema type
  */
-export interface ClientOptions extends ContractConfigOption, ProviderOption, ServerAddressOption {
+export interface ClientOptions extends ChainsConfigOption, ServerAddressOption {
   /** libp2p configuration options */
   libp2p?: Libp2pInit;
   /** Storage initializer function */
   storageInitializer: StorageInitializer;
-  /** Request registry keys prefix */
-  requestRegistryPrefix: RequestRegistryPrefix;
+  /** DB keys prefix */
+  dbKeysPrefix: string;
 }
 
 /**

@@ -1,11 +1,5 @@
-import {
-  BigNumberish,
-  AbstractSigner,
-  TypedDataField,
-  getAddress,
-  Signature,
-  verifyTypedData,
-} from 'ethers';
+import { Address, Hash, verifyTypedData, WalletClient, HDAccount } from 'viem';
+import { TypedDataDomain } from 'abitype';
 import {
   BuildRequestOptions,
   CancelOption,
@@ -16,7 +10,6 @@ import {
   RequestData,
   UnsignedOfferPayload,
 } from './types.js';
-import { ContractConfig } from '../utils/contract.js';
 import { hashCancelOptionArray, hashObject, hashPaymentOptionArray } from '../utils/hash.js';
 import { randomSalt } from '../utils/uid.js';
 import { parseExpire } from '../utils/time.js';
@@ -46,7 +39,7 @@ export const buildRequest = async <CustomRequestQuery extends GenericQuery>(
 /**
  * EIP-712 JSON schema types for offer
  */
-export const offerEip712Types: Record<string, Array<TypedDataField>> = {
+export const offerEip712Types = {
   Offer: [
     {
       name: 'supplierId',
@@ -90,14 +83,12 @@ export interface BuildOfferOptions<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 > {
-  /** Smart contract configuration */
-  contract: ContractConfig;
-  /** Ethers.js signer */
-  signer?: AbstractSigner;
+  /** Typed domain configuration */
+  domain: TypedDataDomain;
   /** Unique supplier Id */
-  supplierId: string;
+  supplierId: Hash;
   /** Expiration time: duration (string) or seconds (number) */
-  expire: string | BigNumberish;
+  expire: string | bigint;
   /** Request data */
   request: RequestData<CustomRequestQuery>;
   /** Offer options */
@@ -107,15 +98,44 @@ export interface BuildOfferOptions<
   /** Offer cancellation options */
   cancel: CancelOption[];
   /** Check-in time in seconds */
-  checkIn: BigNumberish;
+  checkIn: bigint;
   /** Check-out time in seconds */
-  checkOut: BigNumberish;
+  checkOut: bigint;
   /** Transferrable offer flag */
   transferable?: boolean;
   /** The possibility to override an offer Id flag */
-  idOverride?: string;
+  idOverride?: Hash;
   /** The possibility to override an offer signature flag */
-  signatureOverride?: string;
+  signatureOverride?: Hash;
+  /** Ethereum local account */
+  hdAccount?: HDAccount;
+  /** Ethereum wallet client */
+  walletClient?: WalletClient;
+}
+
+export interface VerifyOfferArgs<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> {
+  /** Typed data domain */
+  domain: TypedDataDomain;
+  /** Offer signer account address */
+  address: Address;
+  offer: OfferData<CustomRequestQuery, CustomOfferOptions>;
+}
+
+/**
+ * createCheckInOutSignature function arguments
+ */
+export interface CreateCheckInOutSignatureArgs {
+  /** Offer Id */
+  offerId: Hash;
+  /** Typed data domain */
+  domain: TypedDataDomain;
+  /** Ethereum wallet client */
+  walletClient?: WalletClient;
+  /** Ethereum local account */
+  hdAccount?: HDAccount;
 }
 
 /**
@@ -134,7 +154,7 @@ export const buildOffer = async <
 ): Promise<OfferData<CustomRequestQuery, CustomOfferOptions>> => {
   const {
     supplierId,
-    contract,
+    domain,
     request,
     options,
     payment,
@@ -142,9 +162,10 @@ export const buildOffer = async <
     checkIn,
     checkOut,
     transferable,
-    signer,
     signatureOverride,
     idOverride,
+    hdAccount,
+    walletClient,
   } = offerOptions;
   let { expire } = offerOptions;
 
@@ -153,11 +174,15 @@ export const buildOffer = async <
   const id = idOverride ?? randomSalt();
   expire = parseExpire(expire);
 
+  if (!domain.chainId) {
+    throw new Error('Chain Id must be provided with a typed domain');
+  }
+
   const unsignedOfferPayload: UnsignedOfferPayload = {
     id,
     expire,
     supplierId,
-    chainId: BigInt(contract.chainId),
+    chainId: BigInt(domain.chainId),
     requestHash: hashObject(request),
     optionsHash: hashObject(options),
     paymentHash: hashPaymentOptionArray(payment),
@@ -167,23 +192,31 @@ export const buildOffer = async <
     transferable: transferable ?? true,
   };
 
-  let signature: string | undefined;
+  let signature: Hash | undefined;
 
-  if (signer && !signatureOverride) {
-    signature = await signer.signTypedData(
-      {
-        name: contract.name,
-        version: contract.version,
-        chainId: BigInt(contract.chainId),
-        verifyingContract: contract.address,
-      },
-      offerEip712Types,
-      unsignedOfferPayload,
-    );
+  if (hdAccount && hdAccount.type === 'local') {
+    signature = await hdAccount.signTypedData({
+      domain,
+      types: offerEip712Types,
+      primaryType: 'Offer',
+      message: unsignedOfferPayload,
+    });
+  } else if (walletClient && !signatureOverride) {
+    const [account] = await walletClient.getAddresses();
+
+    signature = await walletClient.signTypedData({
+      account,
+      domain,
+      types: offerEip712Types,
+      primaryType: 'Offer',
+      message: unsignedOfferPayload,
+    });
   } else if (signatureOverride) {
     signature = signatureOverride;
   } else {
-    throw new Error('Either signer or signatureOverride must be provided');
+    throw new Error(
+      'Either hdAccount or walletClient or signatureOverride must be provided with options',
+    );
   }
 
   return {
@@ -204,32 +237,84 @@ export const buildOffer = async <
  *
  * @template {CustomRequestQuery}
  * @template {CustomOfferOptions}
- * @param {ContractConfig} contract
- * @param {string} supplierAddress
+ * @param {VerifyOfferArgs<CustomRequestQuery, CustomOfferOptions>} args Function arguments
  * @param {OfferData<CustomRequestQuery, CustomOfferOptions>} offer
  */
-export const verifyOffer = <
+export const verifyOffer = async <
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
->(
-  contract: ContractConfig,
-  supplierAddress: string,
-  offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
-): void => {
-  supplierAddress = getAddress(supplierAddress);
-  const recoveredAddress = verifyTypedData(
-    {
-      name: contract.name,
-      version: contract.version,
-      chainId: contract.chainId,
-      verifyingContract: contract.address,
-    },
-    offerEip712Types,
-    offer.payload,
-    Signature.from(offer.signature),
-  );
+>({
+  domain,
+  address,
+  offer,
+}: VerifyOfferArgs<CustomRequestQuery, CustomOfferOptions>): Promise<void> => {
+  const isValid = await verifyTypedData({
+    address,
+    domain,
+    types: offerEip712Types,
+    primaryType: 'Offer',
+    message: offer.payload,
+    signature: offer.signature,
+  });
 
-  if (recoveredAddress !== supplierAddress) {
-    throw new Error(`Invalid offer signer ${supplierAddress}`);
+  if (!isValid) {
+    throw new Error(`Invalid offer signer ${address}`);
   }
+};
+
+/**
+ * EIP-712 JSON schema types for checkIn/Out voucher
+ */
+export const checkInOutTypes = {
+  Voucher: [
+    {
+      name: 'id',
+      type: 'bytes32',
+    },
+    {
+      name: 'signer',
+      type: 'address',
+    },
+  ],
+};
+
+/**
+ * Create EIP-712 signature for checkIn/Out voucher
+ *
+ * @param {CreateCheckInOutSignatureArgs} args Function arguments
+ * @returns {Promise<Hash>}
+ */
+export const createCheckInOutSignature = async ({
+  offerId,
+  domain,
+  walletClient,
+  hdAccount,
+}: CreateCheckInOutSignatureArgs): Promise<Hash> => {
+  if (hdAccount && hdAccount.type === 'local') {
+    return await hdAccount.signTypedData({
+      domain,
+      types: checkInOutTypes,
+      primaryType: 'Voucher',
+      message: {
+        id: offerId,
+        signer: hdAccount.address,
+      },
+    });
+  }
+
+  if (walletClient) {
+    const [account] = await walletClient.getAddresses();
+    return await walletClient.signTypedData({
+      account,
+      domain,
+      types: checkInOutTypes,
+      primaryType: 'Voucher',
+      message: {
+        id: offerId,
+        signer: account,
+      },
+    });
+  }
+
+  throw new Error('Either hdAccount or walletClient must be provided with options');
 };

@@ -9,7 +9,7 @@ import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
-import { AbstractProvider } from 'ethers';
+import { Address, Hash, PublicClient, WalletClient } from 'viem';
 import {
   BuildRequestOptions,
   OfferData,
@@ -21,8 +21,9 @@ import { centerSub, CenterSub } from '../shared/pubsub.js';
 import { buildRequest } from '../shared/messages.js';
 import { ClientOptions } from '../shared/options.js';
 import { RequestRecord, RequestsRegistry } from './requestsRegistry.js';
+import { DealRecord, DealsRegistry } from './dealsRegistry.js';
 import { decodeText } from '../utils/text.js';
-import { ContractConfig } from '../utils/contract.js';
+import { ProtocolChain, TxCallback } from '../utils/contracts.js';
 import { StorageInitializer } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -201,8 +202,9 @@ export class Client<
 > extends EventEmitter<ClientEvents<CustomRequestQuery, CustomOfferOptions>> {
   private libp2pInit: Libp2pOptions;
   private requestsRegistry?: RequestsRegistry<CustomRequestQuery, CustomOfferOptions>;
+  private dealsRegistry?: DealsRegistry<CustomRequestQuery, CustomOfferOptions>;
   private storageInitializer: StorageInitializer;
-  private requestRegistryPrefix: string;
+  private dbKeysPrefix: string;
 
   /** libp2p instance */
   libp2p?: Libp2p;
@@ -210,10 +212,8 @@ export class Client<
   serverMultiaddr: Multiaddr;
   /** Server peer Id */
   serverPeerId: PeerId;
-  /** Smart contract configuration */
-  contractConfig: ContractConfig;
-  /** Ethers.js provider instance */
-  provider?: AbstractProvider;
+  /** Protocol chains configuration */
+  chain: ProtocolChain;
 
   /**
    *Creates an instance of Client.
@@ -223,20 +223,12 @@ export class Client<
   constructor(options: ClientOptions) {
     super();
 
-    const {
-      contractConfig,
-      libp2p,
-      provider,
-      serverAddress,
-      storageInitializer,
-      requestRegistryPrefix,
-    } = options;
+    const { chain, libp2p, serverAddress, storageInitializer, dbKeysPrefix } = options;
 
     // @todo Validate ClientOptions
 
-    this.contractConfig = contractConfig;
+    this.chain = chain;
     this.libp2pInit = (libp2p ?? {}) as Libp2pOptions;
-    this.provider = provider;
     this.serverMultiaddr = multiaddr(serverAddress);
     const serverPeerIdString = this.serverMultiaddr.getPeerId();
 
@@ -246,7 +238,7 @@ export class Client<
 
     this.serverPeerId = peerIdFromString(serverPeerIdString);
     this.storageInitializer = storageInitializer;
-    this.requestRegistryPrefix = requestRegistryPrefix;
+    this.dbKeysPrefix = dbKeysPrefix;
   }
 
   /**
@@ -348,7 +340,7 @@ export class Client<
     this.requestsRegistry = new RequestsRegistry<CustomRequestQuery, CustomOfferOptions>({
       client: this,
       storage: await this.storageInitializer(),
-      prefix: this.requestRegistryPrefix,
+      prefix: this.dbKeysPrefix,
     });
 
     /**
@@ -415,6 +407,12 @@ export class Client<
       this.dispatchEvent(new CustomEvent<void>('request:clear'));
     });
 
+    this.dealsRegistry = new DealsRegistry<CustomRequestQuery, CustomOfferOptions>({
+      client: this,
+      storage: await this.storageInitializer(),
+      prefix: this.dbKeysPrefix,
+    });
+
     await this.libp2p.start();
     this.dispatchEvent(new CustomEvent<void>('start'));
     logger.trace('🚀 Client started at:', new Date().toISOString());
@@ -446,12 +444,12 @@ export class Client<
    * Creates a new request
    *
    * @private
-   * @param {(Omit<BuildRequestOptions<CustomRequestQuery>, 'querySchema' | 'idOverride'>)} requestOptions
+   * @param {(Omit<BuildRequestOptions<CustomRequestQuery>, 'idOverride'>)} requestOptions
    * @returns {Promise<RequestData<CustomRequestQuery>>}
    * @memberof Client
    */
   private async _createRequest(
-    requestOptions: Omit<BuildRequestOptions<CustomRequestQuery>, 'querySchema' | 'idOverride'>,
+    requestOptions: Omit<BuildRequestOptions<CustomRequestQuery>, 'idOverride'>,
   ): Promise<RequestData<CustomRequestQuery>> {
     if (!this.libp2p || !this.requestsRegistry) {
       throw new Error('Client not initialized yet');
@@ -543,7 +541,6 @@ export class Client<
    * Cancels and removes all requests from registry
    *
    * @private
-   * @returns
    * @memberof Client
    */
   private _clearRequests() {
@@ -551,7 +548,7 @@ export class Client<
       throw new Error('Client not initialized yet');
     }
 
-    return this.requestsRegistry.clear();
+    this.requestsRegistry.clear();
   }
 
   /**
@@ -559,10 +556,10 @@ export class Client<
    *
    * @private
    * @param {string} id
-   * @returns
+   * @returns {boolean}
    * @memberof Client
    */
-  private _subscribed(id: string) {
+  private _subscribed(id: string): boolean {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -582,10 +579,6 @@ export class Client<
       create: this._createRequest.bind(this),
       /** @see _addRequest */
       publish: this._addRequest.bind(this),
-      /** @see _getRequest */
-      get: this._getRequest.bind(this),
-      /** @see _getRequests */
-      getAll: this._getRequests.bind(this),
       /** @see _cancelRequest */
       cancel: this._cancelRequest.bind(this),
       /** @see _deleteRequest */
@@ -594,6 +587,189 @@ export class Client<
       clear: this._clearRequests.bind(this),
       /** @see _subscribed */
       subscribed: this._subscribed.bind(this),
+      /** @see _getRequest */
+      get: this._getRequest.bind(this),
+      /** @see _getRequests */
+      getAll: this._getRequests.bind(this),
+    };
+  }
+
+  /**
+   * Creates a deal from offer
+   *
+   * @param {OfferData<CustomRequestQuery, CustomOfferOptions>} offer
+   * @param {Hash} paymentId Chosen payment Id (from offer.payment)
+   * @param {Hash} retailerId Retailer Id
+   * @param {PublicClient} publicClient Ethereum public client
+   * @param {WalletClient} walletClient Ethereum wallet client
+   * @param {TxCallback} [txCallback] Optional transaction hash callback
+   * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>>} Deal record
+   * @memberof DealsRegistry
+   */
+  private async _createDeal(
+    offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
+    paymentId: Hash,
+    retailerId: Hash,
+    publicClient: PublicClient,
+    walletClient: WalletClient,
+    txCallback?: TxCallback,
+  ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
+    if (!this.dealsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return await this.dealsRegistry.create(
+      offer,
+      paymentId,
+      retailerId,
+      publicClient,
+      walletClient,
+      txCallback,
+    );
+  }
+
+  /**
+   * Cancels the deal
+   *
+   * @param {Hash} offerId Offer Id
+   * @param {PublicClient} publicClient Ethereum public client
+   * @param {WalletClient} walletClient Ethereum wallet client
+   * @param {TxCallback} [txCallback] Optional tx hash callback
+   * @returns {Promise<void>}
+   * @memberof DealsRegistry
+   */
+  private async _cancelDeal(
+    offerId: Hash,
+    publicClient: PublicClient,
+    walletClient: WalletClient,
+    txCallback?: TxCallback,
+  ): Promise<void> {
+    if (!this.dealsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    await this.dealsRegistry.cancel(offerId, publicClient, walletClient, txCallback);
+  }
+
+  /**
+   * Transfers the deal to another address
+   *
+   * @param {Hash} offerId Offer Id
+   * @param {Hash} to New owner address
+   * @param {PublicClient} publicClient Ethereum public client
+   * @param {WalletClient} walletClient Ethereum wallet client
+   * @param {TxCallback} [txCallback] Optional tx hash callback
+   * @returns {Promise<void>}
+   * @memberof DealsRegistry
+   */
+  private async _transferDeal(
+    offerId: Hash,
+    to: Address,
+    publicClient: PublicClient,
+    walletClient: WalletClient,
+    txCallback?: TxCallback,
+  ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
+    if (!this.dealsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return await this.dealsRegistry.transfer(offerId, to, publicClient, walletClient, txCallback);
+  }
+
+  /**
+   * Makes the deal check-in
+   *
+   * @param {Hash} offerId
+   * @param {Hash} supplierSignature
+   * @param {PublicClient} publicClient Ethereum public client
+   * @param {WalletClient} walletClient Ethereum wallet client
+   * @param {TxCallback} [txCallback]
+   * @returns {Promise<void>}
+   * @memberof DealsRegistry
+   */
+  private async _checkInDeal(
+    offerId: Hash,
+    supplierSignature: Hash,
+    publicClient: PublicClient,
+    walletClient: WalletClient,
+    txCallback?: TxCallback,
+  ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
+    if (!this.dealsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return await this.dealsRegistry.checkIn(
+      offerId,
+      supplierSignature,
+      publicClient,
+      walletClient,
+      txCallback,
+    );
+  }
+
+  /**
+   * Returns an up-to-date deal record
+   *
+   * @param {Hash} offerId Offer Id
+   * @param {PublicClient} publicClient Ethereum public client
+   * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>>}
+   * @memberof DealsRegistry
+   */
+  private async _getDeal(
+    offerId: Hash,
+    publicClient: PublicClient,
+  ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
+    if (!this.dealsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return await this.dealsRegistry.get(offerId, publicClient);
+  }
+
+  /**
+   * Returns all an up-to-date deal records
+   *
+   * @param {PublicClient} publicClient Ethereum public client
+   * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]>}
+   * @memberof DealsRegistry
+   */
+  private async _getDeals(
+    publicClient: PublicClient,
+  ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]> {
+    if (!this.dealsRegistry) {
+      throw new Error('Client not initialized yet');
+    }
+
+    return await this.dealsRegistry.getAll(publicClient);
+  }
+
+  /**
+   * Provides access to subset of deals API
+   *
+   * @readonly
+   * @memberof Client
+   */
+  get deals(): {
+    create: Client<CustomRequestQuery, CustomOfferOptions>['_createDeal'];
+    cancel: Client<CustomRequestQuery, CustomOfferOptions>['_cancelDeal'];
+    transfer: Client<CustomRequestQuery, CustomOfferOptions>['_transferDeal'];
+    checkIn: Client<CustomRequestQuery, CustomOfferOptions>['_checkInDeal'];
+    get: Client<CustomRequestQuery, CustomOfferOptions>['_getDeal'];
+    getAll: Client<CustomRequestQuery, CustomOfferOptions>['_getDeals'];
+  } {
+    return {
+      /** @see _createDeal */
+      create: this._createDeal.bind(this),
+      /** @see _cancelDeal */
+      cancel: this._cancelDeal.bind(this),
+      /** @see _transferDeal */
+      transfer: this._transferDeal.bind(this),
+      /** @see _checkInDeal */
+      checkIn: this._checkInDeal.bind(this),
+      /** @see _getDeal */
+      get: this._getDeal.bind(this),
+      /** @see _getDeals */
+      getAll: this._getDeals.bind(this),
     };
   }
 }

@@ -1,4 +1,4 @@
-import { solidityPackedKeccak256 } from 'ethers';
+import { Address, Hash, keccak256, toHex, concat } from 'viem';
 
 /**
  * Generates simple unique Id
@@ -22,16 +22,16 @@ export const simpleUid = (length = 14): string => {
 /**
  * Generates random salt (bytes32 string)
  *
- * @returns {string}
+ * @returns {Hash}
  */
-export const randomSalt = (): string => solidityPackedKeccak256(['string'], [simpleUid()]);
+export const randomSalt = (): Hash => keccak256(toHex(simpleUid()));
 
 /**
  * Generates supplier Id (bytes32 string)
  *
  * @param {string} salt
- * @param {string} address
- * @returns {string}
+ * @param {Address} address
+ * @returns {Hash}
  */
-export const supplierId = (salt: string, address: string): string =>
-  solidityPackedKeccak256(['string', 'address'], [salt, address]);
+export const supplierId = (salt: Hash, address: Address): Hash =>
+  keccak256(concat([salt, address]));

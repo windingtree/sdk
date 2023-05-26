@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-import { solidityPackedKeccak256 } from 'ethers';
+import { Hash, Address, keccak256, concat, toHex, stringify } from 'viem';
 import { PaymentOption, CancelOption, UnsignedOfferPayload } from '../shared/types.js';
 import {
   PAYMENT_OPTION_TYPE_HASH,
@@ -13,30 +12,28 @@ import {
  * @param {unknown} data The data to stringify.
  * @returns {string} The JSON string representation of the data.
  */
-export const stringify = (data: unknown): string => {
-  return JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v));
-};
+export { stringify };
 
 /**
  * Computes the keccak256 hash of an object.
  *
  * @param {unknown} data The data object to hash.
- * @returns {string} The keccak256 hash of the data.
+ * @returns {Hash} The keccak256 hash of the data.
  */
-export const hashObject = (data: unknown): string => {
-  return solidityPackedKeccak256(['string'], [stringify(data)]);
+export const hashObject = (data: unknown): Hash => {
+  return keccak256(toHex(stringify(data)));
 };
 
 /**
  * Computes the keccak256 hash of a PaymentOption object.
  *
  * @param {PaymentOption} option The PaymentOption object to hash.
- * @returns {string} The keccak256 hash of the PaymentOption.
+ * @returns {Hash} The keccak256 hash of the PaymentOption.
  */
-export const hashPaymentOption = (option: PaymentOption): string => {
-  return solidityPackedKeccak256(
-    ['bytes32', 'bytes32', 'uint256', 'address'],
-    [PAYMENT_OPTION_TYPE_HASH, option.id, option.price, option.asset],
+export const hashPaymentOption = (option: PaymentOption): Hash => {
+  // ['bytes32', 'bytes32', 'uint256', 'address']
+  return keccak256(
+    concat([PAYMENT_OPTION_TYPE_HASH, option.id, toHex(option.price), option.asset]),
   );
 };
 
@@ -44,81 +41,79 @@ export const hashPaymentOption = (option: PaymentOption): string => {
  * Computes the keccak256 hash of a CancelOption object.
  *
  * @param {CancelOption} option The CancelOption object to hash.
- * @returns {string} The keccak256 hash of the CancelOption.
+ * @returns {Hash} The keccak256 hash of the CancelOption.
  */
-export const hashCancelOption = (option: CancelOption): string => {
-  return solidityPackedKeccak256(
-    ['bytes32', 'uint256', 'uint256'],
-    [CANCEL_OPTION_TYPE_HASH, option.time, option.penalty],
-  );
+export const hashCancelOption = (option: CancelOption): Hash => {
+  // ['bytes32', 'uint256', 'uint256']
+  return keccak256(concat([CANCEL_OPTION_TYPE_HASH, toHex(option.time), toHex(option.penalty)]));
 };
 
 /**
  * Computes the keccak256 hash of an array of PaymentOption objects.
  *
  * @param {PaymentOption[]} options The array of PaymentOption objects to hash.
- * @returns {string} The keccak256 hash of the PaymentOption array.
+ * @returns {Hash} The keccak256 hash of the PaymentOption array.
  */
-export const hashPaymentOptionArray = (options: PaymentOption[]): string => {
-  const hashes = [];
+export const hashPaymentOptionArray = (options: PaymentOption[]): Hash => {
+  const hashes: Hash[] = [];
 
   for (let i = 0; i < options.length; i++) {
     hashes[i] = hashPaymentOption(options[i]);
   }
 
-  return solidityPackedKeccak256(['bytes32[]'], [hashes]);
+  return keccak256(concat(hashes));
 };
 
 /**
  * Computes the keccak256 hash of an array of CancelOption objects.
  *
  * @param {CancelOption[]} options The array of CancelOption objects to hash.
- * @returns {string} The keccak256 hash of the CancelOption array.
+ * @returns {Hash} The keccak256 hash of the CancelOption array.
  */
-export const hashCancelOptionArray = (options: CancelOption[]): string => {
-  const hashes = [];
+export const hashCancelOptionArray = (options: CancelOption[]): Hash => {
+  const hashes: Hash[] = [];
 
   for (let i = 0; i < options.length; i++) {
     hashes[i] = hashCancelOption(options[i]);
   }
 
-  return solidityPackedKeccak256(['bytes32[]'], [hashes]);
+  return keccak256(concat(hashes));
 };
 
 /**
  * Computes the keccak256 hash of an UnsignedOfferPayload object.
  *
  * @param {UnsignedOfferPayload} payload The UnsignedOfferPayload object to hash.
- * @returns {string} The keccak256 hash of the UnsignedOfferPayload.
+ * @returns {Hash} The keccak256 hash of the UnsignedOfferPayload.
  */
-export const hashOfferPayload = (payload: UnsignedOfferPayload): string => {
-  return solidityPackedKeccak256(
-    [
-      'bytes32',
-      'bytes32',
-      'uint256',
-      'bytes32',
-      'uint256',
-      'bytes32',
-      'bytes32',
-      'bytes32',
-      'bytes32',
-      'bool',
-      'uint256',
-    ],
-    [
+export const hashOfferPayload = (payload: UnsignedOfferPayload): Hash => {
+  // [
+  //   'bytes32',
+  //   'bytes32',
+  //   'uint256',
+  //   'bytes32',
+  //   'uint256',
+  //   'bytes32',
+  //   'bytes32',
+  //   'bytes32',
+  //   'bytes32',
+  //   'bool',
+  //   'uint256',
+  // ]
+  return keccak256(
+    concat([
       OFFER_TYPE_HASH,
       payload.id,
-      payload.expire,
+      toHex(payload.expire),
       payload.supplierId,
-      payload.chainId,
+      toHex(payload.chainId),
       payload.requestHash,
       payload.optionsHash,
       payload.paymentHash,
       payload.cancelHash,
-      payload.transferable,
-      payload.checkIn,
-    ],
+      toHex(payload.transferable),
+      toHex(payload.checkIn),
+    ]),
   );
 };
 
@@ -127,11 +122,9 @@ export const hashOfferPayload = (payload: UnsignedOfferPayload): string => {
  *
  * @param {string} offerId The ID of the offer.
  * @param {string} signer The signer's address.
- * @returns {string} The keccak256 hash of the CheckInOut operation.
+ * @returns {Hash} The keccak256 hash of the CheckInOut operation.
  */
-export const hashCheckInOut = (offerId: string, signer: string): string => {
-  return solidityPackedKeccak256(
-    ['bytes32', 'bytes32', 'address'],
-    [OFFER_TYPE_HASH, offerId, signer],
-  );
+export const hashCheckInOut = (offerId: Hash, signer: Address): Hash => {
+  // ['bytes32', 'bytes32', 'address']
+  return keccak256(concat([OFFER_TYPE_HASH, offerId, signer]));
 };
