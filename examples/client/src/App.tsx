@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { RequestQuery, OfferOptions, contractConfig, serverAddress } from '../../shared/index.js';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Hash } from 'viem';
 import {
   Client,
   ClientOptions,
@@ -7,7 +7,14 @@ import {
   createClient,
   storage,
   utils,
-} from '../../../src/index.js'; //@windingtree/sdk
+} from '../../../src/index.js'; // @windingtree/sdk
+import { RequestQuery, OfferOptions, chainConfig, serverAddress } from '../../shared/index.js';
+import { OfferData } from '../../../src/shared/types.js';
+import { stringify } from '../../../src/utils/hash.js';
+import { centerEllipsis, formatBalance, parseWalletError } from './utils.js';
+import { useWallet } from './providers/WalletProvider/WalletProviderContext.js';
+import { ConnectButton } from './providers/WalletProvider/ConnectButton.js';
+import { ZeroHash } from './utils.js';
 
 /** Default request expiration time */
 const defaultExpire = '30s';
@@ -32,6 +39,18 @@ interface RequestsProps {
   subscribed?: (id: string) => boolean;
   onClear(): void;
   onCancel(id: string): void;
+  onOffers(offers: OfferData<RequestQuery, OfferOptions>[]): void;
+}
+
+interface OffersProps {
+  offers?: OfferData<RequestQuery, OfferOptions>[];
+  onAccept(offers: OfferData<RequestQuery, OfferOptions>): void;
+  onClose: () => void;
+}
+
+interface MakeDealProps {
+  offer?: OfferData<RequestQuery, OfferOptions>;
+  client?: Client<RequestQuery, OfferOptions>;
 }
 
 /**
@@ -86,13 +105,14 @@ export const RequestForm = ({ connected, onSubmit }: RequestFormProps) => {
 /**
  * Published requests table
  */
-export const Requests = ({ requests, subscribed, onClear, onCancel }: RequestsProps) => {
+export const Requests = ({ requests, subscribed, onClear, onCancel, onOffers }: RequestsProps) => {
   if (requests.length === 0) {
     return null;
   }
 
   return (
     <div style={{ marginTop: 20 }}>
+      <h3>Requests</h3>
       <table border={1} cellPadding={5}>
         <thead>
           <tr>
@@ -109,11 +129,16 @@ export const Requests = ({ requests, subscribed, onClear, onCancel }: RequestsPr
           {requests.map((r, index) => (
             <tr key={index}>
               <td>{r.data.topic}</td>
-              <td>{r.data.id}</td>
+              <td>{centerEllipsis(r.data.id)}</td>
               <td>{JSON.stringify(r.data.query)}</td>
               <td>{subscribed && subscribed(r.data.id) ? '✅' : 'no'}</td>
               <td>{utils.isExpired(r.data.expire) || r.cancelled ? '✅' : 'no'}</td>
-              <td>{r.offers.length}</td>
+              <td>
+                {r.offers.length === 0 ? 0 : ''}
+                {r.offers.length > 0 && (
+                  <button onClick={() => onOffers(r.offers)}>{r.offers.length}</button>
+                )}
+              </td>
               <td>
                 {!r.cancelled && !utils.isExpired(r.data.expire) ? (
                   <button
@@ -145,10 +170,170 @@ export const Requests = ({ requests, subscribed, onClear, onCancel }: RequestsPr
   );
 };
 
+/**
+ * Received offers table
+ */
+export const Offers = ({ offers, onAccept, onClose }: OffersProps) => {
+  const [offerStates, setOfferStates] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (offers && offers.length > 0) {
+      const expireHandler = () => {
+        const newOfferStates: Record<string, boolean> = {};
+        offers.forEach((offer) => {
+          newOfferStates[offer.id] = utils.isExpired(offer.expire);
+        });
+        setOfferStates(newOfferStates);
+      };
+
+      const interval = setInterval(expireHandler, 1000);
+      expireHandler();
+
+      return () => clearInterval(interval);
+    }
+  }, [offers]);
+
+  if (!offers || offers.length === 0) {
+    return null;
+  }
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+        <div style={{ flex: 1 }}><h3>Offers</h3></div>
+        <div style={{ flex: 1 }}><button onClick={onClose}>Close</button></div>
+      </div>
+      <table border={1} cellPadding={5}>
+        <thead>
+          <tr>
+            <td>Id</td>
+            <td>Data</td>
+            <td>Expired</td>
+            <td>Action</td>
+          </tr>
+        </thead>
+        <tbody>
+          {offers.map((o, index) => (
+            <tr key={index}>
+              <td>{centerEllipsis(o.id)}</td>
+              <td>{stringify(o.options)}</td>
+              <td>{offerStates[o.id] ? '✅' : 'no'}</td>
+              <td>
+                {!offerStates[o.id] ? <button onClick={() => onAccept(o)}>Accept</button> : ''}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+/**
+ * Making of deal form
+ */
+export const MakeDeal = ({ offer, client }: MakeDealProps) => {
+  const { account, publicClient, walletClient } = useWallet();
+  const [tx, setTx] = useState<string | undefined>();
+  const [error, setError] = useState<string | undefined>();
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const dealHandler = useCallback(
+    async (paymentId: Hash) => {
+      try {
+        setTx(undefined);
+        setError(undefined);
+        setLoading(true);
+
+        if (!client) {
+          throw new Error('Client not ready');
+        }
+
+        if (!publicClient || !walletClient) {
+          throw new Error('Ethereum client not ready');
+        }
+
+        if (!offer) {
+          throw new Error('Invalid deal configuration');
+        }
+
+        await client.deals.create(offer, paymentId, ZeroHash, publicClient, walletClient, setTx);
+        setLoading(false);
+      } catch (err) {
+        console.log(err);
+        setError(parseWalletError(err));
+        setLoading(false);
+      }
+    },
+    [client, offer, publicClient, walletClient],
+  );
+
+  if (!offer) {
+    return null;
+  }
+
+  if (!account) {
+    return (
+      <div style={{ marginTop: 20 }}>
+        <h3>Make a deal on offer: {centerEllipsis(offer.id)}</h3>
+        <div>Please connect your wallet to continue</div>
+        <div>
+          <ConnectButton />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <h3>Make a deal on offer: {centerEllipsis(offer.id)}</h3>
+      <div>Offer options: {stringify(offer.options)}</div>
+      <div>To make a deal choose a price option:</div>
+      <div>
+        <table border={1} cellPadding={5}>
+          <thead>
+            <tr>
+              <td>Id</td>
+              <td>Asset</td>
+              <td>Price</td>
+              <td>Action</td>
+            </tr>
+          </thead>
+          <tbody>
+            {offer.payment.map((p, index) => (
+              <tr key={index}>
+                <td>{centerEllipsis(p.id)}</td>
+                <td>{p.asset}</td>
+                <td>{formatBalance(p.price, 4)}</td>
+                <td>
+                  <button onClick={() => dealHandler(p.id)}>Deal</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {tx && <div style={{ marginTop: 20 }}>Tx hash: {tx}</div>}
+      {loading && <div style={{ marginTop: 20 }}>Loading...</div>}
+      {error && (
+        <div style={{ marginTop: 20, padding: 10, backgroundColor: 'rgba(0,0,0,0.1)' }}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Main application component
+ */
 export const App = () => {
   const client = useRef<Client<RequestQuery, OfferOptions> | undefined>();
+  const { account, balance } = useWallet();
   const [connected, setConnected] = useState<boolean>(false);
   const [requests, setRequests] = useState<RequestsRegistryRecord[]>([]);
+  const [offers, setOffers] = useState<OfferData<RequestQuery, OfferOptions>[] | undefined>();
+  const [offer, setOffer] = useState<OfferData<RequestQuery, OfferOptions> | undefined>();
   const [error, setError] = useState<string | undefined>();
 
   /** This hook starts the client that will be available via `client.current` */
@@ -158,12 +343,12 @@ export const App = () => {
         setError(undefined);
 
         const options: ClientOptions = {
-          contractConfig,
+          chain: chainConfig,
           serverAddress,
           storageInitializer: storage.localStorage.createInitializer({
             session: true,
           }),
-          requestRegistryPrefix: 'requestsRegistry',
+          dbKeysPrefix: 'wt_',
         };
 
         client.current = createClient<RequestQuery, OfferOptions>(options);
@@ -229,7 +414,7 @@ export const App = () => {
       const request = await client.current.requests.create({
         topic,
         expire: defaultExpire,
-        nonce: 1,
+        nonce: BigInt(1),
         query: {
           greeting: message,
         },
@@ -244,15 +429,26 @@ export const App = () => {
 
   return (
     <>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+        <div style={{ flex: 1 }}>
+          <h1>Client</h1>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <div>
+            <div>{account ? account : ''}</div>
+            <div>{account ? `${balance} ETH` : ''}</div>
+          </div>
+          <div style={{ marginLeft: '10px' }}>
+            <ConnectButton />
+          </div>
+        </div>
+      </div>
       {client.current && <div>✅ Client started</div>}
       {connected && <div>✅ Connected to the coordination server</div>}
       <RequestForm connected={connected} onSubmit={sendRequest} />
       <Requests
         requests={requests}
-        subscribed={(id) => {
-          console.log('###', id);
-          return client.current?.requests.subscribed(id) || false;
-        }}
+        subscribed={(id) => client.current?.requests.subscribed(id) || false}
         onClear={() => {
           if (client.current) {
             client.current?.requests.clear();
@@ -263,7 +459,10 @@ export const App = () => {
             client.current.requests.cancel(id);
           }
         }}
+        onOffers={setOffers}
       />
+      <Offers offers={offers} onAccept={setOffer} onClose={() => setOffers(undefined)} />
+      <MakeDeal offer={offer} client={client.current} />
       {error && <div style={{ marginTop: 20 }}>🚨 {error}</div>}
     </>
   );
