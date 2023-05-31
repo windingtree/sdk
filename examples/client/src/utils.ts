@@ -12,7 +12,7 @@ export const centerEllipsis = (text: string, width = 4, prefix = 2): string =>
 
 // Formats balance value
 export const formatBalance = (balance: bigint, decimals: number): string => {
-  const ether = formatUnits(balance, decimals);
+  const ether = formatUnits(balance, 18);
   const decimalPart = ether.split('.')[1] || '';
   const paddedDecimalPart = decimalPart.padEnd(decimals, '0');
   return `${ether.split('.')[0]}.${paddedDecimalPart.slice(0, decimals)}`;

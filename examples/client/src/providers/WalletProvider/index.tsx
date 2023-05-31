@@ -6,8 +6,9 @@ import {
   custom,
   createPublicClient,
   createWalletClient,
+  http,
 } from 'viem';
-import { polygonZkEvmTestnet } from 'viem/chains';
+import { polygonZkEvmTestnet, hardhat } from 'viem/chains';
 import { WalletContext } from './WalletProviderContext';
 import { formatBalance } from '../../utils';
 
@@ -18,7 +19,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [account, setAccount] = useState<Address | undefined>();
   const [loading, setLoading] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [balance, setBalance] = useState<string>('0.00');
+  const [balance, setBalance] = useState<string>('0.0000');
   const [error, setError] = useState<string | undefined>();
 
   const getChainId = async (publicClient: PublicClient): Promise<bigint> =>
@@ -38,12 +39,12 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
   const handleChainChanged = async (): Promise<void> => {
     const publicClient = createPublicClient({
-      chain: polygonZkEvmTestnet,
-      transport: custom(window.ethereum),
+      chain: import.meta.env.VITE_LOCAL_NODE === 'hardhat' ? hardhat : polygonZkEvmTestnet,
+      transport: http(),
     });
     setPublicClient(publicClient);
     const walletClient = createWalletClient({
-      chain: polygonZkEvmTestnet,
+      chain: import.meta.env.VITE_LOCAL_NODE === 'hardhat' ? hardhat : polygonZkEvmTestnet,
       transport: custom(window.ethereum),
     });
     setWalletClient(walletClient);

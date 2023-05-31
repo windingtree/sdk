@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { EventHandler } from '@libp2p/interfaces/events';
 import { DateTime } from 'luxon';
-import { Hash } from 'viem';
+import { Hash, Hex } from 'viem';
+import { randomSalt } from '@windingtree/contracts';
 import {
   RequestQuery,
   OfferOptions,
@@ -14,22 +15,19 @@ import { OfferData } from '../../src/shared/types.js';
 import { noncePeriod } from '../../src/constants.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
-import { randomSalt } from '../../src/utils/uid.js';
 import { RequestEvent } from '../../src/node/requestManager.js';
 import { createLogger } from '../../src/utils/logger.js';
 
 const logger = createLogger('NodeMain');
 
 /**
- * These are randomly generated wallets, just for demonstration.
- * In production, you have to provide (and handle) them in a secure way
+ * The supplier signer credentials
  */
 const signerMnemonic = process.env.EXAMPLE_ENTITY_SIGNER_MNEMONIC;
+const signerPk = process.env.EXAMPLE_ENTITY_SIGNER_PK as Hex;
 
-if (!signerMnemonic) {
-  throw new Error(
-    'Entity signer mnemonic must be provided with EXAMPLE_ENTITY_SIGNER_MNEMONIC env',
-  );
+if (!signerMnemonic && !signerPk) {
+  throw new Error('Either signerMnemonic or signerPk must be provided with env');
 }
 
 /**
@@ -156,6 +154,7 @@ const main = async (): Promise<void> => {
     noncePeriod: Number(parseSeconds(noncePeriod)),
     supplierId,
     signerSeedPhrase: signerMnemonic,
+    signerPk: signerPk,
   };
   const node = createNode<RequestQuery, OfferOptions>(options);
 

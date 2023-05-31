@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Hash } from 'viem';
+import { Hash, stringify } from 'viem';
 import {
   Client,
   ClientOptions,
@@ -10,7 +10,6 @@ import {
 } from '../../../src/index.js'; // @windingtree/sdk
 import { RequestQuery, OfferOptions, chainConfig, serverAddress } from '../../shared/index.js';
 import { OfferData } from '../../../src/shared/types.js';
-import { stringify } from '../../../src/utils/hash.js';
 import { centerEllipsis, formatBalance, parseWalletError } from './utils.js';
 import { useWallet } from './providers/WalletProvider/WalletProviderContext.js';
 import { ConnectButton } from './providers/WalletProvider/ConnectButton.js';
