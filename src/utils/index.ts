@@ -1,6 +1,5 @@
 export * from './contracts.js';
 export * from './h3.js';
-export * from './hash.js';
 export * from './logger.js';
 export * from './regex.js';
 export * from './text.js';
