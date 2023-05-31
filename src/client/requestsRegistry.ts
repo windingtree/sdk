@@ -1,10 +1,10 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { stringify } from 'viem';
 import { Client } from '../index.js';
 import { GenericOfferOptions, GenericQuery, RequestData, OfferData } from '../shared/types.js';
 import { Storage } from '../storage/index.js';
 import { encodeText } from '../utils/text.js';
 import { nowSec } from '../utils/time.js';
-import { stringify } from '../utils/hash.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('RequestsRegistry');

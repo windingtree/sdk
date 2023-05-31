@@ -1,4 +1,4 @@
-import { Address, Hash, getAddress, PublicClient, WalletClient } from 'viem';
+import { Address, Hash, HDAccount, getAddress, PublicClient, WalletClient } from 'viem';
 import { Abi } from 'abitype';
 import { marketABI } from '@windingtree/contracts';
 import { Client, createCheckInOutSignature } from '../index.js';
@@ -452,7 +452,7 @@ export class DealsRegistry<
         version: this.client.chain.contracts.market.version,
         verifyingContract: this.client.chain.contracts.market.address,
       },
-      walletClient,
+      account: walletClient.account as unknown as HDAccount,
     });
 
     await sendHelper(

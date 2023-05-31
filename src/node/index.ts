@@ -8,11 +8,11 @@ import { OPEN } from '@libp2p/interface-connection/status';
 import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { peerIdFromString } from '@libp2p/peer-id';
-import { HDAccount, Hash, PublicClient, WalletClient } from 'viem';
-import { mnemonicToAccount } from 'viem/accounts';
+import { Hash, stringify } from 'viem';
+import { mnemonicToAccount, privateKeyToAccount } from 'viem/accounts';
 import { noncePeriod as defaultNoncePeriod } from '../constants.js';
 import { GenericOfferOptions, GenericQuery, OfferData } from '../shared/types.js';
-import { buildOffer, BuildOfferOptions } from '../shared/messages.js';
+import { Account, buildOffer, BuildOfferOptions } from '../shared/messages.js';
 import { CenterSub, centerSub } from '../shared/pubsub.js';
 import { RequestManager, RequestEvent } from './requestManager.js';
 import { decodeText, encodeText } from '../utils/text.js';
@@ -20,7 +20,6 @@ import { ProtocolChain } from '../utils/contracts.js';
 import { NodeOptions } from '../shared/options.js';
 import { parseSeconds } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
-import { stringify } from '../utils/hash.js';
 
 const logger = createLogger('Node');
 
@@ -113,10 +112,8 @@ export class Node<
   serverPeerId: PeerId;
   supplierId: Hash;
   chain: ProtocolChain;
-  signer: HDAccount;
-  publicClient?: PublicClient;
-  walletClient?: WalletClient;
   topics: string[];
+  signer: Account;
   private libp2pInit: Libp2pOptions;
   private requestManager: RequestManager<CustomRequestQuery>;
 
@@ -129,11 +126,10 @@ export class Node<
     const {
       chain,
       libp2p,
-      publicClient,
-      walletClient,
       topics,
       supplierId,
       signerSeedPhrase,
+      signerPk,
       serverAddress,
       noncePeriod,
     } = options;
@@ -142,11 +138,17 @@ export class Node<
 
     this.chain = chain;
     this.libp2pInit = libp2p ?? {};
-    this.publicClient = publicClient;
-    this.walletClient = walletClient;
     this.topics = topics;
     this.supplierId = supplierId;
-    this.signer = mnemonicToAccount(signerSeedPhrase);
+
+    if (signerSeedPhrase) {
+      this.signer = mnemonicToAccount(signerSeedPhrase);
+    } else if (signerPk) {
+      this.signer = privateKeyToAccount(signerPk);
+    } else {
+      throw new Error('Invalid signer account configuration');
+    }
+
     this.serverMultiaddr = multiaddr(serverAddress);
     const serverPeerIdString = this.serverMultiaddr.getPeerId();
 
@@ -246,7 +248,7 @@ export class Node<
   async buildOffer(
     offerOptions: Omit<
       BuildOfferOptions<CustomRequestQuery, CustomOfferOptions>,
-      'domain' | 'walletClient' | 'supplierId'
+      'domain' | 'supplierId'
     >,
   ): Promise<OfferData<CustomRequestQuery, CustomOfferOptions>> {
     if (!this.libp2p) {
@@ -257,10 +259,12 @@ export class Node<
       ...offerOptions,
       domain: {
         chainId: this.chain.chainId,
-        ...this.chain.contracts.market,
+        name: this.chain.contracts.market.name,
+        version: this.chain.contracts.market.version,
+        verifyingContract: this.chain.contracts.market.address,
       },
       supplierId: this.supplierId,
-      hdAccount: this.signer,
+      account: this.signer,
     });
     logger.trace(`Offer #${offer.id} is built`);
 
