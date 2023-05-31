@@ -50,6 +50,8 @@ export interface ProtocolContracts {
 export interface ProtocolChain {
   /** Chain Id */
   chainId: number;
+  /** Chain Name. Must be one of supported by `viem.chains` */
+  chainName: string; //'hardhat' | 'polygonZkEvmTestnet' | ...
   /** Contracts configuration */
   contracts: ProtocolContracts;
 }
