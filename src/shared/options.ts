@@ -1,5 +1,5 @@
 import { Libp2pInit } from 'libp2p';
-import { Hash, PublicClient, WalletClient } from 'viem';
+import { Hash, Hex } from 'viem';
 import { ProtocolChain } from '../utils/contracts.js';
 import { StorageInitializer } from '../storage/abstract.js';
 
@@ -20,7 +20,9 @@ export type ServerAddressOption = {
 
 export type SignerSeedOptions = {
   /** Seed phrase of the node signer wallet */
-  signerSeedPhrase: string;
+  signerSeedPhrase?: string;
+  /** Viem HDAccount */
+  signerPk?: Hex;
 };
 
 /**
@@ -37,10 +39,6 @@ export interface NodeOptions
   topics: string[];
   /** Unique supplier Id */
   supplierId: Hash;
-  /** Ethereum public client */
-  publicClient?: PublicClient;
-  /** Ethereum wallet client */
-  walletClient?: WalletClient;
 }
 
 /**
