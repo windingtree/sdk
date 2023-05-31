@@ -1,4 +1,4 @@
-import { Address, Hash, verifyTypedData, WalletClient, HDAccount } from 'viem';
+import { Address, Hash, verifyTypedData, HDAccount, PrivateKeyAccount } from 'viem';
 import { TypedDataDomain } from 'abitype';
 import {
   BuildRequestOptions,
@@ -10,9 +10,17 @@ import {
   RequestData,
   UnsignedOfferPayload,
 } from './types.js';
-import { hashCancelOptionArray, hashObject, hashPaymentOptionArray } from '../utils/hash.js';
-import { randomSalt } from '../utils/uid.js';
+import {
+  hashCancelOptionArray,
+  hashObject,
+  hashPaymentOptionArray,
+  randomSalt,
+  offerEip712Types,
+  checkInOutEip712Types,
+} from '@windingtree/contracts';
 import { parseExpire } from '../utils/time.js';
+
+export type Account = HDAccount | PrivateKeyAccount;
 
 /**
  * Builds a request
@@ -34,46 +42,6 @@ export const buildRequest = async <CustomRequestQuery extends GenericQuery>(
     topic,
     query,
   };
-};
-
-/**
- * EIP-712 JSON schema types for offer
- */
-export const offerEip712Types = {
-  Offer: [
-    {
-      name: 'supplierId',
-      type: 'bytes32',
-    },
-    {
-      name: 'chainId',
-      type: 'uint256',
-    },
-    {
-      name: 'requestHash',
-      type: 'bytes32',
-    },
-    {
-      name: 'optionsHash',
-      type: 'bytes32',
-    },
-    {
-      name: 'paymentHash',
-      type: 'bytes32',
-    },
-    {
-      name: 'cancelHash',
-      type: 'bytes32',
-    },
-    {
-      name: 'transferable',
-      type: 'bool',
-    },
-    {
-      name: 'checkIn',
-      type: 'uint256',
-    },
-  ],
 };
 
 /**
@@ -107,10 +75,8 @@ export interface BuildOfferOptions<
   idOverride?: Hash;
   /** The possibility to override an offer signature flag */
   signatureOverride?: Hash;
-  /** Ethereum local account */
-  hdAccount?: HDAccount;
   /** Ethereum wallet client */
-  walletClient?: WalletClient;
+  account?: Account;
 }
 
 export interface VerifyOfferArgs<
@@ -132,10 +98,8 @@ export interface CreateCheckInOutSignatureArgs {
   offerId: Hash;
   /** Typed data domain */
   domain: TypedDataDomain;
-  /** Ethereum wallet client */
-  walletClient?: WalletClient;
   /** Ethereum local account */
-  hdAccount?: HDAccount;
+  account: Account;
 }
 
 /**
@@ -164,8 +128,7 @@ export const buildOffer = async <
     transferable,
     signatureOverride,
     idOverride,
-    hdAccount,
-    walletClient,
+    account,
   } = offerOptions;
   let { expire } = offerOptions;
 
@@ -194,18 +157,8 @@ export const buildOffer = async <
 
   let signature: Hash | undefined;
 
-  if (hdAccount && hdAccount.type === 'local') {
-    signature = await hdAccount.signTypedData({
-      domain,
-      types: offerEip712Types,
-      primaryType: 'Offer',
-      message: unsignedOfferPayload,
-    });
-  } else if (walletClient && !signatureOverride) {
-    const [account] = await walletClient.getAddresses();
-
-    signature = await walletClient.signTypedData({
-      account,
+  if (account && !signatureOverride) {
+    signature = await account.signTypedData({
       domain,
       types: offerEip712Types,
       primaryType: 'Offer',
@@ -214,9 +167,7 @@ export const buildOffer = async <
   } else if (signatureOverride) {
     signature = signatureOverride;
   } else {
-    throw new Error(
-      'Either hdAccount or walletClient or signatureOverride must be provided with options',
-    );
+    throw new Error('Either walletClient or signatureOverride must be provided with options');
   }
 
   return {
@@ -263,22 +214,6 @@ export const verifyOffer = async <
 };
 
 /**
- * EIP-712 JSON schema types for checkIn/Out voucher
- */
-export const checkInOutTypes = {
-  Voucher: [
-    {
-      name: 'id',
-      type: 'bytes32',
-    },
-    {
-      name: 'signer',
-      type: 'address',
-    },
-  ],
-};
-
-/**
  * Create EIP-712 signature for checkIn/Out voucher
  *
  * @param {CreateCheckInOutSignatureArgs} args Function arguments
@@ -287,34 +222,14 @@ export const checkInOutTypes = {
 export const createCheckInOutSignature = async ({
   offerId,
   domain,
-  walletClient,
-  hdAccount,
-}: CreateCheckInOutSignatureArgs): Promise<Hash> => {
-  if (hdAccount && hdAccount.type === 'local') {
-    return await hdAccount.signTypedData({
-      domain,
-      types: checkInOutTypes,
-      primaryType: 'Voucher',
-      message: {
-        id: offerId,
-        signer: hdAccount.address,
-      },
-    });
-  }
-
-  if (walletClient) {
-    const [account] = await walletClient.getAddresses();
-    return await walletClient.signTypedData({
-      account,
-      domain,
-      types: checkInOutTypes,
-      primaryType: 'Voucher',
-      message: {
-        id: offerId,
-        signer: account,
-      },
-    });
-  }
-
-  throw new Error('Either hdAccount or walletClient must be provided with options');
-};
+  account,
+}: CreateCheckInOutSignatureArgs): Promise<Hash> =>
+  await account.signTypedData({
+    domain,
+    types: checkInOutEip712Types,
+    primaryType: 'Voucher',
+    message: {
+      id: offerId,
+      signer: account.address,
+    },
+  });
