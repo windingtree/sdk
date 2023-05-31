@@ -1,6 +1,6 @@
+import { stringify } from 'viem';
 import { Storage, StorageInitializerFunction } from './abstract.js';
 import { createLogger } from '../utils/logger.js';
-import { stringify } from '../utils/hash.js';
 
 const logger = createLogger('LocalStorage');
 
