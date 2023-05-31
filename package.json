@@ -106,11 +106,11 @@
     "@libp2p/mplex": "^7.1.3",
     "@libp2p/websockets": "^5.0.8",
     "ethers": "^6.4.0",
-    "viem": "^0.3.36",
+    "viem": "^0.3.39",
     "luxon": "^3.3.0",
     "h3-js": "^4.1.0",
     "debug": "^4.3.4",
-    "@windingtree/contracts": "^1.0.0-beta.10"
+    "@windingtree/contracts": "^1.0.0-beta.12"
   },
   "scripts": {
     "clean": "rm -rf ./lib",
