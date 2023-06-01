@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react';
 import { Address, PublicClient, WalletClient } from 'viem';
 
 export interface WalletContextData {
-  publicClient?: PublicClient;
+  publicClient: PublicClient;
   walletClient?: WalletClient;
   chainId?: bigint;
   account?: Address;
