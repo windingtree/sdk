@@ -1,4 +1,5 @@
-import { Address, Hash, HDAccount, getAddress, PublicClient, WalletClient } from 'viem';
+import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { Address, Hash, HDAccount, getAddress, WalletClient } from 'viem';
 import { Abi } from 'abitype';
 import { marketABI } from '@windingtree/contracts';
 import { Client, createCheckInOutSignature } from '../index.js';
@@ -79,6 +80,36 @@ export interface ContractClientConfig {
 }
 
 /**
+ * Deals manager events interface
+ */
+export interface DealEvents<
+  CustomRequestQuery extends GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions,
+> {
+  /**
+   * @example
+   *
+   * ```js
+   * registry.addEventListener('status', () => {
+   *    // ... deal status changed
+   * })
+   * ```
+   */
+  status: CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * registry.addEventListener('changed', () => {
+   *    // ... deals store changed
+   * })
+   * ```
+   */
+  changed: CustomEvent<void>;
+}
+
+/**
  * Creates an instance of DealsRegistry.
  *
  * @param {DealsRegistryOptions<CustomRequestQuery, CustomOfferOptions>} options
@@ -87,12 +118,14 @@ export interface ContractClientConfig {
 export class DealsRegistry<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
-> {
+> extends EventEmitter<DealEvents<CustomRequestQuery, CustomOfferOptions>> {
   private client: Client<CustomRequestQuery, CustomOfferOptions>;
   /** Mapping of an offer id => Deal */
   private deals: Map<string, DealRecord<CustomRequestQuery, CustomOfferOptions>>; // id => Deal
   private storage?: Storage;
   private storageKey: string;
+  private checkInterval?: NodeJS.Timer;
+  private ongoingCheck = false;
 
   /**
    * Creates an instance of DealsRegistry.
@@ -101,13 +134,21 @@ export class DealsRegistry<
    * @memberof DealsRegistry
    */
   constructor(options: DealsRegistryOptions<CustomRequestQuery, CustomOfferOptions>) {
+    super();
+
     const { client, storage, prefix } = options;
 
     this.client = client;
     this.deals = new Map<string, DealRecord<CustomRequestQuery, CustomOfferOptions>>();
     this.storageKey = `${prefix}_deals_records`;
     this.storage = storage;
-    this._storageUp().catch(logger.error);
+    this._storageUp()
+      .then(() => {
+        this.checkInterval = setInterval(() => {
+          this._checkDealsStates().catch(logger.error);
+        }, 2000);
+      })
+      .catch(logger.error);
   }
 
   /**
@@ -172,17 +213,53 @@ export class DealsRegistry<
   }
 
   /**
+   * Checks and updates state of all deals records
+   *
+   * @private
+   * @memberof DealsRegistry
+   */
+  private async _checkDealsStates(): Promise<void> {
+    if (this.ongoingCheck) {
+      return;
+    }
+
+    this.ongoingCheck = true;
+    const records = await this.getAll();
+    const recordsToCheck = records.filter(({ status }) =>
+      [DealStatus.Created, DealStatus.Claimed, DealStatus.CheckedIn, DealStatus.Disputed].includes(
+        status,
+      ),
+    );
+    const checkedRecords = await Promise.all(
+      recordsToCheck.map((r) => this._buildDealRecord(r.offer)),
+    );
+    let shouldEmitChanged = false;
+    checkedRecords.forEach((r, index) => {
+      if (r.status !== recordsToCheck[index].status) {
+        shouldEmitChanged = true;
+        this.dispatchEvent(
+          new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>('status', {
+            detail: r,
+          }),
+        );
+      }
+    });
+    if (shouldEmitChanged) {
+      this.dispatchEvent(new CustomEvent<void>('changed'));
+    }
+    this.ongoingCheck = false;
+  }
+
+  /**
    * Builds and saves the deal record based on the offer
    *
    * @private
    * @param {OfferData<CustomRequestQuery, CustomOfferOptions>} offer Offer data object
-   * @param {PublicClient} publicClient Ethereum public client
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>>}
    * @memberof DealsRegistry
    */
   private async _buildDealRecord(
     offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
-    publicClient: PublicClient,
   ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
     const market = this._getMarketConfig(offer);
     const marketContract = {
@@ -193,15 +270,16 @@ export class DealsRegistry<
 
     // Fetching deal information from smart contract
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [created, _, retailerId, buyer, price, asset, status] = await publicClient.readContract({
-      ...marketContract,
-      functionName: 'deals',
-      args: [offer.payload.id],
-    });
+    const [created, _, retailerId, buyer, price, asset, status] =
+      await this.client.publicClient.readContract({
+        ...marketContract,
+        functionName: 'deals',
+        args: [offer.payload.id],
+      });
 
     // Preparing deal record for registry
     const dealRecord: DealRecord<CustomRequestQuery, CustomOfferOptions> = {
-      chainId: await publicClient.getChainId(),
+      chainId: await this.client.publicClient.getChainId(),
       created: created,
       offer,
       retailerId: retailerId,
@@ -219,12 +297,18 @@ export class DealsRegistry<
   }
 
   /**
+   * Graceful deals registry stop
+   */
+  stop() {
+    clearInterval(this.checkInterval);
+  }
+
+  /**
    * Creates a deal from offer
    *
    * @param {OfferData<CustomRequestQuery, CustomOfferOptions>} offer
    * @param {Hash} paymentId Chosen payment Id (from offer.payment)
    * @param {Hash} retailerId Retailer Id
-   * @param {PublicClient} publicClient Ethereum public client
    * @param {WalletClient} walletClient Ethereum wallet client
    * @param {TxCallback} [txCallback] Optional transaction hash callback
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>>} Deal record
@@ -234,10 +318,21 @@ export class DealsRegistry<
     offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
     paymentId: Hash,
     retailerId: Hash,
-    publicClient: PublicClient,
     walletClient: WalletClient,
     txCallback?: TxCallback,
   ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
+    let deal: DealRecord<CustomRequestQuery, CustomOfferOptions> | undefined;
+
+    try {
+      deal = await this.get(offer.payload.id);
+    } catch (error) {
+      logger.error(error);
+    }
+
+    if (deal) {
+      throw new Error(`Deal ${offer.payload.id} already created!`);
+    }
+
     const market = this._getMarketConfig(offer);
 
     // Extracting the proper payment method by Id
@@ -250,7 +345,7 @@ export class DealsRegistry<
       paymentOption.asset,
       market.address,
       BigInt(paymentOption.price),
-      publicClient,
+      this.client.publicClient,
       walletClient,
       txCallback,
     );
@@ -260,26 +355,22 @@ export class DealsRegistry<
       marketABI,
       'deal',
       [offer.payload, offer.payment, paymentId, retailerId, [offer.signature]],
-      publicClient,
+      this.client.publicClient,
       walletClient,
       txCallback,
     );
 
-    return await this._buildDealRecord(offer, publicClient);
+    return await this._buildDealRecord(offer);
   }
 
   /**
    * Returns an up-to-date deal record
    *
    * @param {Hash} offerId Offer Id
-   * @param {PublicClient} publicClient Ethereum public client
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>>}
    * @memberof DealsRegistry
    */
-  async get(
-    offerId: Hash,
-    publicClient: PublicClient,
-  ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
+  async get(offerId: Hash): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
     const dealRecord = this.deals.get(offerId);
 
     if (!dealRecord) {
@@ -290,24 +381,21 @@ export class DealsRegistry<
       return dealRecord;
     }
 
-    return await this._buildDealRecord(dealRecord.offer, publicClient);
+    return await this._buildDealRecord(dealRecord.offer);
   }
 
   /**
    * Returns all an up-to-date deal records
    *
-   * @param {PublicClient} publicClient Ethereum public client
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]>}
    * @memberof DealsRegistry
    */
-  async getAll(
-    publicClient: PublicClient,
-  ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]> {
+  async getAll(): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]> {
     const records: DealRecord<CustomRequestQuery, CustomOfferOptions>[] = [];
 
     for (const record of this.deals.values()) {
       try {
-        records.push(await this.get(record.offer.payload.id, publicClient));
+        records.push(await this.get(record.offer.payload.id));
       } catch (error) {
         logger.error(error);
       }
@@ -320,7 +408,6 @@ export class DealsRegistry<
    * Cancels the deal
    *
    * @param {Hash} offerId Offer Id
-   * @param {PublicClient} publicClient Ethereum public client
    * @param {WalletClient} walletClient Ethereum wallet client
    * @param {TxCallback} [txCallback] Optional tx hash callback
    * @returns {Promise<void>}
@@ -328,11 +415,10 @@ export class DealsRegistry<
    */
   async cancel(
     offerId: Hash,
-    publicClient: PublicClient,
     walletClient: WalletClient,
     txCallback?: TxCallback,
   ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
-    const dealRecord = await this.get(offerId, publicClient);
+    const dealRecord = await this.get(offerId);
 
     if (![DealStatus.Created, DealStatus.Claimed].includes(dealRecord.status)) {
       throw new Error(`Cancellation not allowed in the status ${DealStatus[dealRecord.status]}`);
@@ -345,12 +431,12 @@ export class DealsRegistry<
       marketABI,
       'cancel',
       [dealRecord.offer.payload.id, dealRecord.offer.cancel],
-      publicClient,
+      this.client.publicClient,
       walletClient,
       txCallback,
     );
 
-    return await this._buildDealRecord(dealRecord.offer, publicClient);
+    return await this._buildDealRecord(dealRecord.offer);
   }
 
   /**
@@ -358,7 +444,6 @@ export class DealsRegistry<
    *
    * @param {Hash} offerId Offer Id
    * @param {string} to New owner address
-   * @param {PublicClient} publicClient Ethereum public client
    * @param {WalletClient} walletClient Ethereum wallet client
    * @param {TxCallback} [txCallback] Optional tx hash callback
    * @returns {Promise<void>}
@@ -367,11 +452,10 @@ export class DealsRegistry<
   async transfer(
     offerId: Hash,
     to: Address,
-    publicClient: PublicClient,
     walletClient: WalletClient,
     txCallback?: TxCallback,
   ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
-    let dealRecord = await this.get(offerId, publicClient);
+    let dealRecord = await this.get(offerId);
 
     const signerAddress = await getSignerAddress(walletClient);
 
@@ -384,7 +468,7 @@ export class DealsRegistry<
     }
 
     // Updating the record
-    dealRecord = await this._buildDealRecord(dealRecord.offer, publicClient);
+    dealRecord = await this._buildDealRecord(dealRecord.offer);
 
     if (![DealStatus.Created, DealStatus.Claimed].includes(dealRecord.status)) {
       throw new Error(`Transfer not allowed in the status ${DealStatus[dealRecord.status]}`);
@@ -398,7 +482,7 @@ export class DealsRegistry<
       marketABI,
       'offerTokens',
       [dealRecord.offer.payload.id],
-      publicClient,
+      this.client.publicClient,
     );
 
     await sendHelper(
@@ -406,12 +490,12 @@ export class DealsRegistry<
       marketABI,
       'safeTransferFrom',
       [signerAddress, to, tokenId],
-      publicClient,
+      this.client.publicClient,
       walletClient,
       txCallback,
     );
 
-    return await this._buildDealRecord(dealRecord.offer, publicClient);
+    return await this._buildDealRecord(dealRecord.offer);
   }
 
   /**
@@ -419,7 +503,6 @@ export class DealsRegistry<
    *
    * @param {Hash} offerId
    * @param {Hash} supplierSignature
-   * @param {PublicClient} publicClient Ethereum public client
    * @param {WalletClient} walletClient Ethereum wallet client
    * @param {TxCallback} [txCallback] Optional tx hash callback
    * @returns {Promise<void>}
@@ -428,11 +511,10 @@ export class DealsRegistry<
   async checkIn(
     offerId: Hash,
     supplierSignature: Hash,
-    publicClient: PublicClient,
     walletClient: WalletClient,
     txCallback?: TxCallback,
   ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
-    const dealRecord = await this.get(offerId, publicClient);
+    const dealRecord = await this.get(offerId);
 
     if (![DealStatus.Created, DealStatus.Claimed].includes(dealRecord.status)) {
       throw new Error(`CheckIn not allowed in the status ${DealStatus[dealRecord.status]}`);
@@ -460,11 +542,11 @@ export class DealsRegistry<
       marketABI,
       'checkIn',
       [dealRecord.offer.payload.id, [buyerSignature, supplierSignature]],
-      publicClient,
+      this.client.publicClient,
       walletClient,
       txCallback,
     );
 
-    return await this._buildDealRecord(dealRecord.offer, publicClient);
+    return await this._buildDealRecord(dealRecord.offer);
   }
 }
