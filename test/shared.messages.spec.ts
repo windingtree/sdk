@@ -1,7 +1,8 @@
 import { expect, expectDeepEqual } from './setup.js';
 import { mnemonicToAccount } from 'viem/accounts';
 import { generateMnemonic } from '../src/utils/wallet.js';
-import { randomSalt, supplierId as spId } from '../src/utils/uid.js';
+import { supplierId as spId } from '../src/utils/uid.js';
+import { randomSalt } from '@windingtree/contracts';
 import { GenericQuery, GenericOfferOptions, RequestData, OfferData } from '../src/shared/types.js';
 import { buildRequest, buildOffer, verifyOffer } from '../src/shared/messages.js';
 
@@ -41,7 +42,7 @@ describe('Shared.messages', () => {
   const createOffer = (request: RequestData<CustomQuery>, expire: bigint | string = BigInt(1)) =>
     buildOffer<CustomQuery, CustomOfferOptions>({
       domain: typedDomain,
-      hdAccount: signer,
+      account: signer,
       supplierId,
       expire,
       request,
@@ -102,7 +103,7 @@ describe('Shared.messages', () => {
       it('should restore an offer from raw data', async () => {
         const fromRaw = await buildOffer<CustomQuery, CustomOfferOptions>({
           domain: typedDomain,
-          hdAccount: signer,
+          account: signer,
           supplierId,
           expire: offer.expire,
           request: offer.request,
@@ -133,7 +134,7 @@ describe('Shared.messages', () => {
             transferable: offer.payload.transferable,
             idOverride: offer.id,
           }),
-        ).to.rejectedWith('Either signer or signatureOverride must be provided');
+        ).to.rejectedWith('Either account or signatureOverride must be provided with options');
       });
     });
   });
