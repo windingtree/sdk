@@ -1,5 +1,5 @@
 import { Libp2pInit } from 'libp2p';
-import { Hash, Hex } from 'viem';
+import { Hash, Hex, PublicClient } from 'viem';
 import { ProtocolChain } from '../utils/contracts.js';
 import { StorageInitializer } from '../storage/abstract.js';
 
@@ -56,6 +56,8 @@ export interface ClientOptions extends ChainsConfigOption, ServerAddressOption {
   storageInitializer: StorageInitializer;
   /** DB keys prefix */
   dbKeysPrefix: string;
+  /** Viem public client */
+  publicClient: PublicClient;
 }
 
 /**
