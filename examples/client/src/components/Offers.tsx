@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { stringify } from 'viem';
-import {
-  utils,
-} from '../../../../src/index.js'; // @windingtree/sdk
+import { utils } from '../../../../src/index.js'; // @windingtree/sdk
 import { OfferData } from '../../../../src/shared/types.js';
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import { centerEllipsis } from '../utils.js';

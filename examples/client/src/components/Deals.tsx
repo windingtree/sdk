@@ -16,13 +16,13 @@ export interface DealsProps {
 export interface TransferFormProps {
   deal?: DealsRegistryRecord;
   client?: Client<RequestQuery, OfferOptions>;
-  onClose: () => void
+  onClose: () => void;
 }
 
 export interface CancelProps {
   deal?: DealsRegistryRecord;
   client?: Client<RequestQuery, OfferOptions>;
-  onClose: () => void
+  onClose: () => void;
 }
 
 // Transfer deal to...
@@ -43,40 +43,44 @@ export const TransferForm = ({ deal, client, onClose }: TransferFormProps) => {
     onClose();
   };
 
-  const transferHandler = useCallback(
-    async () => {
-      try {
-        setTx(undefined);
-        setError(undefined);
-        setLoading(true);
+  const transferHandler = useCallback(async () => {
+    try {
+      setTx(undefined);
+      setError(undefined);
+      setLoading(true);
 
-        if (!client || !deal) {
-          throw new Error('Client not ready');
-        }
-
-        if (!publicClient || !walletClient) {
-          throw new Error('Ethereum client not ready');
-        }
-
-        await client.deals.transfer(deal.offer.payload.id, to as Address, walletClient, setTx);
-        setLoading(false);
-        setSuccess(true);
-      } catch (err) {
-        console.log(err);
-        setError(parseWalletError(err));
-        setLoading(false);
+      if (!client || !deal) {
+        throw new Error('Client not ready');
       }
-    },
-    [client, deal, to, publicClient, walletClient],
-  );
+
+      if (!publicClient || !walletClient) {
+        throw new Error('Ethereum client not ready');
+      }
+
+      await client.deals.transfer(deal.offer.payload.id, to as Address, walletClient, setTx);
+      setLoading(false);
+      setSuccess(true);
+    } catch (err) {
+      console.log(err);
+      setError(parseWalletError(err));
+      setLoading(false);
+    }
+  }, [client, deal, to, publicClient, walletClient]);
 
   if (!client || !deal) {
     return null;
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column'}}>
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', alignContent: 'space-between' }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          alignContent: 'space-between',
+        }}
+      >
         <div>
           <h3>Transfer deal {centerEllipsis(deal.offer.payload.id)}</h3>
         </div>
@@ -84,25 +88,22 @@ export const TransferForm = ({ deal, client, onClose }: TransferFormProps) => {
           <button onClick={close}>Close</button>
         </div>
       </div>
-      {success &&
-        <div>
+      {success && (
+        <div style={{ color: 'green' }}>
           Deal has been successfully transferred to: {to}
         </div>
-      }
-      {!success &&
+      )}
+      {!success && (
         <div>
           <strong style={{ marginRight: 10 }}>To (address):</strong>
           <input value={to} onChange={(e) => setTo(e.target.value)} />
-          <button
-            style={{ marginLeft: 10 }}
-            onClick={transferHandler}
-          >
+          <button onClick={transferHandler}>
             Send "transfer" transaction
           </button>
           {tx && <div style={{ marginTop: 20 }}>Tx hash: {tx}</div>}
           {loading && <div style={{ marginTop: 20 }}>Loading...</div>}
         </div>
-      }
+      )}
       <div>
         {error && (
           <div style={{ marginTop: 20, padding: 10, backgroundColor: 'rgba(0,0,0,0.1)' }}>
@@ -130,40 +131,44 @@ export const Cancel = ({ deal, client, onClose }: CancelProps) => {
     onClose();
   };
 
-  const cancelHandler = useCallback(
-    async () => {
-      try {
-        setTx(undefined);
-        setError(undefined);
-        setLoading(true);
+  const cancelHandler = useCallback(async () => {
+    try {
+      setTx(undefined);
+      setError(undefined);
+      setLoading(true);
 
-        if (!client || !deal) {
-          throw new Error('Client not ready');
-        }
-
-        if (!publicClient || !walletClient) {
-          throw new Error('Ethereum client not ready');
-        }
-
-        await client.deals.cancel(deal.offer.payload.id, walletClient, setTx);
-        setLoading(false);
-        setSuccess(true);
-      } catch (err) {
-        console.log(err);
-        setError(parseWalletError(err));
-        setLoading(false);
+      if (!client || !deal) {
+        throw new Error('Client not ready');
       }
-    },
-    [client, deal, publicClient, walletClient],
-  );
+
+      if (!publicClient || !walletClient) {
+        throw new Error('Ethereum client not ready');
+      }
+
+      await client.deals.cancel(deal.offer.payload.id, walletClient, setTx);
+      setLoading(false);
+      setSuccess(true);
+    } catch (err) {
+      console.log(err);
+      setError(parseWalletError(err));
+      setLoading(false);
+    }
+  }, [client, deal, publicClient, walletClient]);
 
   if (!client || !deal) {
     return null;
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column'}}>
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', alignContent: 'space-between' }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          alignContent: 'space-between',
+        }}
+      >
         <div>
           <h3>Cancel deal {centerEllipsis(deal.offer.payload.id)}</h3>
         </div>
@@ -171,21 +176,18 @@ export const Cancel = ({ deal, client, onClose }: CancelProps) => {
           <button onClick={close}>Close</button>
         </div>
       </div>
-      {success &&
-        <div>Deal has be successfully cancelled</div>
-      }
-      {!success &&
+      {success && (
+        <div style={{ color: 'green' }}>Deal has been successfully cancelled</div>
+      )}
+      {!success && (
         <div>
-          <button
-            style={{ marginLeft: 10 }}
-            onClick={cancelHandler}
-          >
+          <button onClick={cancelHandler}>
             Send "cancel" transaction
           </button>
           {tx && <div style={{ marginTop: 20 }}>Tx hash: {tx}</div>}
           {loading && <div style={{ marginTop: 20 }}>Loading...</div>}
         </div>
-      }
+      )}
       <div>
         {error && (
           <div style={{ marginTop: 20, padding: 10, backgroundColor: 'rgba(0,0,0,0.1)' }}>
@@ -207,18 +209,11 @@ export const Deals = ({ deals, client }: DealsProps) => {
 
   useEffect(() => {
     if (deals && deals.length > 0) {
-      const expireHandler = () => {
-        const newDealStates: Record<string, DealStatus> = {};
-        deals.forEach((d) => {
-          newDealStates[d.offer.id] = d.status;
-        });
-        setDealStates(newDealStates);
-      };
-
-      const interval = setInterval(expireHandler, 1000);
-      expireHandler();
-
-      return () => clearInterval(interval);
+      const newDealStates: Record<string, DealStatus> = {};
+      deals.forEach((d) => {
+        newDealStates[d.offer.id] = d.status;
+      });
+      setDealStates(newDealStates);
     }
   }, [deals]);
 
@@ -227,7 +222,7 @@ export const Deals = ({ deals, client }: DealsProps) => {
   }
 
   return (
-    <div style={{ marginTop: 20 }}>
+    <div>
       <table border={1} cellPadding={5}>
         <thead>
           <tr>
@@ -248,7 +243,9 @@ export const Deals = ({ deals, client }: DealsProps) => {
               <td>{DateTime.fromSeconds(Number(d.created)).toISODate()}</td>
               <td>{centerEllipsis(d.offer.payload.id)}</td>
               <td>{formatBalance(d.price, 4)}</td>
-              <td style={{ color: dealStates[d.offer.id] === 1 ? 'green' : 'red' }}>{DealStatus[dealStates[d.offer.id]]}</td>
+              <td style={{ color: dealStates[d.offer.id] === 1 ? 'green' : 'red' }}>
+                {DealStatus[dealStates[d.offer.id]]}
+              </td>
               <td>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ marginBottom: 5 }}>
@@ -287,11 +284,7 @@ export const Deals = ({ deals, client }: DealsProps) => {
           client={client}
           onClose={() => setTransferDeal(undefined)}
         />
-        <Cancel
-          deal={cancelDeal}
-          client={client}
-          onClose={() => setCancelDeal(undefined)}
-        />
+        <Cancel deal={cancelDeal} client={client} onClose={() => setCancelDeal(undefined)} />
       </div>
     </div>
   );

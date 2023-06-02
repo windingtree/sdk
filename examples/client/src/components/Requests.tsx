@@ -1,7 +1,4 @@
-import {
-  RequestRecord,
-  utils,
-} from '../../../../src/index.js'; // @windingtree/sdk
+import { RequestRecord, utils } from '../../../../src/index.js'; // @windingtree/sdk
 import { OfferData } from '../../../../src/shared/types.js';
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import { centerEllipsis } from '../utils.js';
@@ -25,7 +22,7 @@ export const Requests = ({ requests, subscribed, onClear, onCancel, onOffers }: 
   }
 
   return (
-    <div style={{ marginTop: 20 }}>
+    <div>
       <table border={1} cellPadding={5}>
         <thead>
           <tr>

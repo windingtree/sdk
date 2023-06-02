@@ -34,17 +34,14 @@ export const Tabs = ({ tabs, onChange }: TabsProps) => {
   }
 
   return (
-    <div
-      style={{ marginTop: 20, display: 'flex', flexDirection: 'row', alignItems: 'center' }}
-    >
+    <div style={{ marginTop: 20, display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
       {tabsState.map((t, index) => (
         <div
           key={index}
           style={{
             padding: '0px 10px 0px 10px',
             cursor: 'pointer',
-            borderBottom: t.active ? '1px solid black' : 'none',
-            backgroundColor: t.active ? 'rgba(0,0,0,0.1)' : 'transparent',
+            backgroundColor: t.active ? 'rgba(0,0,0,0.05)' : 'transparent',
           }}
           onClick={() => setActive(t.id)}
         >
@@ -57,7 +54,9 @@ export const Tabs = ({ tabs, onChange }: TabsProps) => {
 
 // Simple tab panel
 export const TabPanel = ({ id, activeTab, children }: TabPanelProps) => (
-  <div style={{ display: id === activeTab ? 'block' : 'none' }}>
-    {children}
-  </div>
+  <div style={{
+    display: id === activeTab ? 'block' : 'none',
+    padding: 15,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  }}>{children}</div>
 );

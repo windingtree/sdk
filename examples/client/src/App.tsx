@@ -1,14 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-  Client,
-  ClientOptions,
-  createClient,
-  storage,
-} from '../../../src/index.js'; // @windingtree/sdk
+import { Client, ClientOptions, createClient, storage } from '../../../src/index.js'; // @windingtree/sdk
 import { RequestQuery, OfferOptions, chainConfig, serverAddress } from '../../shared/index.js';
 import { OfferData } from '../../../src/shared/types.js';
 import { useWallet } from './providers/WalletProvider/WalletProviderContext.js';
-import { ConnectButton } from './providers/WalletProvider/ConnectButton.js';
+import { AccountWidget } from './providers/WalletProvider/AccountWidget.js';
 import { FormValues, RequestForm } from './components/RequestForm.js';
 import { Tabs, TabPanel } from './components/Tabs.js';
 import { Requests, RequestsRegistryRecord } from './components/Requests.js';
@@ -27,7 +22,7 @@ const defaultTopic = 'hello';
  */
 export const App = () => {
   const client = useRef<Client<RequestQuery, OfferOptions> | undefined>();
-  const { account, balance, publicClient } = useWallet();
+  const { publicClient } = useWallet();
   const [connected, setConnected] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [requests, setRequests] = useState<RequestsRegistryRecord[]>([]);
@@ -46,26 +41,25 @@ export const App = () => {
           chain: chainConfig,
           serverAddress,
           storageInitializer: storage.localStorage.createInitializer({
-            session: true, // session or local storage
+            session: false, // session or local storage
           }),
           dbKeysPrefix: 'wt_',
           publicClient,
         };
 
         const updateRequests = () => {
-          if (!client.current) {
-            return;
+          if (client.current) {
+            setRequests(client.current.requests.getAll());
           }
-          setRequests(client.current.requests.getAll());
         };
 
         const updateDeals = () => {
-          if (!client.current) {
-            return;
+          if (client.current) {
+            client.current.deals.getAll().then((newDeals) => {
+              setDeals(newDeals);
+              console.log('@@@===', newDeals);
+            }).catch(console.error);
           }
-          client.current.deals.getAll()
-            .then(setDeals)
-            .catch(console.error);
         };
 
         client.current = createClient<RequestQuery, OfferOptions>(options);
@@ -110,7 +104,7 @@ export const App = () => {
     };
 
     startClient();
-  }, []);
+  }, [publicClient]);
 
   /** Publishing of request */
   const sendRequest = async ({ topic, message }: FormValues) => {
@@ -143,30 +137,25 @@ export const App = () => {
         <div style={{ flex: 1 }}>
           <h1>Client</h1>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-          <div>
-            <div>{account ? account : ''}</div>
-            <div>{account ? `${balance} ETH` : ''}</div>
-          </div>
-          <div style={{ marginLeft: '10px' }}>
-            <ConnectButton />
-          </div>
-        </div>
+        <AccountWidget />
       </div>
       {client.current && <div>✅ Client started</div>}
       {connected && <div>✅ Connected to the coordination server</div>}
       <RequestForm connected={connected} onSubmit={sendRequest} defaultTopic={defaultTopic} />
-      <Tabs tabs={[
-        {
-          id: 0,
-          title: 'Requests',
-          active: true
-        },
-        {
-          id: 1,
-          title: 'Deals'
-        },
-      ]} onChange={setSelectedTab} />
+      <Tabs
+        tabs={[
+          {
+            id: 0,
+            title: 'Requests',
+            active: true,
+          },
+          {
+            id: 1,
+            title: 'Deals',
+          },
+        ]}
+        onChange={setSelectedTab}
+      />
       <TabPanel id={0} activeTab={selectedTab}>
         <Requests
           requests={requests}
@@ -183,10 +172,14 @@ export const App = () => {
           }}
           onOffers={setOffers}
         />
-        <Offers offers={offers} onAccept={setOffer} onClose={() => {
-          setOffer(undefined);
-          setOffers(undefined);
-        }} />
+        <Offers
+          offers={offers}
+          onAccept={setOffer}
+          onClose={() => {
+            setOffer(undefined);
+            setOffers(undefined);
+          }}
+        />
         <MakeDeal offer={offer} client={client.current} />
       </TabPanel>
       <TabPanel id={1} activeTab={selectedTab}>

@@ -1,8 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Hash, stringify } from 'viem';
-import {
-  Client,
-} from '../../../../src/index.js'; // @windingtree/sdk
+import { Client } from '../../../../src/index.js'; // @windingtree/sdk
 import { OfferData } from '../../../../src/shared/types.js';
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import { ZeroHash, centerEllipsis, formatBalance, parseWalletError } from '../utils.js';
@@ -107,15 +105,17 @@ export const MakeDeal = ({ offer, client }: MakeDealProps) => {
           </tbody>
         </table>
       </div>
-      {success &&
-        <div style={{ marginTop: 20 }}>Deal for the offer {offer.payload.id} successfully created!</div>
-      }
-      {!success &&
+      {success && (
+        <div style={{ marginTop: 20, color: 'green' }}>
+          Deal for the offer {offer.payload.id} successfully created!
+        </div>
+      )}
+      {!success && (
         <>
           {tx && <div style={{ marginTop: 20 }}>Tx hash: {tx}</div>}
           {loading && <div style={{ marginTop: 20 }}>Loading...</div>}
         </>
-      }
+      )}
       {error && (
         <div style={{ marginTop: 20, padding: 10, backgroundColor: 'rgba(0,0,0,0.1)' }}>
           {error}
