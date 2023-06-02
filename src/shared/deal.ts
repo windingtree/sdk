@@ -1,3 +1,4 @@
+import { Hash } from 'viem';
 /**
  * Allowed deal states
  */
@@ -16,7 +17,7 @@ export interface DealData {
   /** NFT Id */
   tokenId: number;
   /** Supplier Id */
-  supplierId: string;
+  supplierId: Hash;
   /** Deal status */
   status: DealState;
   /** Deal status change reason */

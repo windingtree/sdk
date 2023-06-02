@@ -1,6 +1,8 @@
 import { expect } from './setup.js';
-import { Wallet } from 'ethers';
-import { simpleUid, randomSalt, supplierId } from '../src/utils/uid.js';
+import { mnemonicToAccount } from 'viem/accounts';
+import { simpleUid, randomSalt } from '@windingtree/contracts';
+import { generateMnemonic } from '../src/utils/wallet.js';
+import { supplierId } from '../src/utils/uid.js';
 
 describe('Utils.uid', () => {
   const bytes32RegExp = /^0x[a-fA-F0-9]{64}$/;
@@ -28,7 +30,7 @@ describe('Utils.uid', () => {
   });
 
   describe('#supplierId', () => {
-    const owner = Wallet.createRandom();
+    const owner = mnemonicToAccount(generateMnemonic());
 
     it('should generate bytes32-formatted supplierId', () => {
       expect(bytes32RegExp.exec(supplierId(randomSalt(), owner.address))).to.not.null;

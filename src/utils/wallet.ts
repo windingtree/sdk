@@ -1,18 +1,23 @@
-import { Mnemonic, HDNodeWallet, randomBytes } from 'ethers';
+import {
+  Account,
+  generateMnemonic as generateMnemonic_,
+  english,
+  mnemonicToAccount,
+} from 'viem/accounts';
 
 /**
  * Generates random wallet mnemonic
  *
  * @returns {string}
  */
-export const generateMnemonic = (): string => Mnemonic.fromEntropy(randomBytes(16)).phrase;
+export const generateMnemonic = (): string => generateMnemonic_(english);
 
 /**
  * Returns an account from wallet (created from seed phrase)
  *
- * @param {string} phrase
- * @param {number} index
- * @returns {string}
+ * @param {string} mnemonic
+ * @param {number} addressIndex
+ * @returns {Account}
  */
-export const deriveAccount = (phrase: string, index: number): string =>
-  HDNodeWallet.fromPhrase(phrase).derivePath(`m/44'/60'/0'/0/${index}`).address;
+export const deriveAccount = (mnemonic: string, addressIndex: number): Account =>
+  mnemonicToAccount(mnemonic, { accountIndex: 0, changeIndex: 0, addressIndex });

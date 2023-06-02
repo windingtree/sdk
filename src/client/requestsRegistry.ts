@@ -1,11 +1,11 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { stringify } from 'viem';
 import { Client } from '../index.js';
 import { GenericOfferOptions, GenericQuery, RequestData, OfferData } from '../shared/types.js';
 import { Storage } from '../storage/index.js';
-import { createLogger } from '../utils/logger.js';
 import { encodeText } from '../utils/text.js';
 import { nowSec } from '../utils/time.js';
-import { stringify } from '../utils/hash.js';
+import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('RequestsRegistry');
 
@@ -25,11 +25,6 @@ export interface RequestRecord<
 }
 
 /**
- * Request registry keys prefix schema
- */
-export type RequestRegistryPrefix = string;
-
-/**
  * Request manager initialization options type
  */
 export interface RequestsRegistryOptions<
@@ -40,7 +35,8 @@ export interface RequestsRegistryOptions<
   client: Client<CustomRequestQuery, CustomOfferOptions>;
   /** Instance of storage */
   storage: Storage;
-  prefix: RequestRegistryPrefix;
+  /** Registry storage prefix */
+  prefix: string;
 }
 
 /**
@@ -163,10 +159,10 @@ export class RequestsRegistry<
   CustomOfferOptions extends GenericOfferOptions,
 > extends EventEmitter<RequestEvents<CustomRequestQuery, CustomOfferOptions>> {
   private requests: Map<string, RequestRecord<CustomRequestQuery, CustomOfferOptions>>; // id => RawRequest
-  subscriptions: Map<string, NodeJS.Timeout>;
   private client: Client<CustomRequestQuery, CustomOfferOptions>;
   private storage?: Storage;
   private storageKey: string;
+  subscriptions: Map<string, NodeJS.Timeout>;
 
   /**
    * Creates an instance of RequestsRegistry.
@@ -184,7 +180,7 @@ export class RequestsRegistry<
     this.client = client;
     this.requests = new Map<string, RequestRecord<CustomRequestQuery, CustomOfferOptions>>();
     this.subscriptions = new Map();
-    this.storageKey = `${prefix}_records`;
+    this.storageKey = `${prefix}_requests_records`;
     this.storage = storage;
     this._storageUp().catch(logger.error);
   }
