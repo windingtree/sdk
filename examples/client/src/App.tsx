@@ -57,7 +57,6 @@ export const App = () => {
           if (client.current) {
             client.current.deals.getAll().then((newDeals) => {
               setDeals(newDeals);
-              console.log('@@@===', newDeals);
             }).catch(console.error);
           }
         };
