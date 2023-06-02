@@ -100,8 +100,13 @@ const createRequestsHandler =
         payment: [
           {
             id: randomSalt(),
-            price: BigInt('1000000000000000'), // 0.001 USDC
+            price: BigInt('1000000000000000'), // 0.001
             asset: stableCoins.stable18permit,
+          },
+          {
+            id: randomSalt(),
+            price: BigInt('1200000000000000'), // 0.0012
+            asset: stableCoins.stable18,
           },
         ],
         /** Cancellation options */
