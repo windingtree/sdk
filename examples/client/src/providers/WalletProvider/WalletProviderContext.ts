@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { Address, PublicClient, WalletClient } from 'viem';
+import { Address, Chain, PublicClient, WalletClient } from 'viem';
 
 export interface WalletContextData {
   publicClient: PublicClient;
@@ -9,9 +9,10 @@ export interface WalletContextData {
   loading: boolean;
   isConnected: boolean;
   balance: string;
+  targetChain: Chain;
+  error?: string;
   connect(): void;
   disconnect(): void;
-  error?: string;
 }
 
 export const WalletContext = createContext<WalletContextData>({} as WalletContextData);
