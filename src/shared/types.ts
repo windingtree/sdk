@@ -1,15 +1,15 @@
-import { BigNumberish } from 'ethers';
+import { Address, Hash } from 'viem';
 
 /**
  * Generic message data type
  */
 export interface GenericMessage {
   /** Unique message Id */
-  id: string;
+  id: Hash;
   /** Expiration time in seconds */
-  expire: BigNumberish;
+  expire: bigint;
   /** A number that reflects the version of the message */
-  nonce: BigNumberish;
+  nonce: bigint;
 }
 
 /**
@@ -33,15 +33,15 @@ export interface RequestData<CustomRequestQuery extends GenericQuery> extends Ge
  */
 export interface BuildRequestOptions<CustomRequestQuery extends GenericQuery> {
   /** Expiration time */
-  expire: string | BigNumberish;
+  expire: string | bigint;
   /** Nonce */
-  nonce: BigNumberish;
+  nonce: bigint;
   /** Topic */
   topic: string;
   /** Request query */
   query: CustomRequestQuery;
   /** If allowed request Id override */
-  idOverride?: string;
+  idOverride?: Hash;
 }
 
 /**
@@ -49,11 +49,11 @@ export interface BuildRequestOptions<CustomRequestQuery extends GenericQuery> {
  */
 export interface PaymentOption {
   /** Unique payment option Id */
-  id: string;
+  id: Hash;
   /** Asset price in WEI */
-  price: BigNumberish;
+  price: bigint;
   /** ERC20 asset contract address */
-  asset: string;
+  asset: Address;
 }
 
 /**
@@ -61,37 +61,37 @@ export interface PaymentOption {
  */
 export interface CancelOption {
   /** Seconds before checkIn */
-  time: BigNumberish;
+  time: bigint;
   /** Percents of total sum */
-  penalty: BigNumberish;
+  penalty: bigint;
 }
 
 /**
  * Unsigned offer payload type
  */
-export interface UnsignedOfferPayload {
+export interface UnsignedOfferPayload extends Record<string, unknown> {
   /** Unique Offer Id */
-  id: string;
+  id: Hash;
   /** Expiration time */
-  expire: BigNumberish;
+  expire: bigint;
   /** Unique supplier Id registered on the protocol contract */
-  supplierId: string;
+  supplierId: Hash;
   /** Target network chain Id */
-  chainId: BigNumberish;
+  chainId: bigint;
   /** <keccak256(request.hash())> */
-  requestHash: string;
-  /** <keccak256(JSON.stringify(offer.options))> */
-  optionsHash: string;
-  /** <keccak256(JSON.stringify(offer.payment))> */
-  paymentHash: string;
-  /** <keccak256(JSON.stringify(offer.cancel(sorted by time DESC) || []))> */
-  cancelHash: string;
+  requestHash: Hash;
+  /** <keccak256(hash(offer.options))> */
+  optionsHash: Hash;
+  /** <keccak256(hash(offer.payment))> */
+  paymentHash: Hash;
+  /** <keccak256(hash(offer.cancel || []))> */
+  cancelHash: Hash;
   /** makes the deal NFT transferable or not */
   transferable: boolean;
   /** check-in time in seconds */
-  checkIn: BigNumberish;
+  checkIn: bigint;
   /** check-out time in seconds */
-  checkOut: BigNumberish;
+  checkOut: bigint;
 }
 
 /**
@@ -117,5 +117,5 @@ export interface OfferData<
   /** Raw offer payload */
   payload: UnsignedOfferPayload;
   //** EIP-712 TypedSignature(UnsignedOffer) */
-  signature: string;
+  signature: Hash;
 }

@@ -7,7 +7,4 @@ export default defineConfig({
     /** @ignore */
     react(),
   ],
-  optimizeDeps: {
-    exclude: ['ethers'],
-  },
 });

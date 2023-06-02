@@ -1,3 +1,4 @@
+import { stringify } from 'viem';
 import { Storage, StorageInitializerFunction } from './abstract.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -55,7 +56,7 @@ export class LocalStorage extends Storage {
    * @memberof LocalStorage
    */
   serialize<ValueType>(value: ValueType): string {
-    return JSON.stringify(value);
+    return stringify(value);
   }
   /**
    * Deserializes a value

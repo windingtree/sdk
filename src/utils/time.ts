@@ -1,4 +1,3 @@
-import { BigNumberish } from 'ethers';
 import { DateTime } from 'luxon';
 
 /** Calculation bases */
@@ -92,10 +91,10 @@ export const parseSeconds = (str: string | number | bigint): bigint => {
 
 /**
  * Parses expiration time
- * @param {string | BigNumberish} expire Given expiration time
+ * @param {string | bigint} expire Given expiration time
  * @returns {bigint}
  */
-export const parseExpire = (expire: string | BigNumberish): bigint =>
+export const parseExpire = (expire: string | bigint): bigint =>
   typeof expire === 'string' ? BigInt(nowSec()) + parseSeconds(expire) : parseSeconds(expire);
 
 /**
@@ -116,7 +115,7 @@ export const nowSec = () => Math.round(DateTime.now().toSeconds());
 /**
  * Checks expiration time
  *
- * @param {BigNumberish} expire
+ * @param {bigint} expire
  * @returns {boolean}
  */
-export const isExpired = (expire: BigNumberish): boolean => BigInt(nowSec()) + 1n > BigInt(expire);
+export const isExpired = (expire: bigint): boolean => BigInt(nowSec()) + 1n > expire;

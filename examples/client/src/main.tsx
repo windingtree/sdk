@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client';
+import { WalletProvider } from './providers/WalletProvider';
 import { App } from './App';
 
 window.addEventListener('unhandledrejection', (event) => {
@@ -9,4 +10,8 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 const root = createRoot(document.getElementById('root') as HTMLElement);
-root.render(<App />);
+root.render(
+  <WalletProvider>
+    <App />
+  </WalletProvider>,
+);

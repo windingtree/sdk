@@ -1,7 +1,7 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { simpleUid } from '@windingtree/contracts';
 import { Storage } from '../storage/index.js';
 import { queueConcurrentJobsNumber, queueJobAttemptsDelay, queueHeartbeat } from '../constants.js';
-import { simpleUid } from '../utils/uid.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Queue');

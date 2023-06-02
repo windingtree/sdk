@@ -1,32 +1,45 @@
+import 'dotenv/config';
 import { EventHandler } from '@libp2p/interfaces/events';
-import { ZeroAddress } from 'ethers';
 import { DateTime } from 'luxon';
-import { RequestQuery, OfferOptions, contractConfig, serverAddress } from '../shared/index.js';
+import { Hash, Hex } from 'viem';
+import { randomSalt } from '@windingtree/contracts';
+import {
+  RequestQuery,
+  OfferOptions,
+  chainConfig,
+  stableCoins,
+  serverAddress,
+} from '../shared/index.js';
 import { createNode, Node, NodeOptions, Queue, createJobHandler } from '../../src/index.js';
 import { OfferData } from '../../src/shared/types.js';
 import { noncePeriod } from '../../src/constants.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
-import { supplierId as generateSupplierId, randomSalt } from '../../src/utils/uid.js';
-import { generateMnemonic, deriveAccount } from '../../src/utils/wallet.js';
 import { RequestEvent } from '../../src/node/requestManager.js';
 import { createLogger } from '../../src/utils/logger.js';
 
 const logger = createLogger('NodeMain');
 
 /**
- * These are randomly generated wallets, just for demonstration.
- * In production, you have to provide (and handle) them in a secure way
+ * The supplier signer credentials
  */
-const supplierMnemonic = generateMnemonic();
-const signerMnemonic = generateMnemonic();
+const signerMnemonic = process.env.EXAMPLE_ENTITY_SIGNER_MNEMONIC;
+const signerPk = process.env.EXAMPLE_ENTITY_SIGNER_PK as Hex;
+
+if (!signerMnemonic && !signerPk) {
+  throw new Error('Either signerMnemonic or signerPk must be provided with env');
+}
 
 /**
  * Supplier Id is hashed combination of a random salt string and
  * an address of the supplier owner account address.
+ * Supplier must register his entity in the EntitiesRegistry
  */
-const salt = randomSalt();
-const supplierId = generateSupplierId(salt, deriveAccount(supplierMnemonic, 0));
+const supplierId = process.env.EXAMPLE_ENTITY_ID as Hash;
+
+if (!supplierId) {
+  throw new Error('Entity Id must be provided with EXAMPLE_ENTITY_ID env');
+}
 
 /** Handles UFOs */
 process.once('unhandledRejection', (error) => {
@@ -71,17 +84,15 @@ const createRequestsHandler =
 
       const offer = await node.buildOffer({
         /** Offer expiration time */
-        expire: '30s',
+        expire: '15m',
         /** Copy of request */
         request: detail.data,
-
         /** Random options data. Just for testing */
         options: {
           date: DateTime.now().toISODate(),
           buongiorno: Math.random() < 0.5,
           buonasera: Math.random() < 0.5,
         },
-
         /**
          * Dummy payment option.
          * In production these options managed by supplier
@@ -89,20 +100,25 @@ const createRequestsHandler =
         payment: [
           {
             id: randomSalt(),
-            price: '1',
-            asset: ZeroAddress,
+            price: BigInt('1000000000000000'), // 0.001
+            asset: stableCoins.stable18permit,
+          },
+          {
+            id: randomSalt(),
+            price: BigInt('1200000000000000'), // 0.0012
+            asset: stableCoins.stable18,
           },
         ],
         /** Cancellation options */
         cancel: [
           {
-            time: nowSec() + 500,
-            penalty: 100,
+            time: BigInt(nowSec() + 500),
+            penalty: BigInt(100),
           },
         ],
         /** Check-in time */
-        checkIn: nowSec() + 1000,
-        checkOut: nowSec() + 2000,
+        checkIn: BigInt(nowSec() + 1000),
+        checkOut: BigInt(nowSec() + 2000),
       });
 
       queue.addEventListener('expired', ({ detail: job }) => {
@@ -138,11 +154,12 @@ const main = async (): Promise<void> => {
 
   const options: NodeOptions = {
     topics: ['hello'],
-    contractConfig,
+    chain: chainConfig,
     serverAddress,
     noncePeriod: Number(parseSeconds(noncePeriod)),
     supplierId,
     signerSeedPhrase: signerMnemonic,
+    signerPk: signerPk,
   };
   const node = createNode<RequestQuery, OfferOptions>(options);
 
