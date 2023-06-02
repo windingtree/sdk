@@ -21,16 +21,27 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [balance, setBalance] = useState<string>('0.0000');
   const [error, setError] = useState<string | undefined>();
 
-  const publicClient = useMemo(() => createPublicClient({
-    chain: import.meta.env.VITE_LOCAL_NODE === 'hardhat' ? hardhat : polygonZkEvmTestnet,
-    transport: http(),
-  }), []);
+  const targetChain = useMemo(
+    () => import.meta.env.VITE_LOCAL_NODE === 'hardhat'
+      ? hardhat
+      : polygonZkEvmTestnet,
+    []
+  );
 
-  const getChainId = async (publicClient: PublicClient): Promise<bigint> =>
-    BigInt(await publicClient.getChainId());
+  const publicClient = useMemo(
+    () =>
+      createPublicClient({
+        chain: targetChain,
+        transport: http(),
+      }),
+    [targetChain],
+  );
 
-  const getBalance = async (publicClient: PublicClient, address: Address): Promise<bigint> =>
-    await publicClient.getBalance({ address });
+  const getChainId = useCallback(async (publicClient: PublicClient): Promise<bigint> =>
+    BigInt(await publicClient.getChainId()), []);
+
+  const getBalance = useCallback(async (publicClient: PublicClient, address: Address): Promise<bigint> =>
+    await publicClient.getBalance({ address }), []);
 
   const handleAccountsChanged = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -43,7 +54,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
 
   const handleChainChanged = useCallback(async (): Promise<void> => {
     const walletClient = createWalletClient({
-      chain: import.meta.env.VITE_LOCAL_NODE === 'hardhat' ? hardhat : polygonZkEvmTestnet,
+      chain: targetChain,
       transport: custom(window.ethereum),
     });
     setWalletClient(walletClient);
@@ -52,7 +63,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     setChainId(chainId);
     setIsConnected(window.ethereum.isConnected());
     setLoading(false);
-  }, [publicClient]);
+  }, [getChainId, publicClient, targetChain]);
 
   const connect = useCallback(async () => {
     try {
@@ -71,7 +82,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     }
   }, [handleAccountsChanged, handleChainChanged]);
 
-  const disconnect = async () => {
+  const disconnect = useCallback(() => {
     try {
       if (!window.ethereum) {
         throw new Error('Injected provider not found');
@@ -87,7 +98,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     } catch (err) {
       setError((err as Error).message || 'Unknown wallet disconnection error');
     }
-  };
+  }, [handleAccountsChanged, handleChainChanged]);
 
   useEffect(() => {
     if (account && publicClient) {
@@ -105,7 +116,7 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     } else if (window.localStorage.getItem('walletConnected') === 'yes') {
       connect().catch(console.error);
     }
-  }, [account, publicClient, connect]);
+  }, [account, publicClient, connect, getBalance]);
 
   return (
     <WalletContext.Provider
@@ -117,9 +128,10 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
         loading,
         isConnected,
         balance,
+        targetChain,
+        error,
         connect,
         disconnect,
-        error,
       }}
     >
       {children}
