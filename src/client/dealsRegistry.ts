@@ -146,7 +146,7 @@ export class DealsRegistry<
       .then(() => {
         this.checkInterval = setInterval(() => {
           this._checkDealsStates().catch(logger.error);
-        }, 2000);
+        }, 5000);
       })
       .catch(logger.error);
   }
@@ -360,7 +360,11 @@ export class DealsRegistry<
       txCallback,
     );
 
-    return await this._buildDealRecord(offer);
+    const record = await this._buildDealRecord(offer);
+
+    this.dispatchEvent(new CustomEvent<void>('changed'));
+
+    return record;
   }
 
   /**
@@ -436,7 +440,16 @@ export class DealsRegistry<
       txCallback,
     );
 
-    return await this._buildDealRecord(dealRecord.offer);
+    const record = await this._buildDealRecord(dealRecord.offer);
+
+    this.dispatchEvent(
+      new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>('status', {
+        detail: record,
+      }),
+    );
+    this.dispatchEvent(new CustomEvent<void>('changed'));
+
+    return record;
   }
 
   /**
@@ -495,7 +508,16 @@ export class DealsRegistry<
       txCallback,
     );
 
-    return await this._buildDealRecord(dealRecord.offer);
+    const record = await this._buildDealRecord(dealRecord.offer);
+
+    this.dispatchEvent(
+      new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>('status', {
+        detail: record,
+      }),
+    );
+    this.dispatchEvent(new CustomEvent<void>('changed'));
+
+    return record;
   }
 
   /**
@@ -547,6 +569,15 @@ export class DealsRegistry<
       txCallback,
     );
 
-    return await this._buildDealRecord(dealRecord.offer);
+    const record = await this._buildDealRecord(dealRecord.offer);
+
+    this.dispatchEvent(
+      new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>('status', {
+        detail: record,
+      }),
+    );
+    this.dispatchEvent(new CustomEvent<void>('changed'));
+
+    return record;
   }
 }
