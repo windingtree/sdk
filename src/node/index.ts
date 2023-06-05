@@ -1,4 +1,4 @@
-import { createLibp2p, Libp2pOptions, Libp2p } from 'libp2p';
+import { createLibp2p, Libp2pInit, Libp2pOptions, Libp2p } from 'libp2p';
 import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
 import { webSockets } from '@libp2p/websockets';
@@ -8,16 +8,26 @@ import { OPEN } from '@libp2p/interface-connection/status';
 import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { peerIdFromString } from '@libp2p/peer-id';
-import { Hash, stringify } from 'viem';
+import {
+  Hex,
+  Hash,
+  stringify,
+  PublicClient,
+  WalletClient,
+  createPublicClient,
+  createWalletClient,
+  http,
+  Chain,
+} from 'viem';
 import { mnemonicToAccount, privateKeyToAccount } from 'viem/accounts';
 import { noncePeriod as defaultNoncePeriod } from '../constants.js';
-import { GenericOfferOptions, GenericQuery, OfferData } from '../shared/types.js';
+import { Contracts, GenericOfferOptions, GenericQuery, OfferData } from '../shared/types.js';
 import { Account, buildOffer, BuildOfferOptions } from '../shared/messages.js';
+import { ServerAddressOption, NoncePeriodOption, ChainsConfigOption } from '../shared/options.js';
+import { ProtocolContracts } from '../shared/contracts.js';
 import { CenterSub, centerSub } from '../shared/pubsub.js';
 import { RequestManager, RequestEvent } from './requestManager.js';
 import { decodeText, encodeText } from '../utils/text.js';
-import { ProtocolChain } from '../utils/contracts.js';
-import { NodeOptions } from '../shared/options.js';
 import { parseSeconds } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -96,6 +106,24 @@ export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
 }
 
 /**
+ * The protocol node initialization options type
+ */
+export interface NodeOptions extends ServerAddressOption, NoncePeriodOption, ChainsConfigOption {
+  /** libp2p configuration options */
+  libp2p?: Libp2pInit;
+  /** Subscription topics of node */
+  topics: string[];
+  /** Unique supplier Id */
+  supplierId: Hash;
+  /** The protocol chains configuration */
+  chain: Chain;
+  /** Seed phrase of the node signer wallet */
+  signerSeedPhrase?: string;
+  /** Signer private key */
+  signerPk?: Hex;
+}
+
+/**
  * The protocol node
  *
  * @class Node
@@ -107,15 +135,19 @@ export class Node<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 > extends EventEmitter<NodeEvents<CustomRequestQuery>> {
+  private libp2pInit: Libp2pOptions;
+  private requestManager: RequestManager<CustomRequestQuery>;
+  private contractsManager: ProtocolContracts<CustomRequestQuery, CustomOfferOptions>;
+  private publicClient: PublicClient;
+  private walletClient: WalletClient;
   libp2p?: Libp2p;
   serverMultiaddr: Multiaddr;
   serverPeerId: PeerId;
   supplierId: Hash;
-  chain: ProtocolChain;
   topics: string[];
   signer: Account;
-  private libp2pInit: Libp2pOptions;
-  private requestManager: RequestManager<CustomRequestQuery>;
+  chain: Chain;
+  contracts: Contracts;
 
   /**
    * @param {NodeOptions} options Node initialization options
@@ -124,17 +156,18 @@ export class Node<
     super();
 
     const {
-      chain,
       libp2p,
       topics,
       supplierId,
       signerSeedPhrase,
       signerPk,
+      chain,
+      contracts,
       serverAddress,
       noncePeriod,
     } = options;
 
-    // @validate NodeOptions
+    // @todo Validate NodeOptions
 
     this.chain = chain;
     this.libp2pInit = libp2p ?? {};
@@ -148,6 +181,24 @@ export class Node<
     } else {
       throw new Error('Invalid signer account configuration');
     }
+
+    this.publicClient = createPublicClient({
+      chain: this.chain,
+      transport: http(),
+    });
+
+    this.walletClient = createWalletClient({
+      chain: this.chain,
+      transport: http(),
+    });
+
+    this.contracts = contracts;
+
+    this.contractsManager = new ProtocolContracts<CustomRequestQuery, CustomOfferOptions>({
+      contracts,
+      publicClient: this.publicClient,
+      walletClient: this.walletClient,
+    });
 
     this.serverMultiaddr = multiaddr(serverAddress);
     const serverPeerIdString = this.serverMultiaddr.getPeerId();
@@ -258,10 +309,10 @@ export class Node<
     const offer = await buildOffer<CustomRequestQuery, CustomOfferOptions>({
       ...offerOptions,
       domain: {
-        chainId: this.chain.chainId,
-        name: this.chain.contracts.market.name,
-        version: this.chain.contracts.market.version,
-        verifyingContract: this.chain.contracts.market.address,
+        chainId: this.chain.id,
+        name: this.contracts.market.name,
+        version: this.contracts.market.version,
+        verifyingContract: this.contracts.market.address,
       },
       supplierId: this.supplierId,
       account: this.signer,
@@ -359,6 +410,17 @@ export class Node<
     await this.libp2p.stop();
     this.dispatchEvent(new CustomEvent<void>('stop'));
     logger.trace('👋 Node stopped at:', new Date().toISOString());
+  }
+
+  get deals() {
+    return {
+      get: this.contractsManager.getDeal.bind(this),
+      reject: this.contractsManager.rejectDeal.bind(this),
+      claim: this.contractsManager.claimDeal.bind(this),
+      refund: this.contractsManager.refundDeal.bind(this),
+      checkIn: this.contractsManager.checkInDeal.bind(this),
+      checkOut: this.contractsManager.checkOutDeal.bind(this),
+    };
   }
 }
 
