@@ -1,5 +1,4 @@
-import { Libp2pInit } from 'libp2p';
-import { Hash, Hex, Chain, PublicClient } from 'viem';
+import { Chain } from 'viem';
 import { StorageInitializer } from '../storage/abstract.js';
 import { Contracts } from './types.js';
 
