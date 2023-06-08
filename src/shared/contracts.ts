@@ -108,11 +108,13 @@ export class ProtocolContracts<
     txSubject?: string,
   ): Promise<TransactionReceipt> {
     try {
-      if (!this.walletClient) {
-        throw new Error(`Invalid walletClient configuration`);
+      if (!walletClient && !this.walletClient) {
+        throw new Error('Invalid walletClient configuration');
       }
 
-      const [account] = await this.walletClient.getAddresses();
+      walletClient = walletClient ?? this.walletClient;
+
+      const [account] = await walletClient.getAddresses();
       const requestOptions = {
         address,
         abi,
@@ -125,11 +127,7 @@ export class ProtocolContracts<
 
       const { request } = await this.publicClient.simulateContract(requestOptions);
 
-      if (!walletClient && !this.walletClient) {
-        throw new Error('Invalid walletClient configuration');
-      }
-
-      const hash = await (walletClient ?? this.walletClient).writeContract(request);
+      const hash = await walletClient.writeContract(request);
 
       if (txCallback) {
         txCallback(hash, txSubject);
@@ -187,7 +185,7 @@ export class ProtocolContracts<
   ): Promise<TransactionReceipt> {
     const [, , , buyer] = await this.getDeal(offer);
 
-    if (buyer === zeroAddress) {
+    if (buyer !== zeroAddress) {
       throw new Error(`Deal ${offer.payload.id} already created!`);
     }
 
@@ -195,13 +193,13 @@ export class ProtocolContracts<
     // Will throw a error if invalid payment Id provided
     const paymentOption = getPaymentOption(offer.payment, paymentId);
 
-    if (!this.walletClient) {
+    if (!walletClient && !this.walletClient) {
       throw new Error(`Invalid walletClient configuration`);
     }
 
     // Asset must be allowed to Market in the proper amount
     // This function will check allowance and send `approve` transaction if required
-    const [owner] = await this.walletClient.getAddresses();
+    const [owner] = await (walletClient ?? this.walletClient).getAddresses();
 
     const allowance = await this.publicClient.readContract({
       address: paymentOption.asset,
