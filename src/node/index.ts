@@ -115,8 +115,6 @@ export interface NodeOptions extends ServerAddressOption, NoncePeriodOption, Cha
   topics: string[];
   /** Unique supplier Id */
   supplierId: Hash;
-  /** The protocol chains configuration */
-  chain: Chain;
   /** Seed phrase of the node signer wallet */
   signerSeedPhrase?: string;
   /** Signer private key */
