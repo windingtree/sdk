@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { Client, ClientOptions, createClient, storage } from '../../../src/index.js'; // @windingtree/sdk
-import { RequestQuery, OfferOptions, chainConfig, serverAddress } from '../../shared/index.js';
+import { RequestQuery, OfferOptions, contractsConfig, serverAddress } from '../../shared/index.js';
 import { OfferData } from '../../../src/shared/types.js';
 import { useWallet } from './providers/WalletProvider/WalletProviderContext.js';
 import { AccountWidget } from './providers/WalletProvider/AccountWidget.js';
@@ -10,6 +11,9 @@ import { Requests, RequestsRegistryRecord } from './components/Requests.js';
 import { MakeDeal } from './components/MakeDeal.js';
 import { Offers } from './components/Offers.js';
 import { Deals, DealsRegistryRecord } from './components/Deals.js';
+
+/** Target chain config */
+const chain = import.meta.env.LOCAL_NODE === 'true' ? hardhat : polygonZkEvmTestnet;
 
 /** Default request expiration time */
 const defaultExpire = '30s';
@@ -38,7 +42,8 @@ export const App = () => {
         setError(undefined);
 
         const options: ClientOptions = {
-          chain: chainConfig,
+          chain,
+          contracts: contractsConfig,
           serverAddress,
           storageInitializer: storage.localStorage.createInitializer({
             session: false, // session or local storage

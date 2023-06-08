@@ -16,7 +16,7 @@ interface MakeDealProps {
  * Making of deal form
  */
 export const MakeDeal = ({ offer, client }: MakeDealProps) => {
-  const { account, publicClient, walletClient } = useWallet();
+  const { account, walletClient } = useWallet();
   const [tx, setTx] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState<boolean>(false);
@@ -40,7 +40,7 @@ export const MakeDeal = ({ offer, client }: MakeDealProps) => {
           throw new Error('Client not ready');
         }
 
-        if (!publicClient || !walletClient) {
+        if (!walletClient) {
           throw new Error('Ethereum client not ready');
         }
 
@@ -57,7 +57,7 @@ export const MakeDeal = ({ offer, client }: MakeDealProps) => {
         setLoading(false);
       }
     },
-    [client, offer, publicClient, walletClient],
+    [client, offer, walletClient],
   );
 
   if (!offer || !client) {

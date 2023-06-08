@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
-import { Address } from 'viem';
+import { Address, Hash } from 'viem';
 import { Client, DealRecord, DealStatus } from '../../../../src/index.js'; // @windingtree/sdk
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import { centerEllipsis, formatBalance, parseWalletError } from '../utils.js';
@@ -57,7 +57,7 @@ export const TransferForm = ({ deal, client, onClose }: TransferFormProps) => {
         throw new Error('Ethereum client not ready');
       }
 
-      await client.deals.transfer(deal.offer.payload.id, to as Address, walletClient, setTx);
+      await client.deals.transfer(deal.offer, to as Address, walletClient, setTx);
       setLoading(false);
       setSuccess(true);
     } catch (err) {
@@ -145,7 +145,7 @@ export const Cancel = ({ deal, client, onClose }: CancelProps) => {
         throw new Error('Ethereum client not ready');
       }
 
-      await client.deals.cancel(deal.offer.payload.id, walletClient, setTx);
+      await client.deals.cancel(deal.offer, walletClient, setTx);
       setLoading(false);
       setSuccess(true);
     } catch (err) {

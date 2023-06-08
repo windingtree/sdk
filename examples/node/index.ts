@@ -2,11 +2,12 @@ import 'dotenv/config';
 import { EventHandler } from '@libp2p/interfaces/events';
 import { DateTime } from 'luxon';
 import { Hash, Hex } from 'viem';
+import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { randomSalt } from '@windingtree/contracts';
 import {
   RequestQuery,
   OfferOptions,
-  chainConfig,
+  contractsConfig,
   stableCoins,
   serverAddress,
 } from '../shared/index.js';
@@ -19,6 +20,11 @@ import { RequestEvent } from '../../src/node/requestManager.js';
 import { createLogger } from '../../src/utils/logger.js';
 
 const logger = createLogger('NodeMain');
+
+/**
+ * Chain config
+ */
+const chain = process.env.LOCAL_NODE === 'true' ? hardhat : polygonZkEvmTestnet;
 
 /**
  * The supplier signer credentials
@@ -154,7 +160,8 @@ const main = async (): Promise<void> => {
 
   const options: NodeOptions = {
     topics: ['hello'],
-    chain: chainConfig,
+    chain,
+    contracts: contractsConfig,
     serverAddress,
     noncePeriod: Number(parseSeconds(noncePeriod)),
     supplierId,
