@@ -26,7 +26,7 @@ import { DealRecord, DealsRegistry } from './dealsRegistry.js';
 import { decodeText } from '../utils/text.js';
 import { StorageInitializer } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
-import { ProtocolContracts, TxCallback } from '../shared/contracts.js';
+import { TxCallback } from '../shared/contracts.js';
 
 const logger = createLogger('Client');
 
