@@ -1,6 +1,5 @@
 import { Address } from 'viem';
-import { GenericQuery, GenericOfferOptions } from '../../src/shared/types.js';
-import { ProtocolChain } from '../../src/utils/contracts.js';
+import { GenericQuery, GenericOfferOptions, Contracts } from '../../src/shared/types.js';
 
 export interface RequestQuery extends GenericQuery {
   greeting: string;
@@ -21,58 +20,50 @@ export interface LocalEnv {
 const env =
   typeof window === 'undefined' ? process.env : (import.meta as unknown as { env: LocalEnv }).env;
 
-export const chainConfig: ProtocolChain =
+export const contractsConfig: Contracts =
   env.LOCAL_NODE === 'hardhat' || env.VITE_LOCAL_NODE === 'hardhat'
     ? {
-        chainId: 31337, // Local Hardhat node
-        chainName: 'hardhat',
-        contracts: {
-          config: {
-            name: 'Config',
-            version: '1',
-            address: '0x3Aa5ebB10DC797CAC828524e59A333d0A371443c',
-          },
-          entities: {
-            name: 'EntitiesRegistry',
-            version: '1',
-            address: '0x59b670e9fA9D0A427751Af201D676719a970857b',
-          },
-          market: {
-            name: 'Market',
-            version: '1',
-            address: '0x09635F643e140090A9A8Dcd712eD6285858ceBef',
-          },
-          token: {
-            name: 'LifToken',
-            version: '1',
-            address: '0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1',
-          },
+        config: {
+          name: 'Config',
+          version: '1',
+          address: '0x3Aa5ebB10DC797CAC828524e59A333d0A371443c',
+        },
+        entities: {
+          name: 'EntitiesRegistry',
+          version: '1',
+          address: '0x59b670e9fA9D0A427751Af201D676719a970857b',
+        },
+        market: {
+          name: 'Market',
+          version: '1',
+          address: '0x09635F643e140090A9A8Dcd712eD6285858ceBef',
+        },
+        token: {
+          name: 'LifToken',
+          version: '1',
+          address: '0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1',
         },
       }
     : {
-        chainId: 1442,
-        chainName: 'zkSyncTestnet',
-        contracts: {
-          config: {
-            name: 'Config',
-            version: '1',
-            address: '0x098b1d12cAfE7315C77b6d308A62ce02806260Ee',
-          },
-          entities: {
-            name: 'EntitiesRegistry',
-            version: '1',
-            address: '0x4bB51528C83844b509E1152EEb05260eE1bf60e6',
-          },
-          market: {
-            name: 'Market',
-            version: '1',
-            address: '0xDd5B6ffB3585E109ECddec5293e31cdc1e9DeD57',
-          },
-          token: {
-            name: 'LifToken',
-            version: '1',
-            address: '0x4d60F4483BaA654CdAF1c5734D9E6B16735efCF8',
-          },
+        config: {
+          name: 'Config',
+          version: '1',
+          address: '0x098b1d12cAfE7315C77b6d308A62ce02806260Ee',
+        },
+        entities: {
+          name: 'EntitiesRegistry',
+          version: '1',
+          address: '0x4bB51528C83844b509E1152EEb05260eE1bf60e6',
+        },
+        market: {
+          name: 'Market',
+          version: '1',
+          address: '0xDd5B6ffB3585E109ECddec5293e31cdc1e9DeD57',
+        },
+        token: {
+          name: 'LifToken',
+          version: '1',
+          address: '0x4d60F4483BaA654CdAF1c5734D9E6B16735efCF8',
         },
       };
 
