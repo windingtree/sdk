@@ -1,6 +1,13 @@
 import './setup.js';
 import { memoryStorage } from '../src/storage/index.js';
-import { Queue, JobHandler, JobStatus, createJobHandler } from '../src/shared/queue.js';
+import {
+  Queue,
+  JobHandler,
+  JobStatus,
+  createJobHandler,
+  JobHandlerClosure,
+  Job,
+} from '../src/shared/queue.js';
 import { nowSec } from '../src/utils/time.js';
 import { expect } from 'chai';
 
@@ -110,7 +117,7 @@ describe('Shared.Queue', () => {
 
   it('should process recurrent jobs', (done) => {
     const counter = 5;
-    const handler: JobHandler = async () => {
+    const handler: JobHandlerClosure = async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     };
 
@@ -139,7 +146,7 @@ describe('Shared.Queue', () => {
 
   it('should cancel recurrent job using handler return', (done) => {
     const counter = 5;
-    const handler: JobHandler = async (job) => {
+    const handler: JobHandlerClosure = async (job: Job) => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       if (job.state.attempts >= counter) {
@@ -168,7 +175,7 @@ describe('Shared.Queue', () => {
 
   it('should cancel recurrent job using max attempts option', (done) => {
     const counter = 5;
-    const handler: JobHandler = async () => {
+    const handler: JobHandlerClosure = async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     };
 
@@ -191,7 +198,7 @@ describe('Shared.Queue', () => {
   });
 
   it('should cancel expired job', (done) => {
-    const handler: JobHandler = async () => {
+    const handler: JobHandlerClosure = async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     };
 
