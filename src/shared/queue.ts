@@ -108,7 +108,7 @@ export const createJobHandler =
   <OfferData = any, HandlerOptions extends object = object>(
     handler: JobHandler<OfferData, HandlerOptions>,
   ) =>
-  (options: HandlerOptions) =>
+  (options: HandlerOptions = {} as HandlerOptions) =>
   (job: Job<OfferData>) =>
     handler(job, options);
 /* eslint-disable @typescript-eslint/no-explicit-any */
