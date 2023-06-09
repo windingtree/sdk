@@ -1,9 +1,8 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { Address, Hash, HDAccount, WalletClient, PublicClient, zeroAddress } from 'viem';
-import { DealStatus } from '../constants.js';
 import { Client, createCheckInOutSignature } from '../index.js';
 import { GenericOfferOptions, GenericQuery, OfferData } from '../shared/types.js';
-import { ProtocolContracts, TxCallback } from '../shared/contracts.js';
+import { DealStatus, ProtocolContracts, TxCallback } from '../shared/contracts.js';
 import { Storage } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
 
