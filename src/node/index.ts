@@ -188,6 +188,7 @@ export class Node<
     this.walletClient = createWalletClient({
       chain: this.chain,
       transport: http(),
+      account: this.signer,
     });
 
     this.contracts = contracts;
@@ -412,12 +413,12 @@ export class Node<
 
   get deals() {
     return {
-      get: this.contractsManager.getDeal.bind(this),
-      reject: this.contractsManager.rejectDeal.bind(this),
-      claim: this.contractsManager.claimDeal.bind(this),
-      refund: this.contractsManager.refundDeal.bind(this),
-      checkIn: this.contractsManager.checkInDeal.bind(this),
-      checkOut: this.contractsManager.checkOutDeal.bind(this),
+      get: this.contractsManager.getDeal.bind(this.contractsManager),
+      reject: this.contractsManager.rejectDeal.bind(this.contractsManager),
+      claim: this.contractsManager.claimDeal.bind(this.contractsManager),
+      refund: this.contractsManager.refundDeal.bind(this.contractsManager),
+      checkIn: this.contractsManager.checkInDeal.bind(this.contractsManager),
+      checkOut: this.contractsManager.checkOutDeal.bind(this.contractsManager),
     };
   }
 }
