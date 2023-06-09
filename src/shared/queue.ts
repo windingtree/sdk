@@ -82,7 +82,7 @@ export interface Job<JobDataType = unknown> {
  */
 export type JobHandler<OfferData = unknown, HandlerOptions extends object = object> = (
   job: Job<OfferData>,
-  options?: HandlerOptions,
+  options: HandlerOptions,
 ) => Promise<boolean | void>;
 
 /**
@@ -108,7 +108,7 @@ export const createJobHandler =
   <OfferData = any, HandlerOptions extends object = object>(
     handler: JobHandler<OfferData, HandlerOptions>,
   ) =>
-  (options?: HandlerOptions) =>
+  (options: HandlerOptions) =>
   (job: Job<OfferData>) =>
     handler(job, options);
 /* eslint-disable @typescript-eslint/no-explicit-any */
