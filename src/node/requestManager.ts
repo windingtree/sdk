@@ -1,10 +1,15 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { RequestData, GenericQuery } from '../shared/types.js';
-import { RequestManagerOptions } from '../shared/options.js';
+import { NoncePeriodOption } from '../shared/options.js';
 import { isExpired, nowSec, parseSeconds } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('RequestManager');
+
+/**
+ * Request manager (of the protocol node) initialization options type
+ */
+export type RequestManagerOptions = NoncePeriodOption;
 
 export interface RequestEvent<CustomRequestQuery extends GenericQuery> {
   topic: string;

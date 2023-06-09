@@ -119,3 +119,29 @@ export interface OfferData<
   //** EIP-712 TypedSignature(UnsignedOffer) */
   signature: Hash;
 }
+
+/**
+ * Smart contract configuration type
+ */
+export interface ContractConfig {
+  /** Smart contract name */
+  name: string;
+  /** Internal smart contract version */
+  version: string;
+  /** Smart contract address */
+  address: Address;
+}
+
+/**
+ * The protocol smart contract set configuration
+ */
+export interface Contracts {
+  /** The protocol configuration smart contract */
+  config: ContractConfig;
+  /** The protocol entities registry smart contract */
+  entities: ContractConfig;
+  /** The protocol market smart contract */
+  market: ContractConfig;
+  /** The protocol utility token */
+  token: ContractConfig;
+}

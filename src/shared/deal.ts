@@ -1,14 +1,5 @@
 import { Hash } from 'viem';
-/**
- * Allowed deal states
- */
-export enum DealState {
-  PENDING,
-  ACCEPTED,
-  REJECTED,
-  CANCELLED,
-  CHECKED_IN,
-}
+import { DealStatus } from './contracts.js';
 
 /**
  * Deal data type
@@ -19,7 +10,7 @@ export interface DealData {
   /** Supplier Id */
   supplierId: Hash;
   /** Deal status */
-  status: DealState;
+  status: DealStatus;
   /** Deal status change reason */
   reason?: string;
   /** Deal creation date */

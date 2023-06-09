@@ -1,17 +1,19 @@
 import 'dotenv/config';
 import { EventHandler } from '@libp2p/interfaces/events';
 import { DateTime } from 'luxon';
-import { Hash, Hex } from 'viem';
+import { Hash, Hex, zeroAddress } from 'viem';
+import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { randomSalt } from '@windingtree/contracts';
 import {
   RequestQuery,
   OfferOptions,
-  chainConfig,
+  contractsConfig,
   stableCoins,
   serverAddress,
 } from '../shared/index.js';
 import { createNode, Node, NodeOptions, Queue, createJobHandler } from '../../src/index.js';
 import { OfferData } from '../../src/shared/types.js';
+import { DealStatus } from '../../src/shared/contracts.js';
 import { noncePeriod } from '../../src/constants.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
@@ -19,6 +21,11 @@ import { RequestEvent } from '../../src/node/requestManager.js';
 import { createLogger } from '../../src/utils/logger.js';
 
 const logger = createLogger('NodeMain');
+
+/**
+ * Chain config
+ */
+const chain = process.env.LOCAL_NODE === 'true' ? hardhat : polygonZkEvmTestnet;
 
 /**
  * The supplier signer credentials
@@ -52,21 +59,35 @@ process.once('unhandledRejection', (error) => {
  */
 interface DealHandlerOptions {
   node: Node<RequestQuery, OfferOptions>;
+  [key: string]: unknown;
 }
 
 /**
  * This handler looking up for a deal
  */
 const dealHandler = createJobHandler<OfferData<RequestQuery, OfferOptions>, DealHandlerOptions>(
-  // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
-  async ({ name, id, data: offer }, options) => {
+  async ({ name, id, data: offer }, { node }) => {
     logger.trace(`Job "${name}" #${id} Checking for a deal. Offer #${offer.id}`);
-    // const { node } = options;
 
-    // Makes request to the smart contract, checks for a deal
-    // If the deal is found - check for double booking in the availability system
-    // If double booking detected - rejects (and refunds) the deal
-    // If not detected - claims the deal
+    if (node) {
+      // Check for a deal
+      const [, , , buyer, , , status] = await node.deals.get(offer);
+
+      // Deal must be exists and not cancelled
+      if (buyer !== zeroAddress && status === DealStatus.Created) {
+        // check for double booking in the availability system
+        // If double booking detected - rejects (and refunds) the deal
+
+        // If not detected - claims the deal
+        await node.deals.claim(offer, undefined, (txHash: string, txSubj?: string) => {
+          logger.trace(`Offer #${offer.payload.id} ${txSubj ?? 'claim'} tx hash: ${txHash}`);
+        });
+
+        return true; // Returning true means that the job must be stopped
+      }
+    }
+
+    return; // Job continuing
   },
 );
 
@@ -154,7 +175,8 @@ const main = async (): Promise<void> => {
 
   const options: NodeOptions = {
     topics: ['hello'],
-    chain: chainConfig,
+    chain,
+    contracts: contractsConfig,
     serverAddress,
     noncePeriod: Number(parseSeconds(noncePeriod)),
     supplierId,

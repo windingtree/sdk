@@ -1,7 +1,6 @@
-import { Libp2pInit } from 'libp2p';
-import { Hash, Hex, PublicClient } from 'viem';
-import { ProtocolChain } from '../utils/contracts.js';
+import { Chain } from 'viem';
 import { StorageInitializer } from '../storage/abstract.js';
+import { Contracts } from './types.js';
 
 export type NoncePeriodOption = {
   /** Period while the node waits and accepting requests with the same Id */
@@ -10,55 +9,14 @@ export type NoncePeriodOption = {
 
 export type ChainsConfigOption = {
   /** The protocol chains configuration */
-  chain: ProtocolChain;
+  chain: Chain;
+  contracts: Contracts;
 };
 
 export type ServerAddressOption = {
   /** Multiaddr of the coordination server */
   serverAddress: string;
 };
-
-export type SignerSeedOptions = {
-  /** Seed phrase of the node signer wallet */
-  signerSeedPhrase?: string;
-  /** Viem HDAccount */
-  signerPk?: Hex;
-};
-
-/**
- * The protocol node initialization options type
- */
-export interface NodeOptions
-  extends NoncePeriodOption,
-    ChainsConfigOption,
-    ServerAddressOption,
-    SignerSeedOptions {
-  /** libp2p configuration options */
-  libp2p?: Libp2pInit;
-  /** Subscription topics of node */
-  topics: string[];
-  /** Unique supplier Id */
-  supplierId: Hash;
-}
-
-/**
- * Request manager (of the protocol node) initialization options type
- */
-export type RequestManagerOptions = NoncePeriodOption;
-
-/**
- * The protocol client initialization schema type
- */
-export interface ClientOptions extends ChainsConfigOption, ServerAddressOption {
-  /** libp2p configuration options */
-  libp2p?: Libp2pInit;
-  /** Storage initializer function */
-  storageInitializer: StorageInitializer;
-  /** DB keys prefix */
-  dbKeysPrefix: string;
-  /** Viem public client */
-  publicClient: PublicClient;
-}
 
 /**
  * Interface of a node key in Json format (type)
