@@ -2,6 +2,7 @@ import {
   Address,
   Hash,
   Abi,
+  Account,
   InferFunctionName,
   GetFunctionArgs,
   SimulateContractParameters,
@@ -108,13 +109,19 @@ export class ProtocolContracts<
     txSubject?: string,
   ): Promise<TransactionReceipt> {
     try {
-      if (!walletClient && !this.walletClient) {
+      walletClient = walletClient ?? this.walletClient;
+
+      if (!walletClient) {
         throw new Error('Invalid walletClient configuration');
       }
 
-      walletClient = walletClient ?? this.walletClient;
+      let account = walletClient.account;
 
-      const [account] = await walletClient.getAddresses();
+      if (!account || account?.type !== 'local') {
+        const [accountAddress] = await walletClient.getAddresses();
+        account = accountAddress as unknown as Account;
+      }
+
       const requestOptions = {
         address,
         abi,
@@ -129,12 +136,17 @@ export class ProtocolContracts<
 
       const hash = await walletClient.writeContract(request);
 
+      logger.trace(`Tx: ${hash}, subject: "${txSubject ?? ''}"`);
+
       if (txCallback) {
         txCallback(hash, txSubject);
-        logger.trace(`Tx: ${hash}, subject: "${txSubject ?? ''}"`);
       }
 
-      return await this.publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+
+      logger.trace('Tx receipt:', receipt);
+
+      return receipt;
     } catch (error) {
       logger.error(error);
 
@@ -193,13 +205,15 @@ export class ProtocolContracts<
     // Will throw a error if invalid payment Id provided
     const paymentOption = getPaymentOption(offer.payment, paymentId);
 
-    if (!walletClient && !this.walletClient) {
-      throw new Error(`Invalid walletClient configuration`);
+    walletClient = walletClient ?? this.walletClient;
+
+    if (!walletClient) {
+      throw new Error('Invalid walletClient configuration');
     }
 
     // Asset must be allowed to Market in the proper amount
     // This function will check allowance and send `approve` transaction if required
-    const [owner] = await (walletClient ?? this.walletClient).getAddresses();
+    const [owner] = await walletClient.getAddresses();
 
     const allowance = await this.publicClient.readContract({
       address: paymentOption.asset,
