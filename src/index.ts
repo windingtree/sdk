@@ -10,3 +10,4 @@ export * from './shared/queue.js';
 export * from './shared/pubsub.js';
 export * from './shared/deal.js';
 export * from './shared/cache.js';
+export * from './shared/contracts.js';
