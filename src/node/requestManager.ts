@@ -4,19 +4,35 @@ import { NoncePeriodOption } from '../shared/options.js';
 import { isExpired, nowSec, parseSeconds } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
 
-const logger = createLogger('RequestManager');
+const logger = createLogger('NodeRequestManager');
 
 /**
- * Request manager (of the protocol node) initialization options type
+ * Type for initialization options of the request manager in the protocol node.
  */
 export type RequestManagerOptions = NoncePeriodOption;
 
+/**
+ * Type for custom event for request
+ */
 export interface RequestEvent<CustomRequestQuery extends GenericQuery> {
   topic: string;
   data: RequestData<CustomRequestQuery>;
 }
 
-export interface RequestManagerEvents<CustomRequestQuery extends GenericQuery> {
+/**
+ * Type of request item in the cache
+ */
+interface RequestCacheItem<CustomRequestQuery extends GenericQuery> {
+  topic: string;
+  data: RequestData<CustomRequestQuery>;
+}
+
+/**
+ * NodeRequestManager events interface
+ */
+export interface NodeRequestManagerEvents<
+  CustomRequestQuery extends GenericQuery,
+> {
   /**
    * @example
    *
@@ -27,15 +43,40 @@ export interface RequestManagerEvents<CustomRequestQuery extends GenericQuery> {
    * ```
    */
   request: CustomEvent<RequestEvent<CustomRequestQuery>>;
+
+  /**
+   * @example
+   *
+   * ```js
+   * request.addEventListener('request', () => {
+   *    // ... request is ready
+   * })
+   * ```
+   */
+  error: CustomEvent<Error>;
 }
 
-export class RequestManager<CustomRequestQuery extends GenericQuery> extends EventEmitter<
-  RequestManagerEvents<CustomRequestQuery>
-> {
+/**
+ * Class for managing requests in a node
+ *
+ * @export
+ * @class NodeRequestManager
+ * @extends {EventEmitter<NodeRequestManagerEvents<CustomRequestQuery>>}
+ * @template CustomRequestQuery
+ */
+export class NodeRequestManager<
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+> extends EventEmitter<NodeRequestManagerEvents<CustomRequestQuery>> {
+  /** The period of time the manager waits for messages with a higher nonce. */
   private noncePeriod: number;
-  private cache: Map<string, RequestData<CustomRequestQuery>>;
-  private cacheTopic: Map<string, string>;
+  /** In-memory cache for messages. */
+  private cache: Map<string, RequestCacheItem<CustomRequestQuery>>;
 
+  /**
+   * Creates an instance of NodeRequestManager.
+   * @param {RequestManagerOptions} options
+   * @memberof NodeRequestManager
+   */
   constructor(options: RequestManagerOptions) {
     super();
 
@@ -43,54 +84,125 @@ export class RequestManager<CustomRequestQuery extends GenericQuery> extends Eve
 
     // @todo Validate RequestManagerOptions
 
-    this.cache = new Map<string, RequestData<CustomRequestQuery>>(); // requestId => request
-    this.cacheTopic = new Map<string, string>(); // requestId => topic
+    // requestId => RequestCacheItem
+    this.cache = new Map<string, RequestCacheItem<CustomRequestQuery>>();
+
     this.noncePeriod = Number(parseSeconds(noncePeriod));
   }
 
-  add(topic: string, data: string) {
-    const requestData = JSON.parse(data) as RequestData<CustomRequestQuery>;
+  /**
+   * Sets a new value of the `noncePeriod`
+   *
+   * @param {(number | string)} noncePeriod
+   * @memberof NodeRequestManager
+   */
+  setNoncePeriod(noncePeriod: number | string) {
+    this.noncePeriod = Number(parseSeconds(noncePeriod));
+  }
 
-    if (isExpired(requestData.expire)) {
-      logger.trace(`Request #${requestData.id} is expired`);
-      return;
-    }
+  /**
+   * Clears the requests cache
+   *
+   * @memberof NodeRequestManager
+   */
+  clear() {
+    this.cache.clear();
+  }
 
-    if (BigInt(nowSec() + this.noncePeriod) > BigInt(requestData.expire)) {
-      logger.trace(`Request #${requestData.id} will expire before it can bee processed`);
-      return;
-    }
-
-    if (!this.cache.has(requestData.id)) {
-      // New request
-      this.cache.set(requestData.id, requestData);
-      this.cacheTopic.set(requestData.id, topic);
-      setTimeout(() => {
-        try {
-          this.dispatchEvent(
-            new CustomEvent('request', {
-              detail: {
-                topic,
-                data: requestData,
-              },
-            }),
-          );
-
-          if (!this.cache.delete(requestData.id) || !this.cacheTopic.delete(requestData.id)) {
-            throw new Error(`Unable to remove request #${requestData.id} from cache`);
-          }
-        } catch (error) {
-          logger.error(error);
+  /**
+   * Deletes expired requests from the cache
+   *
+   * @memberof NodeRequestManager
+   */
+  prune() {
+    const now = Math.ceil(Date.now() / 1000);
+    for (const [id, record] of this.cache.entries()) {
+      try {
+        if (record.data.expire < now) {
+          this.cache.delete(id);
         }
-      }, this.noncePeriod * 1000);
-    } else {
-      // Known request
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const knownRequest = this.cache.get(requestData.id)!;
-
-      if (knownRequest.nonce < requestData.nonce) {
-        this.cache.set(requestData.id, requestData);
+      } catch (error) {
+        logger.error('Cache prune error', error);
       }
+    }
+  }
+
+  /**
+   * Adds a request to cache
+   *
+   * @param {string} requestTopic
+   * @param {string} data
+   * @memberof NodeRequestManager
+   */
+  add(requestTopic: string, data: string) {
+    try {
+      const requestData = JSON.parse(data) as RequestData<CustomRequestQuery>;
+
+      // TODO: Implement validation of `data` type and `requestTopic`
+
+      // Check if request is expired
+      if (isExpired(requestData.expire)) {
+        logger.trace(`Request #${requestData.id} is expired`);
+        return;
+      }
+
+      // Check if request will expire before it can be processed
+      if (BigInt(nowSec() + this.noncePeriod) > BigInt(requestData.expire)) {
+        logger.trace(
+          `Request #${requestData.id} will expire before it can bee processed`,
+        );
+        return;
+      }
+
+      // If request is new, add to cache and set a timeout to dispatch event
+      if (!this.cache.has(requestData.id)) {
+        // New request
+        this.cache.set(requestData.id, {
+          data: requestData,
+          topic: requestTopic,
+        });
+
+        // Wait until the nonce period ends
+        setTimeout(() => {
+          try {
+            const cacheItem = this.cache.get(requestData.id);
+
+            if (cacheItem) {
+              this.dispatchEvent(
+                new CustomEvent('request', {
+                  detail: {
+                    topic: cacheItem.topic,
+                    data: cacheItem.data,
+                  },
+                }),
+              );
+
+              if (!this.cache.delete(requestData.id)) {
+                throw new Error(
+                  `Unable to remove request #${requestData.id} from cache`,
+                );
+              }
+            }
+          } catch (error) {
+            logger.error(error);
+          }
+        }, this.noncePeriod * 1000);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const { topic, data } = this.cache.get(requestData.id)!;
+
+        // If request is known, only update if nonce is higher and the same topic
+        if (requestTopic === topic && requestData.nonce > data.nonce) {
+          this.cache.set(requestData.id, { data: requestData, topic });
+        }
+      }
+    } catch (error) {
+      logger.error(error);
+      this.dispatchEvent(
+        new CustomEvent('error', {
+          detail: new Error('Unable to add request to cache due to error'),
+        }),
+      );
     }
   }
 }
