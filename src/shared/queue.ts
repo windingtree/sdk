@@ -1,7 +1,11 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { simpleUid } from '@windingtree/contracts';
 import { Storage } from '../storage/index.js';
-import { queueConcurrentJobsNumber, queueJobAttemptsDelay, queueHeartbeat } from '../constants.js';
+import {
+  queueConcurrentJobsNumber,
+  queueJobAttemptsDelay,
+  queueHeartbeat,
+} from '../constants.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Queue');
@@ -80,10 +84,10 @@ export interface Job<JobDataType = unknown> {
 /**
  * Job handler function type
  */
-export type JobHandler<OfferData = unknown, HandlerOptions extends object = object> = (
-  job: Job<OfferData>,
-  options?: HandlerOptions,
-) => Promise<boolean | void>;
+export type JobHandler<
+  OfferData = unknown,
+  HandlerOptions extends object = object,
+> = (job: Job<OfferData>, options: HandlerOptions) => Promise<boolean | void>;
 
 /**
  * Job handler closure type
@@ -108,7 +112,7 @@ export const createJobHandler =
   <OfferData = any, HandlerOptions extends object = object>(
     handler: JobHandler<OfferData, HandlerOptions>,
   ) =>
-  (options?: HandlerOptions) =>
+  (options: HandlerOptions = {} as HandlerOptions) =>
   (job: Job<OfferData>) =>
     handler(job, options);
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -229,7 +233,8 @@ export class Queue extends EventEmitter<QueueEvents> {
     // @todo Validate Queue initialization options
 
     this.hashKey = hashKey ?? 'jobsKeys';
-    this.concurrentJobsNumber = concurrentJobsNumber ?? queueConcurrentJobsNumber;
+    this.concurrentJobsNumber =
+      concurrentJobsNumber ?? queueConcurrentJobsNumber;
     this.heartbeat = heartbeat ?? queueHeartbeat;
     this.storage = storage;
     this.jobs = new Set<string>();
@@ -327,7 +332,10 @@ export class Queue extends EventEmitter<QueueEvents> {
    * @param {Partial<JobState>} state New job state parameters
    * @returns {Promise<Job>} Updated job
    */
-  private async _updatedJobState(job: Job, state: Partial<JobState>): Promise<Job> {
+  private async _updatedJobState(
+    job: Job,
+    state: Partial<JobState>,
+  ): Promise<Job> {
     // @todo Validate state argument
 
     job.state = {
@@ -362,7 +370,9 @@ export class Queue extends EventEmitter<QueueEvents> {
         logger.trace(`Job #${job.id} expired at: ${job.options.expire}`);
 
         const prevStatus =
-          job.state.status === JobStatus.ERRORED ? JobStatus.FAILED : JobStatus.DONE;
+          job.state.status === JobStatus.ERRORED
+            ? JobStatus.FAILED
+            : JobStatus.DONE;
         job = await this._updatedJobState(job, { status: JobStatus.EXPIRED });
 
         this.jobs.delete(job.id);
@@ -370,9 +380,12 @@ export class Queue extends EventEmitter<QueueEvents> {
         this.liveJobs.delete(job.id);
 
         this.dispatchEvent(
-          new CustomEvent<Job>(prevStatus === JobStatus.DONE ? 'done' : 'fail', {
-            detail: job,
-          }),
+          new CustomEvent<Job>(
+            prevStatus === JobStatus.DONE ? 'done' : 'fail',
+            {
+              detail: job,
+            },
+          ),
         );
 
         this.dispatchEvent(
@@ -391,7 +404,10 @@ export class Queue extends EventEmitter<QueueEvents> {
       const shouldCancel = await Promise.resolve(callback(job));
 
       if (job.options.every && !shouldCancel) {
-        if (job.options.attempts && job.state.attempts >= job.options.attempts) {
+        if (
+          job.options.attempts &&
+          job.state.attempts >= job.options.attempts
+        ) {
           logger.trace(`Job #${job.id} should be cancelled (attempts rule)`);
           await this.cancelJob(job.id);
           return;

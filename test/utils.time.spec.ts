@@ -10,7 +10,9 @@ import {
 describe('Utils.time', () => {
   describe('#validateDurationFormat', () => {
     it('should throw if format unknown', () => {
-      expect(() => validateDurationFormat('t')).to.throw('Unknown duration time format');
+      expect(() => validateDurationFormat('t')).to.throw(
+        'Unknown duration time format',
+      );
     });
 
     it('should validate known types', () => {

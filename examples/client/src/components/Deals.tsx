@@ -1,12 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
-import { Address } from 'viem';
+import { Address, Hash } from 'viem';
 import { Client, DealRecord, DealStatus } from '../../../../src/index.js'; // @windingtree/sdk
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import { centerEllipsis, formatBalance, parseWalletError } from '../utils.js';
 import { useWallet } from '../providers/WalletProvider/WalletProviderContext.js';
 
-export type DealsRegistryRecord = Required<DealRecord<RequestQuery, OfferOptions>>;
+export type DealsRegistryRecord = Required<
+  DealRecord<RequestQuery, OfferOptions>
+>;
 
 export interface DealsProps {
   deals: DealsRegistryRecord[];
@@ -57,7 +59,12 @@ export const TransferForm = ({ deal, client, onClose }: TransferFormProps) => {
         throw new Error('Ethereum client not ready');
       }
 
-      await client.deals.transfer(deal.offer.payload.id, to as Address, walletClient, setTx);
+      await client.deals.transfer(
+        deal.offer,
+        to as Address,
+        walletClient,
+        setTx,
+      );
       setLoading(false);
       setSuccess(true);
     } catch (err) {
@@ -97,16 +104,20 @@ export const TransferForm = ({ deal, client, onClose }: TransferFormProps) => {
         <div>
           <strong style={{ marginRight: 10 }}>To (address):</strong>
           <input value={to} onChange={(e) => setTo(e.target.value)} />
-          <button onClick={transferHandler}>
-            Send "transfer" transaction
-          </button>
+          <button onClick={transferHandler}>Send "transfer" transaction</button>
           {tx && <div style={{ marginTop: 20 }}>Tx hash: {tx}</div>}
           {loading && <div style={{ marginTop: 20 }}>Loading...</div>}
         </div>
       )}
       <div>
         {error && (
-          <div style={{ marginTop: 20, padding: 10, backgroundColor: 'rgba(0,0,0,0.1)' }}>
+          <div
+            style={{
+              marginTop: 20,
+              padding: 10,
+              backgroundColor: 'rgba(0,0,0,0.1)',
+            }}
+          >
             {error}
           </div>
         )}
@@ -145,7 +156,7 @@ export const Cancel = ({ deal, client, onClose }: CancelProps) => {
         throw new Error('Ethereum client not ready');
       }
 
-      await client.deals.cancel(deal.offer.payload.id, walletClient, setTx);
+      await client.deals.cancel(deal.offer, walletClient, setTx);
       setLoading(false);
       setSuccess(true);
     } catch (err) {
@@ -177,20 +188,26 @@ export const Cancel = ({ deal, client, onClose }: CancelProps) => {
         </div>
       </div>
       {success && (
-        <div style={{ color: 'green' }}>Deal has been successfully cancelled</div>
+        <div style={{ color: 'green' }}>
+          Deal has been successfully cancelled
+        </div>
       )}
       {!success && (
         <div>
-          <button onClick={cancelHandler}>
-            Send "cancel" transaction
-          </button>
+          <button onClick={cancelHandler}>Send "cancel" transaction</button>
           {tx && <div style={{ marginTop: 20 }}>Tx hash: {tx}</div>}
           {loading && <div style={{ marginTop: 20 }}>Loading...</div>}
         </div>
       )}
       <div>
         {error && (
-          <div style={{ marginTop: 20, padding: 10, backgroundColor: 'rgba(0,0,0,0.1)' }}>
+          <div
+            style={{
+              marginTop: 20,
+              padding: 10,
+              backgroundColor: 'rgba(0,0,0,0.1)',
+            }}
+          >
             {error}
           </div>
         )}
@@ -204,8 +221,12 @@ export const Cancel = ({ deal, client, onClose }: CancelProps) => {
  */
 export const Deals = ({ deals, client }: DealsProps) => {
   const [dealStates, setDealStates] = useState<Record<string, DealStatus>>({});
-  const [transferDeal, setTransferDeal] = useState<DealsRegistryRecord | undefined>();
-  const [cancelDeal, setCancelDeal] = useState<DealsRegistryRecord | undefined>();
+  const [transferDeal, setTransferDeal] = useState<
+    DealsRegistryRecord | undefined
+  >();
+  const [cancelDeal, setCancelDeal] = useState<
+    DealsRegistryRecord | undefined
+  >();
 
   useEffect(() => {
     if (deals && deals.length > 0) {
@@ -243,7 +264,11 @@ export const Deals = ({ deals, client }: DealsProps) => {
               <td>{DateTime.fromSeconds(Number(d.created)).toISODate()}</td>
               <td>{centerEllipsis(d.offer.payload.id)}</td>
               <td>{formatBalance(d.price, 4)}</td>
-              <td style={{ color: dealStates[d.offer.id] === 1 ? 'green' : 'red' }}>
+              <td
+                style={{
+                  color: dealStates[d.offer.id] === 1 ? 'green' : 'red',
+                }}
+              >
                 {DealStatus[dealStates[d.offer.id]]}
               </td>
               <td>
@@ -253,8 +278,11 @@ export const Deals = ({ deals, client }: DealsProps) => {
                       onClick={() => setCancelDeal(d)}
                       disabled={
                         ![0, 1].includes(dealStates[d.offer.id]) ||
-                        (transferDeal && transferDeal.offer.payload.id === d.offer.payload.id) ||
-                        (cancelDeal && cancelDeal.offer.payload.id === d.offer.payload.id)
+                        (transferDeal &&
+                          transferDeal.offer.payload.id ===
+                            d.offer.payload.id) ||
+                        (cancelDeal &&
+                          cancelDeal.offer.payload.id === d.offer.payload.id)
                       }
                     >
                       Cancel
@@ -265,8 +293,11 @@ export const Deals = ({ deals, client }: DealsProps) => {
                       onClick={() => setTransferDeal(d)}
                       disabled={
                         ![0, 1].includes(dealStates[d.offer.id]) ||
-                        (transferDeal && transferDeal.offer.payload.id === d.offer.payload.id) ||
-                        (cancelDeal && cancelDeal.offer.payload.id === d.offer.payload.id)
+                        (transferDeal &&
+                          transferDeal.offer.payload.id ===
+                            d.offer.payload.id) ||
+                        (cancelDeal &&
+                          cancelDeal.offer.payload.id === d.offer.payload.id)
                       }
                     >
                       Transfer
@@ -284,7 +315,11 @@ export const Deals = ({ deals, client }: DealsProps) => {
           client={client}
           onClose={() => setTransferDeal(undefined)}
         />
-        <Cancel deal={cancelDeal} client={client} onClose={() => setCancelDeal(undefined)} />
+        <Cancel
+          deal={cancelDeal}
+          client={client}
+          onClose={() => setCancelDeal(undefined)}
+        />
       </div>
     </div>
   );

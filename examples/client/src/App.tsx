@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { Client, ClientOptions, createClient, storage } from '../../../src/index.js'; // @windingtree/sdk
-import { RequestQuery, OfferOptions, chainConfig, serverAddress } from '../../shared/index.js';
+import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
+import {
+  Client,
+  ClientOptions,
+  createClient,
+  storage,
+} from '../../../src/index.js'; // @windingtree/sdk
+import {
+  RequestQuery,
+  OfferOptions,
+  contractsConfig,
+  serverAddress,
+} from '../../shared/index.js';
 import { OfferData } from '../../../src/shared/types.js';
 import { useWallet } from './providers/WalletProvider/WalletProviderContext.js';
 import { AccountWidget } from './providers/WalletProvider/AccountWidget.js';
@@ -10,6 +21,10 @@ import { Requests, RequestsRegistryRecord } from './components/Requests.js';
 import { MakeDeal } from './components/MakeDeal.js';
 import { Offers } from './components/Offers.js';
 import { Deals, DealsRegistryRecord } from './components/Deals.js';
+
+/** Target chain config */
+const chain =
+  import.meta.env.LOCAL_NODE === 'true' ? hardhat : polygonZkEvmTestnet;
 
 /** Default request expiration time */
 const defaultExpire = '30s';
@@ -27,8 +42,12 @@ export const App = () => {
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [requests, setRequests] = useState<RequestsRegistryRecord[]>([]);
   const [deals, setDeals] = useState<DealsRegistryRecord[]>([]);
-  const [offers, setOffers] = useState<OfferData<RequestQuery, OfferOptions>[] | undefined>();
-  const [offer, setOffer] = useState<OfferData<RequestQuery, OfferOptions> | undefined>();
+  const [offers, setOffers] = useState<
+    OfferData<RequestQuery, OfferOptions>[] | undefined
+  >();
+  const [offer, setOffer] = useState<
+    OfferData<RequestQuery, OfferOptions> | undefined
+  >();
   const [error, setError] = useState<string | undefined>();
 
   /** This hook starts the client that will be available via `client.current` */
@@ -38,7 +57,8 @@ export const App = () => {
         setError(undefined);
 
         const options: ClientOptions = {
-          chain: chainConfig,
+          chain,
+          contracts: contractsConfig,
           serverAddress,
           storageInitializer: storage.localStorage.createInitializer({
             session: false, // session or local storage
@@ -55,9 +75,12 @@ export const App = () => {
 
         const updateDeals = () => {
           if (client.current) {
-            client.current.deals.getAll().then((newDeals) => {
-              setDeals(newDeals);
-            }).catch(console.error);
+            client.current.deals
+              .getAll()
+              .then((newDeals) => {
+                setDeals(newDeals);
+              })
+              .catch(console.error);
           }
         };
 
@@ -75,12 +98,18 @@ export const App = () => {
 
         client.current.addEventListener('connected', () => {
           setConnected(true);
-          console.log('🔗 Client connected to server at:', new Date().toISOString());
+          console.log(
+            '🔗 Client connected to server at:',
+            new Date().toISOString(),
+          );
         });
 
         client.current.addEventListener('disconnected', () => {
           setConnected(false);
-          console.log('🔌 Client disconnected from server at:', new Date().toISOString());
+          console.log(
+            '🔌 Client disconnected from server at:',
+            new Date().toISOString(),
+          );
         });
 
         /** Listening for requests events and update tables */
@@ -132,7 +161,9 @@ export const App = () => {
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+      <div
+        style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}
+      >
         <div style={{ flex: 1 }}>
           <h1>Client</h1>
         </div>
@@ -140,7 +171,11 @@ export const App = () => {
       </div>
       {client.current && <div>✅ Client started</div>}
       {connected && <div>✅ Connected to the coordination server</div>}
-      <RequestForm connected={connected} onSubmit={sendRequest} defaultTopic={defaultTopic} />
+      <RequestForm
+        connected={connected}
+        onSubmit={sendRequest}
+        defaultTopic={defaultTopic}
+      />
       <Tabs
         tabs={[
           {

@@ -3,7 +3,9 @@ import { OfferData } from '../../../../src/shared/types.js';
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import { centerEllipsis } from '../utils.js';
 
-export type RequestsRegistryRecord = Required<RequestRecord<RequestQuery, OfferOptions>>;
+export type RequestsRegistryRecord = Required<
+  RequestRecord<RequestQuery, OfferOptions>
+>;
 
 export interface RequestsProps {
   requests: RequestsRegistryRecord[];
@@ -16,7 +18,13 @@ export interface RequestsProps {
 /**
  * Published requests table
  */
-export const Requests = ({ requests, subscribed, onClear, onCancel, onOffers }: RequestsProps) => {
+export const Requests = ({
+  requests,
+  subscribed,
+  onClear,
+  onCancel,
+  onOffers,
+}: RequestsProps) => {
   if (requests.length === 0) {
     return null;
   }
@@ -42,11 +50,15 @@ export const Requests = ({ requests, subscribed, onClear, onCancel, onOffers }: 
               <td>{centerEllipsis(r.data.id)}</td>
               <td>{JSON.stringify(r.data.query)}</td>
               <td>{subscribed && subscribed(r.data.id) ? '✅' : 'no'}</td>
-              <td>{utils.isExpired(r.data.expire) || r.cancelled ? '✅' : 'no'}</td>
+              <td>
+                {utils.isExpired(r.data.expire) || r.cancelled ? '✅' : 'no'}
+              </td>
               <td>
                 {r.offers.length === 0 ? 0 : ''}
                 {r.offers.length > 0 && (
-                  <button onClick={() => onOffers(r.offers)}>{r.offers.length}</button>
+                  <button onClick={() => onOffers(r.offers)}>
+                    {r.offers.length}
+                  </button>
                 )}
               </td>
               <td>

@@ -1,4 +1,4 @@
-import { createLibp2p, Libp2pOptions, Libp2p } from 'libp2p';
+import { createLibp2p, Libp2pInit, Libp2pOptions, Libp2p } from 'libp2p';
 import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
 import { webSockets } from '@libp2p/websockets';
@@ -8,25 +8,45 @@ import { OPEN } from '@libp2p/interface-connection/status';
 import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { peerIdFromString } from '@libp2p/peer-id';
-import { Hash, stringify } from 'viem';
+import {
+  Hex,
+  Hash,
+  Chain,
+  PublicClient,
+  WalletClient,
+  createPublicClient,
+  createWalletClient,
+  http,
+  stringify,
+} from 'viem';
 import { mnemonicToAccount, privateKeyToAccount } from 'viem/accounts';
-import { noncePeriod as defaultNoncePeriod } from '../constants.js';
-import { GenericOfferOptions, GenericQuery, OfferData } from '../shared/types.js';
+import {
+  Contracts,
+  GenericOfferOptions,
+  GenericQuery,
+  OfferData,
+} from '../shared/types.js';
 import { Account, buildOffer, BuildOfferOptions } from '../shared/messages.js';
+import { ServerAddressOption, ChainsConfigOption } from '../shared/options.js';
 import { CenterSub, centerSub } from '../shared/pubsub.js';
-import { RequestManager, RequestEvent } from './requestManager.js';
+import { RequestEvent } from './requestManager.js';
 import { decodeText, encodeText } from '../utils/text.js';
-import { ProtocolChain } from '../utils/contracts.js';
-import { NodeOptions } from '../shared/options.js';
-import { parseSeconds } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Node');
 
 /**
+ * Decoded message
+ */
+export interface RawDecodedMessage {
+  topic: string;
+  data: string;
+}
+
+/**
  * The protocol node events interface
  */
-export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
+export interface NodeEvents {
   /**
    * @example
    *
@@ -86,13 +106,29 @@ export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
    * @example
    *
    * ```js
-   * node.addEventListener('request', ({ detail }) => {
+   * node.addEventListener('message', ({ detail }) => {
    *    // detail.topic
-   *    // detail.data
+   *    // detail.data // encoded
    * })
    * ```
    */
-  request: CustomEvent<RequestEvent<CustomRequestQuery>>;
+  message: CustomEvent<RawDecodedMessage>;
+}
+
+/**
+ * The protocol node initialization options type
+ */
+export interface NodeOptions extends ServerAddressOption, ChainsConfigOption {
+  /** libp2p configuration options */
+  libp2p?: Libp2pInit;
+  /** Subscription topics of node */
+  topics: string[];
+  /** Unique supplier Id */
+  supplierId: Hash;
+  /** Seed phrase of the node signer wallet */
+  signerSeedPhrase?: string;
+  /** Signer private key */
+  signerPk?: Hex;
 }
 
 /**
@@ -104,18 +140,31 @@ export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
  * @template {CustomOfferOptions}
  */
 export class Node<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
-> extends EventEmitter<NodeEvents<CustomRequestQuery>> {
-  libp2p?: Libp2p;
-  serverMultiaddr: Multiaddr;
-  serverPeerId: PeerId;
-  supplierId: Hash;
-  chain: ProtocolChain;
-  topics: string[];
-  signer: Account;
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
+> extends EventEmitter<NodeEvents> {
+  /** libp2p initialization options */
   private libp2pInit: Libp2pOptions;
-  private requestManager: RequestManager<CustomRequestQuery>;
+  /** Blockchain network public client */
+  publicClient: PublicClient;
+  /** Blockchain network wallet client */
+  walletClient: WalletClient;
+  /** libp2p instance */
+  libp2p?: Libp2p;
+  /** The server multiaddr */
+  serverMultiaddr: Multiaddr;
+  /** The server peer Id */
+  serverPeerId: PeerId;
+  /** The node supplier Id */
+  supplierId: Hash;
+  /** Topics this node is subscribed */
+  topics: string[];
+  /** Offers signer */
+  signer: Account;
+  /** Blockchain network configuration */
+  chain: Chain;
+  /** The protocol smart contracts configuration */
+  contracts: Contracts;
 
   /**
    * @param {NodeOptions} options Node initialization options
@@ -124,17 +173,17 @@ export class Node<
     super();
 
     const {
-      chain,
       libp2p,
       topics,
       supplierId,
       signerSeedPhrase,
       signerPk,
+      chain,
+      contracts,
       serverAddress,
-      noncePeriod,
     } = options;
 
-    // @validate NodeOptions
+    // @todo Validate NodeOptions
 
     this.chain = chain;
     this.libp2pInit = libp2p ?? {};
@@ -149,6 +198,19 @@ export class Node<
       throw new Error('Invalid signer account configuration');
     }
 
+    this.publicClient = createPublicClient({
+      chain: this.chain,
+      transport: http(),
+    });
+
+    this.walletClient = createWalletClient({
+      chain: this.chain,
+      transport: http(),
+      account: this.signer,
+    });
+
+    this.contracts = contracts;
+
     this.serverMultiaddr = multiaddr(serverAddress);
     const serverPeerIdString = this.serverMultiaddr.getPeerId();
 
@@ -157,10 +219,7 @@ export class Node<
     }
 
     this.serverPeerId = peerIdFromString(serverPeerIdString);
-    this.requestManager = new RequestManager<CustomRequestQuery>({
-      noncePeriod: Number(parseSeconds(noncePeriod ?? defaultNoncePeriod)),
-    });
-    this.requestManager.addEventListener('request', (e) => this.handleRequest(e));
+
     logger.trace('Node instantiated');
   }
 
@@ -228,7 +287,9 @@ export class Node<
         throw new Error('libp2p not initialized yet');
       }
 
-      this.dispatchEvent(new CustomEvent<RequestEvent<CustomRequestQuery>>('request', event));
+      this.dispatchEvent(
+        new CustomEvent<RequestEvent<CustomRequestQuery>>('request', event),
+      );
       logger.trace('Request event', event);
     } catch (error) {
       logger.error(error);
@@ -236,7 +297,7 @@ export class Node<
   }
 
   /**
-   * Builds an offer
+   * Builds and publishes an offer
    *
    * @param {(Omit<
    *   BuildOfferOptions<CustomRequestQuery, CustomOfferOptions>,
@@ -245,7 +306,7 @@ export class Node<
    * @returns {Promise<OfferData<CustomRequestQuery, CustomOfferOptions>>} Built offer
    * @memberof Node
    */
-  async buildOffer(
+  async makeOffer(
     offerOptions: Omit<
       BuildOfferOptions<CustomRequestQuery, CustomOfferOptions>,
       'domain' | 'supplierId'
@@ -258,17 +319,20 @@ export class Node<
     const offer = await buildOffer<CustomRequestQuery, CustomOfferOptions>({
       ...offerOptions,
       domain: {
-        chainId: this.chain.chainId,
-        name: this.chain.contracts.market.name,
-        version: this.chain.contracts.market.version,
-        verifyingContract: this.chain.contracts.market.address,
+        chainId: this.chain.id,
+        name: this.contracts.market.name,
+        version: this.contracts.market.version,
+        verifyingContract: this.contracts.market.address,
       },
       supplierId: this.supplierId,
       account: this.signer,
     });
     logger.trace(`Offer #${offer.id} is built`);
 
-    await this.libp2p.pubsub.publish(offer.request.id, encodeText(stringify(offer)));
+    await this.libp2p.pubsub.publish(
+      offer.request.id,
+      encodeText(stringify(offer)),
+    );
     logger.trace(`Offer #${offer.id} is published`);
 
     return offer;
@@ -298,15 +362,21 @@ export class Node<
     };
     this.libp2p = await createLibp2p(config);
 
-    (this.libp2p.pubsub as CenterSub).addEventListener('gossipsub:heartbeat', () => {
-      this.dispatchEvent(new CustomEvent<void>('heartbeat'));
-    });
+    (this.libp2p.pubsub as CenterSub).addEventListener(
+      'gossipsub:heartbeat',
+      () => {
+        this.dispatchEvent(new CustomEvent<void>('heartbeat'));
+      },
+    );
 
     this.libp2p.addEventListener('peer:connect', ({ detail }) => {
       try {
         if (detail.remotePeer.equals(this.serverPeerId)) {
           this.dispatchEvent(new CustomEvent<void>('connected'));
-          logger.trace('🔗 Node connected to server at:', new Date().toISOString());
+          logger.trace(
+            '🔗 Node connected to server at:',
+            new Date().toISOString(),
+          );
         }
       } catch (error) {
         logger.error(error);
@@ -317,7 +387,10 @@ export class Node<
       try {
         if (detail.remotePeer.equals(this.serverPeerId)) {
           this.dispatchEvent(new CustomEvent<void>('disconnected'));
-          logger.trace('🔌 Node disconnected from server at:', new Date().toISOString());
+          logger.trace(
+            '🔌 Node disconnected from server at:',
+            new Date().toISOString(),
+          );
         }
       } catch (error) {
         logger.error(error);
@@ -326,9 +399,17 @@ export class Node<
 
     this.libp2p.pubsub.addEventListener('message', ({ detail }) => {
       try {
+        const topic = detail.topic;
         const data = decodeText(detail.data);
         logger.trace(`Message on topic ${detail.topic} with data: ${data}`);
-        this.requestManager.add(detail.topic, data);
+        this.dispatchEvent(
+          new CustomEvent<RawDecodedMessage>('message', {
+            detail: {
+              topic,
+              data,
+            },
+          }),
+        );
       } catch (error) {
         logger.error(error);
       }

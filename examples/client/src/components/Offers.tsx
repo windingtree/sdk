@@ -40,7 +40,9 @@ export const Offers = ({ offers, onAccept, onClose }: OffersProps) => {
 
   return (
     <div style={{ marginTop: 20 }}>
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+      <div
+        style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}
+      >
         <div style={{ flex: 1 }}>
           <h3>Offers</h3>
         </div>
@@ -64,7 +66,11 @@ export const Offers = ({ offers, onAccept, onClose }: OffersProps) => {
               <td>{stringify(o.options)}</td>
               <td>{offerStates[o.id] ? '✅' : 'no'}</td>
               <td>
-                {!offerStates[o.id] ? <button onClick={() => onAccept(o)}>Accept</button> : ''}
+                {!offerStates[o.id] ? (
+                  <button onClick={() => onAccept(o)}>Accept</button>
+                ) : (
+                  ''
+                )}
               </td>
             </tr>
           ))}

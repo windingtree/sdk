@@ -95,7 +95,9 @@ export class MessagesCache {
       let message = await this.cache.get<CachedMessage>(messageId);
       if (message) {
         if (message.peerId !== peerId) {
-          throw new Error(`Invalid message peerId: ${peerId} while expected: ${message.peerId}`);
+          throw new Error(
+            `Invalid message peerId: ${peerId} while expected: ${message.peerId}`,
+          );
         }
         if (nonce <= message.nonce) {
           logger.trace('Message ignored: outdated nonce');

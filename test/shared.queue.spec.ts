@@ -1,6 +1,12 @@
 import './setup.js';
 import { memoryStorage } from '../src/storage/index.js';
-import { Queue, JobHandler, JobStatus, createJobHandler } from '../src/shared/queue.js';
+import {
+  Queue,
+  JobStatus,
+  createJobHandler,
+  JobHandlerClosure,
+  Job,
+} from '../src/shared/queue.js';
 import { nowSec } from '../src/utils/time.js';
 import { expect } from 'chai';
 
@@ -35,8 +41,11 @@ describe('Shared.Queue', () => {
         const shouldFail = shouldThrow && Math.random() < 0.5;
         const repeatOpts = shouldThrow
           ? {
-              repeat: Math.floor(Math.random() * (maxAttempts - minAttempts)) + minAttempts,
-              delay: Math.floor(Math.random() * (maxDelay - minDelay)) + minDelay,
+              repeat:
+                Math.floor(Math.random() * (maxAttempts - minAttempts)) +
+                minAttempts,
+              delay:
+                Math.floor(Math.random() * (maxDelay - minDelay)) + minDelay,
             }
           : {};
 
@@ -64,7 +73,8 @@ describe('Shared.Queue', () => {
     const { ok, fail } = jobs.reduce(
       (a, v) => ({
         ok:
-          (!v.data.repeat && !v.data.shouldThrow) || (v.data.repeat && !v.data.shouldFail)
+          (!v.data.repeat && !v.data.shouldThrow) ||
+          (v.data.repeat && !v.data.shouldFail)
             ? a.ok + 1
             : a.ok,
         fail: v.data.shouldFail ? a.fail + 1 : a.fail,
@@ -84,7 +94,10 @@ describe('Shared.Queue', () => {
 
     // eslint-disable-next-line @typescript-eslint/require-await
     const handler = createJobHandler<JobData>(async (job) => {
-      if ((job.data.repeat && job.state.attempts < job.data.repeat) || job.data.shouldFail) {
+      if (
+        (job.data.repeat && job.state.attempts < job.data.repeat) ||
+        job.data.shouldFail
+      ) {
         throw new Error('Should throw');
       }
     });
@@ -110,7 +123,7 @@ describe('Shared.Queue', () => {
 
   it('should process recurrent jobs', (done) => {
     const counter = 5;
-    const handler: JobHandler = async () => {
+    const handler: JobHandlerClosure = async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     };
 
@@ -139,7 +152,7 @@ describe('Shared.Queue', () => {
 
   it('should cancel recurrent job using handler return', (done) => {
     const counter = 5;
-    const handler: JobHandler = async (job) => {
+    const handler: JobHandlerClosure = async (job: Job) => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       if (job.state.attempts >= counter) {
@@ -168,7 +181,7 @@ describe('Shared.Queue', () => {
 
   it('should cancel recurrent job using max attempts option', (done) => {
     const counter = 5;
-    const handler: JobHandler = async () => {
+    const handler: JobHandlerClosure = async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     };
 
@@ -191,7 +204,7 @@ describe('Shared.Queue', () => {
   });
 
   it('should cancel expired job', (done) => {
-    const handler: JobHandler = async () => {
+    const handler: JobHandlerClosure = async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     };
 

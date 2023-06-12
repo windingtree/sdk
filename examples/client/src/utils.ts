@@ -1,12 +1,15 @@
 import { formatUnits, Hash } from 'viem';
 
-export const ZeroHash: Hash = '0x0000000000000000000000000000000000000000000000000000000000000000';
+export const ZeroHash: Hash =
+  '0x0000000000000000000000000000000000000000000000000000000000000000';
 
 // Makes shorter text with ellipsis in the center
 export const centerEllipsis = (text: string, width = 4, prefix = 2): string =>
   text
     ? text.length > width * 2 + prefix
-      ? `${text.substring(0, width + prefix)}...${text.substring(text.length - width - prefix)}`
+      ? `${text.substring(0, width + prefix)}...${text.substring(
+          text.length - width - prefix,
+        )}`
       : text
     : '';
 

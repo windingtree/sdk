@@ -1,4 +1,5 @@
 import { Address, Hash } from 'viem';
+import { DealStatus } from './contracts.js';
 
 /**
  * Generic message data type
@@ -20,7 +21,9 @@ export type GenericQuery = Record<string, unknown>;
 /**
  * Request data type
  */
-export interface RequestData<CustomRequestQuery extends GenericQuery> extends GenericMessage {
+export interface RequestData<
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+> extends GenericMessage {
   /** Request topic */
   topic: string;
 
@@ -31,7 +34,9 @@ export interface RequestData<CustomRequestQuery extends GenericQuery> extends Ge
 /**
  * buildRequest method options type
  */
-export interface BuildRequestOptions<CustomRequestQuery extends GenericQuery> {
+export interface BuildRequestOptions<
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+> {
   /** Expiration time */
   expire: string | bigint;
   /** Nonce */
@@ -103,8 +108,8 @@ export type GenericOfferOptions = Record<string, unknown>;
  * Offer data type
  */
 export interface OfferData<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
 > extends GenericMessage {
   /** Copy of request */
   request: RequestData<CustomRequestQuery>;
@@ -118,4 +123,48 @@ export interface OfferData<
   payload: UnsignedOfferPayload;
   //** EIP-712 TypedSignature(UnsignedOffer) */
   signature: Hash;
+}
+
+/**
+ * Smart contract configuration type
+ */
+export interface ContractConfig {
+  /** Smart contract name */
+  name: string;
+  /** Internal smart contract version */
+  version: string;
+  /** Smart contract address */
+  address: Address;
+}
+
+/**
+ * The protocol smart contract set configuration
+ */
+export interface Contracts {
+  /** The protocol configuration smart contract */
+  config: ContractConfig;
+  /** The protocol entities registry smart contract */
+  entities: ContractConfig;
+  /** The protocol market smart contract */
+  market: ContractConfig;
+  /** The protocol utility token */
+  token: ContractConfig;
+}
+
+/**
+ * Deal data type
+ */
+export interface DealData {
+  /** NFT Id */
+  tokenId: number;
+  /** Supplier Id */
+  supplierId: Hash;
+  /** Deal status */
+  status: DealStatus;
+  /** Deal status change reason */
+  reason?: string;
+  /** Deal creation date */
+  created: string;
+  /** Deal update date */
+  updated: string;
 }

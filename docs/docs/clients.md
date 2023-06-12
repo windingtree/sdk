@@ -5,7 +5,12 @@
 More about the client configuration options is [here](./index.md#client-node).
 
 ```typescript
-import { GenericQuery, GenericOfferOptions, ClientOptions, createClient } from '@windingtree/sdk';
+import {
+  GenericQuery,
+  GenericOfferOptions,
+  ClientOptions,
+  createClient,
+} from '@windingtree/sdk';
 
 export interface RequestQuery extends GenericQuery {
   /** your custom request interface */
@@ -80,7 +85,8 @@ interface GenericMessage {
 /**
  * Request data structure
  */
-interface RequestData<RequestQuery extends GenericQuery> extends GenericMessage {
+interface RequestData<RequestQuery extends GenericQuery>
+  extends GenericMessage {
   /** Industry specific query type */
   query: RequestQuery;
 }
@@ -182,13 +188,19 @@ Every time a new offer is received the client emits a `request:offer` event. You
 ```typescript
 import { useEffect, useRef } from 'react';
 
-const OffersList = ({ client }: { client: Client<RequestQuery, OfferOptions> }) => {
+const OffersList = ({
+  client,
+}: {
+  client: Client<RequestQuery, OfferOptions>;
+}) => {
   const offers = useRef();
 
   useEffect(() => {
     /** Initialization of the component */
     offers.current = new Map<string, OfferData<RequestQuery, OfferOptions>>(
-      client.requests.getAll().reduce((a, v) => [...a, [v.data.id, v.offers]], []),
+      client.requests
+        .getAll()
+        .reduce((a, v) => [...a, [v.data.id, v.offers]], []),
     );
 
     /** Manage up-to-date state */
