@@ -11,32 +11,42 @@ import { peerIdFromString } from '@libp2p/peer-id';
 import {
   Hex,
   Hash,
-  stringify,
+  Chain,
   PublicClient,
   WalletClient,
   createPublicClient,
   createWalletClient,
   http,
-  Chain,
+  stringify,
 } from 'viem';
 import { mnemonicToAccount, privateKeyToAccount } from 'viem/accounts';
-import { noncePeriod as defaultNoncePeriod } from '../constants.js';
-import { Contracts, GenericOfferOptions, GenericQuery, OfferData } from '../shared/types.js';
+import {
+  Contracts,
+  GenericOfferOptions,
+  GenericQuery,
+  OfferData,
+} from '../shared/types.js';
 import { Account, buildOffer, BuildOfferOptions } from '../shared/messages.js';
-import { ServerAddressOption, NoncePeriodOption, ChainsConfigOption } from '../shared/options.js';
-import { ProtocolContracts } from '../shared/contracts.js';
+import { ServerAddressOption, ChainsConfigOption } from '../shared/options.js';
 import { CenterSub, centerSub } from '../shared/pubsub.js';
-import { RequestManager, RequestEvent } from './requestManager.js';
+import { RequestEvent } from './requestManager.js';
 import { decodeText, encodeText } from '../utils/text.js';
-import { parseSeconds } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Node');
 
 /**
+ * Decoded message
+ */
+export interface RawDecodedMessage {
+  topic: string;
+  data: string;
+}
+
+/**
  * The protocol node events interface
  */
-export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
+export interface NodeEvents {
   /**
    * @example
    *
@@ -96,19 +106,19 @@ export interface NodeEvents<CustomRequestQuery extends GenericQuery> {
    * @example
    *
    * ```js
-   * node.addEventListener('request', ({ detail }) => {
+   * node.addEventListener('message', ({ detail }) => {
    *    // detail.topic
-   *    // detail.data
+   *    // detail.data // encoded
    * })
    * ```
    */
-  request: CustomEvent<RequestEvent<CustomRequestQuery>>;
+  message: CustomEvent<RawDecodedMessage>;
 }
 
 /**
  * The protocol node initialization options type
  */
-export interface NodeOptions extends ServerAddressOption, NoncePeriodOption, ChainsConfigOption {
+export interface NodeOptions extends ServerAddressOption, ChainsConfigOption {
   /** libp2p configuration options */
   libp2p?: Libp2pInit;
   /** Subscription topics of node */
@@ -130,21 +140,30 @@ export interface NodeOptions extends ServerAddressOption, NoncePeriodOption, Cha
  * @template {CustomOfferOptions}
  */
 export class Node<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
-> extends EventEmitter<NodeEvents<CustomRequestQuery>> {
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
+> extends EventEmitter<NodeEvents> {
+  /** libp2p initialization options */
   private libp2pInit: Libp2pOptions;
-  private requestManager: RequestManager<CustomRequestQuery>;
-  private contractsManager: ProtocolContracts<CustomRequestQuery, CustomOfferOptions>;
-  private publicClient: PublicClient;
-  private walletClient: WalletClient;
+  /** Blockchain network public client */
+  publicClient: PublicClient;
+  /** Blockchain network wallet client */
+  walletClient: WalletClient;
+  /** libp2p instance */
   libp2p?: Libp2p;
+  /** The server multiaddr */
   serverMultiaddr: Multiaddr;
+  /** The server peer Id */
   serverPeerId: PeerId;
+  /** The node supplier Id */
   supplierId: Hash;
+  /** Topics this node is subscribed */
   topics: string[];
+  /** Offers signer */
   signer: Account;
+  /** Blockchain network configuration */
   chain: Chain;
+  /** The protocol smart contracts configuration */
   contracts: Contracts;
 
   /**
@@ -162,7 +181,6 @@ export class Node<
       chain,
       contracts,
       serverAddress,
-      noncePeriod,
     } = options;
 
     // @todo Validate NodeOptions
@@ -193,12 +211,6 @@ export class Node<
 
     this.contracts = contracts;
 
-    this.contractsManager = new ProtocolContracts<CustomRequestQuery, CustomOfferOptions>({
-      contracts,
-      publicClient: this.publicClient,
-      walletClient: this.walletClient,
-    });
-
     this.serverMultiaddr = multiaddr(serverAddress);
     const serverPeerIdString = this.serverMultiaddr.getPeerId();
 
@@ -207,10 +219,7 @@ export class Node<
     }
 
     this.serverPeerId = peerIdFromString(serverPeerIdString);
-    this.requestManager = new RequestManager<CustomRequestQuery>({
-      noncePeriod: Number(parseSeconds(noncePeriod ?? defaultNoncePeriod)),
-    });
-    this.requestManager.addEventListener('request', (e) => this.handleRequest(e));
+
     logger.trace('Node instantiated');
   }
 
@@ -278,7 +287,9 @@ export class Node<
         throw new Error('libp2p not initialized yet');
       }
 
-      this.dispatchEvent(new CustomEvent<RequestEvent<CustomRequestQuery>>('request', event));
+      this.dispatchEvent(
+        new CustomEvent<RequestEvent<CustomRequestQuery>>('request', event),
+      );
       logger.trace('Request event', event);
     } catch (error) {
       logger.error(error);
@@ -286,7 +297,7 @@ export class Node<
   }
 
   /**
-   * Builds an offer
+   * Builds and publishes an offer
    *
    * @param {(Omit<
    *   BuildOfferOptions<CustomRequestQuery, CustomOfferOptions>,
@@ -295,7 +306,7 @@ export class Node<
    * @returns {Promise<OfferData<CustomRequestQuery, CustomOfferOptions>>} Built offer
    * @memberof Node
    */
-  async buildOffer(
+  async makeOffer(
     offerOptions: Omit<
       BuildOfferOptions<CustomRequestQuery, CustomOfferOptions>,
       'domain' | 'supplierId'
@@ -318,7 +329,10 @@ export class Node<
     });
     logger.trace(`Offer #${offer.id} is built`);
 
-    await this.libp2p.pubsub.publish(offer.request.id, encodeText(stringify(offer)));
+    await this.libp2p.pubsub.publish(
+      offer.request.id,
+      encodeText(stringify(offer)),
+    );
     logger.trace(`Offer #${offer.id} is published`);
 
     return offer;
@@ -348,15 +362,21 @@ export class Node<
     };
     this.libp2p = await createLibp2p(config);
 
-    (this.libp2p.pubsub as CenterSub).addEventListener('gossipsub:heartbeat', () => {
-      this.dispatchEvent(new CustomEvent<void>('heartbeat'));
-    });
+    (this.libp2p.pubsub as CenterSub).addEventListener(
+      'gossipsub:heartbeat',
+      () => {
+        this.dispatchEvent(new CustomEvent<void>('heartbeat'));
+      },
+    );
 
     this.libp2p.addEventListener('peer:connect', ({ detail }) => {
       try {
         if (detail.remotePeer.equals(this.serverPeerId)) {
           this.dispatchEvent(new CustomEvent<void>('connected'));
-          logger.trace('🔗 Node connected to server at:', new Date().toISOString());
+          logger.trace(
+            '🔗 Node connected to server at:',
+            new Date().toISOString(),
+          );
         }
       } catch (error) {
         logger.error(error);
@@ -367,7 +387,10 @@ export class Node<
       try {
         if (detail.remotePeer.equals(this.serverPeerId)) {
           this.dispatchEvent(new CustomEvent<void>('disconnected'));
-          logger.trace('🔌 Node disconnected from server at:', new Date().toISOString());
+          logger.trace(
+            '🔌 Node disconnected from server at:',
+            new Date().toISOString(),
+          );
         }
       } catch (error) {
         logger.error(error);
@@ -376,9 +399,17 @@ export class Node<
 
     this.libp2p.pubsub.addEventListener('message', ({ detail }) => {
       try {
+        const topic = detail.topic;
         const data = decodeText(detail.data);
         logger.trace(`Message on topic ${detail.topic} with data: ${data}`);
-        this.requestManager.add(detail.topic, data);
+        this.dispatchEvent(
+          new CustomEvent<RawDecodedMessage>('message', {
+            detail: {
+              topic,
+              data,
+            },
+          }),
+        );
       } catch (error) {
         logger.error(error);
       }
@@ -409,17 +440,6 @@ export class Node<
     await this.libp2p.stop();
     this.dispatchEvent(new CustomEvent<void>('stop'));
     logger.trace('👋 Node stopped at:', new Date().toISOString());
-  }
-
-  get deals() {
-    return {
-      get: this.contractsManager.getDeal.bind(this.contractsManager),
-      reject: this.contractsManager.rejectDeal.bind(this.contractsManager),
-      claim: this.contractsManager.claimDeal.bind(this.contractsManager),
-      refund: this.contractsManager.refundDeal.bind(this.contractsManager),
-      checkIn: this.contractsManager.checkInDeal.bind(this.contractsManager),
-      checkOut: this.contractsManager.checkOutDeal.bind(this.contractsManager),
-    };
   }
 }
 

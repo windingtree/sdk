@@ -11,9 +11,16 @@ import {
   stableCoins,
   serverAddress,
 } from '../shared/index.js';
-import { createNode, Node, NodeOptions, Queue, createJobHandler } from '../../src/index.js';
+import {
+  Node,
+  NodeOptions,
+  NodeRequestManager,
+  Queue,
+  createNode,
+  createJobHandler,
+} from '../../src/index.js';
 import { OfferData } from '../../src/shared/types.js';
-import { DealStatus } from '../../src/shared/contracts.js';
+import { DealStatus, ProtocolContracts } from '../../src/shared/contracts.js';
 import { noncePeriod } from '../../src/constants.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
@@ -34,7 +41,9 @@ const signerMnemonic = process.env.EXAMPLE_ENTITY_SIGNER_MNEMONIC;
 const signerPk = process.env.EXAMPLE_ENTITY_SIGNER_PK as Hex;
 
 if (!signerMnemonic && !signerPk) {
-  throw new Error('Either signerMnemonic or signerPk must be provided with env');
+  throw new Error(
+    'Either signerMnemonic or signerPk must be provided with env',
+  );
 }
 
 /**
@@ -58,38 +67,42 @@ process.once('unhandledRejection', (error) => {
  * This is interface of object that you want to pass to the job handler as options
  */
 interface DealHandlerOptions {
-  node: Node<RequestQuery, OfferOptions>;
-  [key: string]: unknown;
+  contracts: ProtocolContracts;
 }
 
 /**
  * This handler looking up for a deal
  */
-const dealHandler = createJobHandler<OfferData<RequestQuery, OfferOptions>, DealHandlerOptions>(
-  async ({ name, id, data: offer }, { node }) => {
-    logger.trace(`Job "${name}" #${id} Checking for a deal. Offer #${offer.id}`);
+const dealHandler = createJobHandler<
+  OfferData<RequestQuery, OfferOptions>,
+  DealHandlerOptions
+>(async ({ name, id, data: offer }, { contracts }) => {
+  logger.trace(`Job "${name}" #${id} Checking for a deal. Offer #${offer.id}`);
 
-    if (node) {
-      // Check for a deal
-      const [, , , buyer, , , status] = await node.deals.get(offer);
+  // Check for a deal
+  const [, , , buyer, , , status] = await contracts.getDeal(offer);
 
-      // Deal must be exists and not cancelled
-      if (buyer !== zeroAddress && status === DealStatus.Created) {
-        // check for double booking in the availability system
-        // If double booking detected - rejects (and refunds) the deal
+  // Deal must be exists and not cancelled
+  if (buyer !== zeroAddress && status === DealStatus.Created) {
+    // check for double booking in the availability system
+    // If double booking detected - rejects (and refunds) the deal
 
-        // If not detected - claims the deal
-        await node.deals.claim(offer, undefined, (txHash: string, txSubj?: string) => {
-          logger.trace(`Offer #${offer.payload.id} ${txSubj ?? 'claim'} tx hash: ${txHash}`);
-        });
+    // If not detected - claims the deal
+    await contracts.claimDeal(
+      offer,
+      undefined,
+      (txHash: string, txSubj?: string) => {
+        logger.trace(
+          `Offer #${offer.payload.id} ${txSubj ?? 'claim'} tx hash: ${txHash}`,
+        );
+      },
+    );
 
-        return true; // Returning true means that the job must be stopped
-      }
-    }
+    return true; // Returning true means that the job must be stopped
+  }
 
-    return; // Job continuing
-  },
-);
+  return; // Job continuing
+});
 
 /**
  * This handler creates offer then publishes it and creates a job for deal handling
@@ -103,7 +116,7 @@ const createRequestsHandler =
     const handler = async () => {
       logger.trace(`📨 Request on topic #${detail.topic}:`, detail.data);
 
-      const offer = await node.buildOffer({
+      const offer = await node.makeOffer({
         /** Offer expiration time */
         expire: '15m',
         /** Copy of request */
@@ -165,27 +178,16 @@ const createRequestsHandler =
  * @returns {Promise<void>}
  */
 const main = async (): Promise<void> => {
-  const storage = await memoryStorage.createInitializer()();
-
-  const queue = new Queue({
-    storage,
-    hashKey: 'jobs',
-    concurrentJobsNumber: 3,
-  });
-
   const options: NodeOptions = {
     topics: ['hello'],
     chain,
     contracts: contractsConfig,
     serverAddress,
-    noncePeriod: Number(parseSeconds(noncePeriod)),
     supplierId,
     signerSeedPhrase: signerMnemonic,
     signerPk: signerPk,
   };
   const node = createNode<RequestQuery, OfferOptions>(options);
-
-  queue.addJobHandler('deal', dealHandler({ node }));
 
   node.addEventListener('start', () => {
     logger.trace('🚀 Node started at', new Date().toISOString());
@@ -199,7 +201,36 @@ const main = async (): Promise<void> => {
     logger.trace('👋 Node stopped at:', new Date().toISOString());
   });
 
-  node.addEventListener('request', createRequestsHandler(node, queue));
+  const contractsManager = new ProtocolContracts({
+    contracts: contractsConfig,
+    publicClient: node.publicClient,
+    walletClient: node.walletClient,
+  });
+
+  const storage = await memoryStorage.createInitializer()();
+
+  const queue = new Queue({
+    storage,
+    hashKey: 'jobs',
+    concurrentJobsNumber: 3,
+  });
+
+  const requestManager = new NodeRequestManager<RequestQuery>({
+    noncePeriod: Number(parseSeconds(noncePeriod)),
+  });
+
+  requestManager.addEventListener(
+    'request',
+    createRequestsHandler(node, queue),
+  );
+
+  node.addEventListener('message', (e) => {
+    const { topic, data } = e.detail;
+    // here you are able to pre-validate arrived messages
+    requestManager.add(topic, data);
+  });
+
+  queue.addJobHandler('deal', dealHandler({ contracts: contractsManager }));
 
   /**
    * Graceful Shutdown handler

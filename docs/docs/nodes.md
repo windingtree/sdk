@@ -84,7 +84,12 @@ function lifDepositWithdraw(uint256 amount) external;
 More about the node configuration options is [here](./index.md#supplier-node).
 
 ```typescript
-import { GenericQuery, GenericOfferOptions, NodeOptions, createNode } from '@windingtree/sdk';
+import {
+  GenericQuery,
+  GenericOfferOptions,
+  NodeOptions,
+  createNode,
+} from '@windingtree/sdk';
 
 export interface RequestQuery extends GenericQuery {
   /** your custom request interface */
@@ -186,12 +191,13 @@ interface RequestHandlerOptions {
 /**
  * Handler should be created using createJobHandler factory function
  */
-const requestsHandler = createJobHandler<RequestData<CustomRequestQuery>, RequestHandlerOptions>(
-  async (data, options) => {
-    // data - raw request
-    // options - object with everything else you want pass into the handler at run time
-  },
-);
+const requestsHandler = createJobHandler<
+  RequestData<CustomRequestQuery>,
+  RequestHandlerOptions
+>(async (data, options) => {
+  // data - raw request
+  // options - object with everything else you want pass into the handler at run time
+});
 
 /**
  * Registering of the request handler in the queue

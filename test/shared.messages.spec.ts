@@ -3,8 +3,17 @@ import { mnemonicToAccount } from 'viem/accounts';
 import { generateMnemonic } from '../src/utils/wallet.js';
 import { supplierId as spId } from '../src/utils/uid.js';
 import { randomSalt } from '@windingtree/contracts';
-import { GenericQuery, GenericOfferOptions, RequestData, OfferData } from '../src/shared/types.js';
-import { buildRequest, buildOffer, verifyOffer } from '../src/shared/messages.js';
+import {
+  GenericQuery,
+  GenericOfferOptions,
+  RequestData,
+  OfferData,
+} from '../src/shared/types.js';
+import {
+  buildRequest,
+  buildOffer,
+  verifyOffer,
+} from '../src/shared/messages.js';
 
 interface CustomQuery extends GenericQuery {
   guests: bigint;
@@ -39,7 +48,10 @@ describe('Shared.messages', () => {
       },
     });
 
-  const createOffer = (request: RequestData<CustomQuery>, expire: bigint | string = BigInt(1)) =>
+  const createOffer = (
+    request: RequestData<CustomQuery>,
+    expire: bigint | string = BigInt(1),
+  ) =>
     buildOffer<CustomQuery, CustomOfferOptions>({
       domain: typedDomain,
       account: signer,
@@ -134,7 +146,9 @@ describe('Shared.messages', () => {
             transferable: offer.payload.transferable,
             idOverride: offer.id,
           }),
-        ).to.rejectedWith('Either account or signatureOverride must be provided with options');
+        ).to.rejectedWith(
+          'Either account or signatureOverride must be provided with options',
+        );
       });
     });
   });

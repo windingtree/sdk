@@ -3,7 +3,12 @@ import { Hash, stringify } from 'viem';
 import { Client } from '../../../../src/index.js'; // @windingtree/sdk
 import { OfferData } from '../../../../src/shared/types.js';
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
-import { ZeroHash, centerEllipsis, formatBalance, parseWalletError } from '../utils.js';
+import {
+  ZeroHash,
+  centerEllipsis,
+  formatBalance,
+  parseWalletError,
+} from '../utils.js';
 import { useWallet } from '../providers/WalletProvider/WalletProviderContext.js';
 import { ConnectButton } from '../providers/WalletProvider/ConnectButton.js';
 
@@ -48,7 +53,13 @@ export const MakeDeal = ({ offer, client }: MakeDealProps) => {
           throw new Error('Invalid deal configuration');
         }
 
-        await client.deals.create(offer, paymentId, ZeroHash, walletClient, setTx);
+        await client.deals.create(
+          offer,
+          paymentId,
+          ZeroHash,
+          walletClient,
+          setTx,
+        );
         setLoading(false);
         setSuccess(true);
       } catch (err) {
@@ -117,7 +128,13 @@ export const MakeDeal = ({ offer, client }: MakeDealProps) => {
         </>
       )}
       {error && (
-        <div style={{ marginTop: 20, padding: 10, backgroundColor: 'rgba(0,0,0,0.1)' }}>
+        <div
+          style={{
+            marginTop: 20,
+            padding: 10,
+            backgroundColor: 'rgba(0,0,0,0.1)',
+          }}
+        >
           {error}
         </div>
       )}

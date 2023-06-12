@@ -6,10 +6,17 @@ The WindingTree market protocol SDK was developed as a cross-platform solution. 
 
 ```typescript
 abstract class Storage {
-  abstract set<CustomValueType = unknown>(key: string, value: CustomValueType): Promise<void>;
-  abstract get<CustomValueType = unknown>(key: string): Promise<CustomValueType | undefined>;
+  abstract set<CustomValueType = unknown>(
+    key: string,
+    value: CustomValueType,
+  ): Promise<void>;
+  abstract get<CustomValueType = unknown>(
+    key: string,
+  ): Promise<CustomValueType | undefined>;
   abstract delete(key: string): Promise<boolean>;
-  abstract entries<CustomValueType = unknown>(): IterableIterator<[string, CustomValueType]>;
+  abstract entries<CustomValueType = unknown>(): IterableIterator<
+    [string, CustomValueType]
+  >;
 }
 ```
 
@@ -20,7 +27,9 @@ Every storage connector has `createInitializer` function that is a factory that 
 ```typescript
 type StorageInitializer = () => Promise<Storage>;
 
-type StorageInitializerFunction = (options?: GenericStorageOptions) => StorageInitializer;
+type StorageInitializerFunction = (
+  options?: GenericStorageOptions,
+) => StorageInitializer;
 ```
 
 ```typescript

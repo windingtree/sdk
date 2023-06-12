@@ -1,4 +1,10 @@
-import { useState, PropsWithChildren, useEffect, useCallback, useMemo } from 'react';
+import {
+  useState,
+  PropsWithChildren,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
 import {
   Address,
   PublicClient,
@@ -22,10 +28,11 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [error, setError] = useState<string | undefined>();
 
   const targetChain = useMemo(
-    () => import.meta.env.VITE_LOCAL_NODE === 'hardhat'
-      ? hardhat
-      : polygonZkEvmTestnet,
-    []
+    () =>
+      import.meta.env.VITE_LOCAL_NODE === 'hardhat'
+        ? hardhat
+        : polygonZkEvmTestnet,
+    [],
   );
 
   const publicClient = useMemo(
@@ -37,11 +44,17 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
     [targetChain],
   );
 
-  const getChainId = useCallback(async (publicClient: PublicClient): Promise<bigint> =>
-    BigInt(await publicClient.getChainId()), []);
+  const getChainId = useCallback(
+    async (publicClient: PublicClient): Promise<bigint> =>
+      BigInt(await publicClient.getChainId()),
+    [],
+  );
 
-  const getBalance = useCallback(async (publicClient: PublicClient, address: Address): Promise<bigint> =>
-    await publicClient.getBalance({ address }), []);
+  const getBalance = useCallback(
+    async (publicClient: PublicClient, address: Address): Promise<bigint> =>
+      await publicClient.getBalance({ address }),
+    [],
+  );
 
   const handleAccountsChanged = useCallback(async (): Promise<void> => {
     setLoading(true);

@@ -1,8 +1,23 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { Address, Hash, HDAccount, WalletClient, PublicClient, zeroAddress } from 'viem';
+import {
+  Address,
+  Hash,
+  HDAccount,
+  WalletClient,
+  PublicClient,
+  zeroAddress,
+} from 'viem';
 import { Client, createCheckInOutSignature } from '../index.js';
-import { GenericOfferOptions, GenericQuery, OfferData } from '../shared/types.js';
-import { DealStatus, ProtocolContracts, TxCallback } from '../shared/contracts.js';
+import {
+  GenericOfferOptions,
+  GenericQuery,
+  OfferData,
+} from '../shared/types.js';
+import {
+  DealStatus,
+  ProtocolContracts,
+  TxCallback,
+} from '../shared/contracts.js';
 import { Storage } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -95,9 +110,15 @@ export class DealsRegistry<
   CustomOfferOptions extends GenericOfferOptions,
 > extends EventEmitter<DealEvents<CustomRequestQuery, CustomOfferOptions>> {
   private client: Client<CustomRequestQuery, CustomOfferOptions>;
-  private contractsManager: ProtocolContracts<CustomRequestQuery, CustomOfferOptions>;
+  private contractsManager: ProtocolContracts<
+    CustomRequestQuery,
+    CustomOfferOptions
+  >;
   /** Mapping of an offer id => Deal */
-  private deals: Map<string, DealRecord<CustomRequestQuery, CustomOfferOptions>>; // id => Deal
+  private deals: Map<
+    string,
+    DealRecord<CustomRequestQuery, CustomOfferOptions>
+  >; // id => Deal
   private storage?: Storage;
   private storageKey: string;
   private checkInterval?: NodeJS.Timer;
@@ -109,18 +130,26 @@ export class DealsRegistry<
    * @param {DealsRegistryOptions<CustomRequestQuery, CustomOfferOptions>} options
    * @memberof DealsRegistry
    */
-  constructor(options: DealsRegistryOptions<CustomRequestQuery, CustomOfferOptions>) {
+  constructor(
+    options: DealsRegistryOptions<CustomRequestQuery, CustomOfferOptions>,
+  ) {
     super();
 
     const { client, storage, prefix, publicClient, walletClient } = options;
 
     this.client = client;
-    this.contractsManager = new ProtocolContracts<CustomRequestQuery, CustomOfferOptions>({
+    this.contractsManager = new ProtocolContracts<
+      CustomRequestQuery,
+      CustomOfferOptions
+    >({
       contracts: this.client.contracts,
       publicClient,
       walletClient,
     });
-    this.deals = new Map<string, DealRecord<CustomRequestQuery, CustomOfferOptions>>();
+    this.deals = new Map<
+      string,
+      DealRecord<CustomRequestQuery, CustomOfferOptions>
+    >();
     this.storageKey = `${prefix}_deals_records`;
     this.storage = storage;
     this._storageUp()
@@ -144,9 +173,9 @@ export class DealsRegistry<
       throw new Error('Invalid requests registry storage');
     }
 
-    const rawRecords = await this.storage.get<DealRecord<CustomRequestQuery, CustomOfferOptions>[]>(
-      this.storageKey,
-    );
+    const rawRecords = await this.storage.get<
+      DealRecord<CustomRequestQuery, CustomOfferOptions>[]
+    >(this.storageKey);
 
     if (rawRecords) {
       for (const dealRecord of rawRecords) {
@@ -170,7 +199,9 @@ export class DealsRegistry<
       throw new Error('Invalid requests registry storage');
     }
 
-    this.storage.set(this.storageKey, Array.from(this.deals.values())).catch(logger.error);
+    this.storage
+      .set(this.storageKey, Array.from(this.deals.values()))
+      .catch(logger.error);
   }
 
   /**
@@ -187,9 +218,12 @@ export class DealsRegistry<
     this.ongoingCheck = true;
     const records = await this.getAll();
     const recordsToCheck = records.filter(({ status }) =>
-      [DealStatus.Created, DealStatus.Claimed, DealStatus.CheckedIn, DealStatus.Disputed].includes(
-        status,
-      ),
+      [
+        DealStatus.Created,
+        DealStatus.Claimed,
+        DealStatus.CheckedIn,
+        DealStatus.Disputed,
+      ].includes(status),
     );
     const checkedRecords = await Promise.all(
       recordsToCheck.map((r) => this._buildDealRecord(r.offer)),
@@ -199,9 +233,12 @@ export class DealsRegistry<
       if (r.status !== recordsToCheck[index].status) {
         shouldEmitChanged = true;
         this.dispatchEvent(
-          new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>('status', {
-            detail: r,
-          }),
+          new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>(
+            'status',
+            {
+              detail: r,
+            },
+          ),
         );
       }
     });
@@ -286,7 +323,13 @@ export class DealsRegistry<
       throw new Error(`Deal ${offer.payload.id} already created!`);
     }
 
-    await this.contractsManager.createDeal(offer, paymentId, retailerId, walletClient, txCallback);
+    await this.contractsManager.createDeal(
+      offer,
+      paymentId,
+      retailerId,
+      walletClient,
+      txCallback,
+    );
 
     const record = await this._buildDealRecord(offer);
 
@@ -320,7 +363,9 @@ export class DealsRegistry<
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]>}
    * @memberof DealsRegistry
    */
-  async getAll(): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]> {
+  async getAll(): Promise<
+    DealRecord<CustomRequestQuery, CustomOfferOptions>[]
+  > {
     const records: DealRecord<CustomRequestQuery, CustomOfferOptions>[] = [];
 
     for (const record of this.deals.values()) {
@@ -351,7 +396,11 @@ export class DealsRegistry<
     const dealRecord = await this.get(offer);
 
     if (![DealStatus.Created, DealStatus.Claimed].includes(dealRecord.status)) {
-      throw new Error(`Cancellation not allowed in the status ${DealStatus[dealRecord.status]}`);
+      throw new Error(
+        `Cancellation not allowed in the status ${
+          DealStatus[dealRecord.status]
+        }`,
+      );
     }
 
     await this.contractsManager.cancelDeal(offer, walletClient, txCallback);
@@ -359,9 +408,12 @@ export class DealsRegistry<
     const record = await this._buildDealRecord(dealRecord.offer);
 
     this.dispatchEvent(
-      new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>('status', {
-        detail: record,
-      }),
+      new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>(
+        'status',
+        {
+          detail: record,
+        },
+      ),
     );
     this.dispatchEvent(new CustomEvent<void>('changed'));
 
@@ -386,14 +438,22 @@ export class DealsRegistry<
   ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
     let dealRecord = await this.get(offer);
 
-    await this.contractsManager.transferDeal(dealRecord.offer, to, walletClient, txCallback);
+    await this.contractsManager.transferDeal(
+      dealRecord.offer,
+      to,
+      walletClient,
+      txCallback,
+    );
 
     dealRecord = await this._buildDealRecord(dealRecord.offer);
 
     this.dispatchEvent(
-      new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>('status', {
-        detail: dealRecord,
-      }),
+      new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>(
+        'status',
+        {
+          detail: dealRecord,
+        },
+      ),
     );
     this.dispatchEvent(new CustomEvent<void>('changed'));
 
@@ -419,7 +479,9 @@ export class DealsRegistry<
     let dealRecord = await this.get(offer);
 
     if (![DealStatus.Created, DealStatus.Claimed].includes(dealRecord.status)) {
-      throw new Error(`CheckIn not allowed in the status ${DealStatus[dealRecord.status]}`);
+      throw new Error(
+        `CheckIn not allowed in the status ${DealStatus[dealRecord.status]}`,
+      );
     }
 
     if (!walletClient || !walletClient.account) {
@@ -447,9 +509,12 @@ export class DealsRegistry<
     dealRecord = await this._buildDealRecord(dealRecord.offer);
 
     this.dispatchEvent(
-      new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>('status', {
-        detail: dealRecord,
-      }),
+      new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>(
+        'status',
+        {
+          detail: dealRecord,
+        },
+      ),
     );
     this.dispatchEvent(new CustomEvent<void>('changed'));
 
