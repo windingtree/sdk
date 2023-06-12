@@ -2,10 +2,17 @@
  * Key-value database abstraction layer interface
  */
 export abstract class Storage {
-  abstract set<CustomValueType = unknown>(key: string, value: CustomValueType): Promise<void>;
-  abstract get<CustomValueType = unknown>(key: string): Promise<CustomValueType | undefined>;
+  abstract set<CustomValueType = unknown>(
+    key: string,
+    value: CustomValueType,
+  ): Promise<void>;
+  abstract get<CustomValueType = unknown>(
+    key: string,
+  ): Promise<CustomValueType | undefined>;
   abstract delete(key: string): Promise<boolean>;
-  abstract entries<CustomValueType = unknown>(): IterableIterator<[string, CustomValueType]>;
+  abstract entries<CustomValueType = unknown>(): IterableIterator<
+    [string, CustomValueType]
+  >;
 }
 
 export type GenericStorageOptions = Record<string, unknown>;
@@ -18,4 +25,6 @@ export type StorageInitializer = () => Promise<Storage>;
 /**
  * Storage initializer callback function type
  */
-export type StorageInitializerFunction = (options?: GenericStorageOptions) => StorageInitializer;
+export type StorageInitializerFunction = (
+  options?: GenericStorageOptions,
+) => StorageInitializer;

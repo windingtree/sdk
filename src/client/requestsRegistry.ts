@@ -1,7 +1,12 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { stringify } from 'viem';
 import { Client } from '../index.js';
-import { GenericOfferOptions, GenericQuery, RequestData, OfferData } from '../shared/types.js';
+import {
+  GenericOfferOptions,
+  GenericQuery,
+  RequestData,
+  OfferData,
+} from '../shared/types.js';
 import { Storage } from '../storage/index.js';
 import { encodeText } from '../utils/text.js';
 import { nowSec } from '../utils/time.js';
@@ -158,7 +163,10 @@ export class RequestsRegistry<
   CustomRequestQuery extends GenericQuery,
   CustomOfferOptions extends GenericOfferOptions,
 > extends EventEmitter<RequestEvents<CustomRequestQuery, CustomOfferOptions>> {
-  private requests: Map<string, RequestRecord<CustomRequestQuery, CustomOfferOptions>>; // id => RawRequest
+  private requests: Map<
+    string,
+    RequestRecord<CustomRequestQuery, CustomOfferOptions>
+  >; // id => RawRequest
   private client: Client<CustomRequestQuery, CustomOfferOptions>;
   private storage?: Storage;
   private storageKey: string;
@@ -170,7 +178,9 @@ export class RequestsRegistry<
    * @param {RequestsRegistryOptions<CustomRequestQuery, CustomOfferOptions>} options
    * @memberof RequestsRegistry
    */
-  constructor(options: RequestsRegistryOptions<CustomRequestQuery, CustomOfferOptions>) {
+  constructor(
+    options: RequestsRegistryOptions<CustomRequestQuery, CustomOfferOptions>,
+  ) {
     super();
 
     const { client, storage, prefix } = options;
@@ -178,7 +188,10 @@ export class RequestsRegistry<
     // @todo Validate RequestsRegistryOptions
 
     this.client = client;
-    this.requests = new Map<string, RequestRecord<CustomRequestQuery, CustomOfferOptions>>();
+    this.requests = new Map<
+      string,
+      RequestRecord<CustomRequestQuery, CustomOfferOptions>
+    >();
     this.subscriptions = new Map();
     this.storageKey = `${prefix}_requests_records`;
     this.storage = storage;
@@ -228,7 +241,9 @@ export class RequestsRegistry<
       throw new Error('Invalid requests registry storage');
     }
 
-    this.storage.set(this.storageKey, Array.from(this.requests.values())).catch(logger.error);
+    this.storage
+      .set(this.storageKey, Array.from(this.requests.values()))
+      .catch(logger.error);
   }
 
   /**
@@ -264,7 +279,9 @@ export class RequestsRegistry<
    * @returns
    * @memberof RequestsRegistry
    */
-  private _subscribe(record: RequestRecord<CustomRequestQuery, CustomOfferOptions>) {
+  private _subscribe(
+    record: RequestRecord<CustomRequestQuery, CustomOfferOptions>,
+  ) {
     if (!this.client.libp2p || !this.client.connected) {
       throw new Error('Client not connected to the coordination server yet');
     }
@@ -318,19 +335,23 @@ export class RequestsRegistry<
 
     // @todo Validate RequestData
 
-    const requestRecord: RequestRecord<CustomRequestQuery, CustomOfferOptions> = {
-      data: request,
-      offers: [],
-      cancelled: false,
-    };
+    const requestRecord: RequestRecord<CustomRequestQuery, CustomOfferOptions> =
+      {
+        data: request,
+        offers: [],
+        cancelled: false,
+      };
 
     // @todo Validate requestRecord
 
     this.requests.set(request.id, requestRecord);
     this.dispatchEvent(
-      new CustomEvent<RequestRecord<CustomRequestQuery, CustomOfferOptions>>('request', {
-        detail: requestRecord,
-      }),
+      new CustomEvent<RequestRecord<CustomRequestQuery, CustomOfferOptions>>(
+        'request',
+        {
+          detail: requestRecord,
+        },
+      ),
     );
 
     this._subscribe(requestRecord);
@@ -355,7 +376,9 @@ export class RequestsRegistry<
    * @returns {(RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined)}
    * @memberof RequestsRegistry
    */
-  get(id: string): RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined {
+  get(
+    id: string,
+  ): RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined {
     return this.requests.get(id);
   }
 

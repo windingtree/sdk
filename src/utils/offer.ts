@@ -8,7 +8,10 @@ import { PaymentOption } from '../shared/types.js';
  * @param {string} paymentId Payment option Id
  * @returns {PaymentOption} Payment option
  */
-export const getPaymentOption = (options: PaymentOption[], paymentId: Hash): PaymentOption => {
+export const getPaymentOption = (
+  options: PaymentOption[],
+  paymentId: Hash,
+): PaymentOption => {
   const option = options.find((o) => o.id === paymentId);
 
   if (!option) {

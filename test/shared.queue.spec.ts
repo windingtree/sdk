@@ -2,7 +2,6 @@ import './setup.js';
 import { memoryStorage } from '../src/storage/index.js';
 import {
   Queue,
-  JobHandler,
   JobStatus,
   createJobHandler,
   JobHandlerClosure,
@@ -42,8 +41,11 @@ describe('Shared.Queue', () => {
         const shouldFail = shouldThrow && Math.random() < 0.5;
         const repeatOpts = shouldThrow
           ? {
-              repeat: Math.floor(Math.random() * (maxAttempts - minAttempts)) + minAttempts,
-              delay: Math.floor(Math.random() * (maxDelay - minDelay)) + minDelay,
+              repeat:
+                Math.floor(Math.random() * (maxAttempts - minAttempts)) +
+                minAttempts,
+              delay:
+                Math.floor(Math.random() * (maxDelay - minDelay)) + minDelay,
             }
           : {};
 
@@ -71,7 +73,8 @@ describe('Shared.Queue', () => {
     const { ok, fail } = jobs.reduce(
       (a, v) => ({
         ok:
-          (!v.data.repeat && !v.data.shouldThrow) || (v.data.repeat && !v.data.shouldFail)
+          (!v.data.repeat && !v.data.shouldThrow) ||
+          (v.data.repeat && !v.data.shouldFail)
             ? a.ok + 1
             : a.ok,
         fail: v.data.shouldFail ? a.fail + 1 : a.fail,
@@ -91,7 +94,10 @@ describe('Shared.Queue', () => {
 
     // eslint-disable-next-line @typescript-eslint/require-await
     const handler = createJobHandler<JobData>(async (job) => {
-      if ((job.data.repeat && job.state.attempts < job.data.repeat) || job.data.shouldFail) {
+      if (
+        (job.data.repeat && job.state.attempts < job.data.repeat) ||
+        job.data.shouldFail
+      ) {
         throw new Error('Should throw');
       }
     });

@@ -18,7 +18,12 @@ import {
   stringify,
 } from 'viem';
 import { marketABI, erc20_18ABI } from '@windingtree/contracts';
-import { Contracts, GenericOfferOptions, GenericQuery, OfferData } from './types.js';
+import {
+  Contracts,
+  GenericOfferOptions,
+  GenericQuery,
+  OfferData,
+} from './types.js';
 import { getPaymentOption } from '../utils/offer.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -58,8 +63,8 @@ export interface ProtocolContractsOptions {
  * @template CustomOfferOptions
  */
 export class ProtocolContracts<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
 > {
   /** Protocol smart contracts */
   contracts: Contracts;
@@ -99,7 +104,10 @@ export class ProtocolContracts<
    * @returns {Promise<TransactionReceipt>}
    * @memberof ProtocolContracts
    */
-  private async _sendHelper<TAbi extends Abi = Abi, TFunctionName extends string = string>(
+  private async _sendHelper<
+    TAbi extends Abi = Abi,
+    TFunctionName extends string = string,
+  >(
     address: Address,
     abi: TAbi,
     functionName: InferFunctionName<TAbi, TFunctionName>,
@@ -132,7 +140,9 @@ export class ProtocolContracts<
 
       logger.trace('Request options:', stringify(requestOptions));
 
-      const { request } = await this.publicClient.simulateContract(requestOptions);
+      const { request } = await this.publicClient.simulateContract(
+        requestOptions,
+      );
 
       const hash = await walletClient.writeContract(request);
 
@@ -142,7 +152,9 @@ export class ProtocolContracts<
         txCallback(hash, txSubject);
       }
 
-      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash,
+      });
 
       logger.trace('Tx receipt:', receipt);
 
@@ -150,9 +162,14 @@ export class ProtocolContracts<
     } catch (error) {
       logger.error(error);
 
-      if (error instanceof BaseError && error.cause instanceof ContractFunctionRevertedError) {
+      if (
+        error instanceof BaseError &&
+        error.cause instanceof ContractFunctionRevertedError
+      ) {
         const cause: ContractFunctionRevertedError = error.cause;
-        throw new Error(cause.data?.errorName ?? 'Unknown contract function revert error');
+        throw new Error(
+          cause.data?.errorName ?? 'Unknown contract function revert error',
+        );
       }
 
       throw error;
@@ -303,11 +320,15 @@ export class ProtocolContracts<
     }
 
     if (!offer.payload.transferable) {
-      throw new Error(`Transfer of the deal ${offer.payload.id} is not allowed`);
+      throw new Error(
+        `Transfer of the deal ${offer.payload.id} is not allowed`,
+      );
     }
 
     if (![DealStatus.Created, DealStatus.Claimed].includes(status)) {
-      throw new Error(`Transfer not allowed in the status ${DealStatus[status]}`);
+      throw new Error(
+        `Transfer not allowed in the status ${DealStatus[status]}`,
+      );
     }
 
     const tokenId = await this.publicClient.readContract({

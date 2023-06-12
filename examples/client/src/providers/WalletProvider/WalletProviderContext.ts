@@ -15,7 +15,9 @@ export interface WalletContextData {
   disconnect(): void;
 }
 
-export const WalletContext = createContext<WalletContextData>({} as WalletContextData);
+export const WalletContext = createContext<WalletContextData>(
+  {} as WalletContextData,
+);
 
 export const useWallet = () => {
   const context = useContext(WalletContext);

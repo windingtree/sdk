@@ -14,7 +14,11 @@ export interface RequestFormProps {
 /**
  * Accepts user input
  */
-export const RequestForm = ({ connected, onSubmit, defaultTopic = 'hello' }: RequestFormProps) => {
+export const RequestForm = ({
+  connected,
+  onSubmit,
+  defaultTopic = 'hello',
+}: RequestFormProps) => {
   const [topic, setTopic] = useState<string>(defaultTopic);
   const [message, setMessage] = useState<string>('');
 
@@ -47,7 +51,10 @@ export const RequestForm = ({ connected, onSubmit, defaultTopic = 'hello' }: Req
             <strong>Request:</strong>
           </div>
           <div>
-            <input value={message} onChange={(e) => setMessage(e.target.value)} />
+            <input
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', marginTop: 10 }}>
             <div>

@@ -98,7 +98,9 @@ export interface ClientEvents<
    * })
    * ```
    */
-  'request:create': CustomEvent<RequestRecord<CustomRequestQuery, CustomOfferOptions>>;
+  'request:create': CustomEvent<
+    RequestRecord<CustomRequestQuery, CustomOfferOptions>
+  >;
 
   /**
    * @example
@@ -197,7 +199,9 @@ export interface ClientEvents<
    * })
    * ```
    */
-  'deal:status': CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>;
+  'deal:status': CustomEvent<
+    DealRecord<CustomRequestQuery, CustomOfferOptions>
+  >;
 
   /**
    * @example
@@ -240,7 +244,10 @@ export class Client<
   CustomOfferOptions extends GenericOfferOptions,
 > extends EventEmitter<ClientEvents<CustomRequestQuery, CustomOfferOptions>> {
   private libp2pInit: Libp2pOptions;
-  private requestsRegistry?: RequestsRegistry<CustomRequestQuery, CustomOfferOptions>;
+  private requestsRegistry?: RequestsRegistry<
+    CustomRequestQuery,
+    CustomOfferOptions
+  >;
   private dealsRegistry?: DealsRegistry<CustomRequestQuery, CustomOfferOptions>;
   private storageInitializer: StorageInitializer;
   private dbKeysPrefix: string;
@@ -339,15 +346,21 @@ export class Client<
     };
     this.libp2p = await createLibp2p(config);
 
-    (this.libp2p.pubsub as CenterSub).addEventListener('gossipsub:heartbeat', () => {
-      this.dispatchEvent(new CustomEvent<void>('heartbeat'));
-    });
+    (this.libp2p.pubsub as CenterSub).addEventListener(
+      'gossipsub:heartbeat',
+      () => {
+        this.dispatchEvent(new CustomEvent<void>('heartbeat'));
+      },
+    );
 
     this.libp2p.addEventListener('peer:connect', ({ detail }) => {
       try {
         if (detail.remotePeer.equals(this.serverPeerId)) {
           this.dispatchEvent(new CustomEvent<void>('connected'));
-          logger.trace('🔗 Client connected to server at:', new Date().toISOString());
+          logger.trace(
+            '🔗 Client connected to server at:',
+            new Date().toISOString(),
+          );
         }
       } catch (error) {
         logger.error(error);
@@ -358,7 +371,10 @@ export class Client<
       try {
         if (detail.remotePeer.equals(this.serverPeerId)) {
           this.dispatchEvent(new CustomEvent<void>('disconnected'));
-          logger.trace('🔌 Client disconnected from server at:', new Date().toISOString());
+          logger.trace(
+            '🔌 Client disconnected from server at:',
+            new Date().toISOString(),
+          );
         }
       } catch (error) {
         logger.error(error);
@@ -394,7 +410,10 @@ export class Client<
       }
     });
 
-    this.requestsRegistry = new RequestsRegistry<CustomRequestQuery, CustomOfferOptions>({
+    this.requestsRegistry = new RequestsRegistry<
+      CustomRequestQuery,
+      CustomOfferOptions
+    >({
       client: this,
       storage: await this.storageInitializer(),
       prefix: this.dbKeysPrefix,
@@ -406,9 +425,12 @@ export class Client<
 
     this.requestsRegistry.addEventListener('request', ({ detail }) => {
       this.dispatchEvent(
-        new CustomEvent<RequestRecord<CustomRequestQuery, CustomOfferOptions>>('request:create', {
-          detail,
-        }),
+        new CustomEvent<RequestRecord<CustomRequestQuery, CustomOfferOptions>>(
+          'request:create',
+          {
+            detail,
+          },
+        ),
       );
     });
 
@@ -464,7 +486,10 @@ export class Client<
       this.dispatchEvent(new CustomEvent<void>('request:clear'));
     });
 
-    this.dealsRegistry = new DealsRegistry<CustomRequestQuery, CustomOfferOptions>({
+    this.dealsRegistry = new DealsRegistry<
+      CustomRequestQuery,
+      CustomOfferOptions
+    >({
       client: this,
       storage: await this.storageInitializer(),
       prefix: this.dbKeysPrefix,
@@ -474,7 +499,9 @@ export class Client<
 
     this.dealsRegistry.addEventListener('status', () => {
       this.dispatchEvent(
-        new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>('deal:status'),
+        new CustomEvent<DealRecord<CustomRequestQuery, CustomOfferOptions>>(
+          'deal:status',
+        ),
       );
     });
 
@@ -551,7 +578,9 @@ export class Client<
    * @returns {Required<RequestRecord<CustomRequestQuery, CustomOfferOptions>>[]}
    * @memberof Client
    */
-  private _getRequests(): Required<RequestRecord<CustomRequestQuery, CustomOfferOptions>>[] {
+  private _getRequests(): Required<
+    RequestRecord<CustomRequestQuery, CustomOfferOptions>
+  >[] {
     if (!this.requestsRegistry) {
       throw new Error('Client not initialized yet');
     }
@@ -686,7 +715,13 @@ export class Client<
       throw new Error('Client not initialized yet');
     }
 
-    return await this.dealsRegistry.create(offer, paymentId, retailerId, walletClient, txCallback);
+    return await this.dealsRegistry.create(
+      offer,
+      paymentId,
+      retailerId,
+      walletClient,
+      txCallback,
+    );
   }
 
   /**
@@ -730,7 +765,12 @@ export class Client<
       throw new Error('Client not initialized yet');
     }
 
-    return await this.dealsRegistry.transfer(offer, to, walletClient, txCallback);
+    return await this.dealsRegistry.transfer(
+      offer,
+      to,
+      walletClient,
+      txCallback,
+    );
   }
 
   /**
@@ -753,7 +793,12 @@ export class Client<
       throw new Error('Client not initialized yet');
     }
 
-    return await this.dealsRegistry.checkIn(offer, supplierSignature, walletClient, txCallback);
+    return await this.dealsRegistry.checkIn(
+      offer,
+      supplierSignature,
+      walletClient,
+      txCallback,
+    );
   }
 
   /**
@@ -779,7 +824,9 @@ export class Client<
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]>}
    * @memberof DealsRegistry
    */
-  private async _getDeals(): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]> {
+  private async _getDeals(): Promise<
+    DealRecord<CustomRequestQuery, CustomOfferOptions>[]
+  > {
     if (!this.dealsRegistry) {
       throw new Error('Client not initialized yet');
     }

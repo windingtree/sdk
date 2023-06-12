@@ -64,7 +64,8 @@ export class CenterSub extends GossipSub {
    * @memberof CenterSub
    */
   constructor(components: GossipSubComponents, options: CenterSubOptions) {
-    const { isClient, directPeers, messageTransformer, messagesStorage } = options;
+    const { isClient, directPeers, messageTransformer, messagesStorage } =
+      options;
 
     // @todo Validate CenterSub options
 
@@ -77,7 +78,9 @@ export class CenterSub extends GossipSub {
      * A client node must be configured to be connected to the direct peers (servers)
      */
     if (isClient && opts.directPeers.length === 0) {
-      throw new Error('Address of the server must be provided with "directPeers" option');
+      throw new Error(
+        'Address of the server must be provided with "directPeers" option',
+      );
     }
 
     super(components, opts);
@@ -100,7 +103,10 @@ export class CenterSub extends GossipSub {
     this.messageTransformer = messageTransformer
       ? messageTransformer
       : (message) => JSON.parse(decodeText(message)) as GenericMessage;
-    this.addEventListener('gossipsub:heartbeat', this.handleHeartbeat.bind(this));
+    this.addEventListener(
+      'gossipsub:heartbeat',
+      this.handleHeartbeat.bind(this),
+    );
   }
 
   /**
@@ -126,10 +132,13 @@ export class CenterSub extends GossipSub {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    const sent = this['sendRpc'](id, { messages: messages.map((m) => m.data) }) as boolean;
+    const sent = this['sendRpc'](id, {
+      messages: messages.map((m) => m.data),
+    }) as boolean;
     const sentMsgIds = messages.map((m) => {
       if (sent) {
-        const peerCache = this.seenPeerMessageCache.get(id) || new Set<string>();
+        const peerCache =
+          this.seenPeerMessageCache.get(id) || new Set<string>();
         this.seenPeerMessageCache.set(id, new Set([...peerCache, ...[m.id]]));
       }
     });
@@ -201,7 +210,10 @@ export class CenterSub extends GossipSub {
         return;
       }
       const missedMessages = this.messages.get();
-      logger.trace('handlePeerConnect: missedMessages.length:', missedMessages.length);
+      logger.trace(
+        'handlePeerConnect: missedMessages.length:',
+        missedMessages.length,
+      );
       if (missedMessages.length > 0) {
         this.publishToPeer(peerId, missedMessages);
       }
@@ -219,7 +231,11 @@ export class CenterSub extends GossipSub {
    * @param {Multiaddr} addr
    * @memberof CenterSub
    */
-  private onAddPeer(peerId: PeerId, direction: Direction, addr: Multiaddr): void {
+  private onAddPeer(
+    peerId: PeerId,
+    direction: Direction,
+    addr: Multiaddr,
+  ): void {
     const id = peerId.toString();
     const hasPeer = this.peers.has(id);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
@@ -257,7 +273,10 @@ export class CenterSub extends GossipSub {
    * @returns {Promise<void>}
    * @memberof CenterSub
    */
-  private async onHandleReceivedMessage(from: PeerId, rpcMsg: RPC.IMessage): Promise<void> {
+  private async onHandleReceivedMessage(
+    from: PeerId,
+    rpcMsg: RPC.IMessage,
+  ): Promise<void> {
     // We subscribe a server to every incoming topic
     // to guarantee that every message will be processed.
     if (!this.isClient) {
@@ -292,13 +311,17 @@ export class CenterSub extends GossipSub {
     // on a topic before).
     if (this.isClient) {
       const peersInTopic: Set<string> =
-        (this['topics'] as Map<TopicStr, Set<PeerIdStr>>).get(topic) || new Set<string>();
+        (this['topics'] as Map<TopicStr, Set<PeerIdStr>>).get(topic) ||
+        new Set<string>();
       for (const peer of this.direct) {
         if (!peersInTopic.has(peer)) {
           peersInTopic.add(peer);
         }
       }
-      (this['topics'] as Map<TopicStr, Set<PeerIdStr>>).set(topic, peersInTopic);
+      (this['topics'] as Map<TopicStr, Set<PeerIdStr>>).set(
+        topic,
+        peersInTopic,
+      );
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     return super['selectPeersToPublish'](topic) as {
@@ -317,5 +340,6 @@ export class CenterSub extends GossipSub {
 export const centerSub = (
   options: CenterSubOptions,
 ): ((components: GossipSubComponents) => PubSub<GossipsubEvents>) => {
-  return (components: GossipSubComponents) => new CenterSub(components, options ?? {});
+  return (components: GossipSubComponents) =>
+    new CenterSub(components, options ?? {});
 };

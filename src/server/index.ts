@@ -108,9 +108,14 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
     const peerId = await createFromJSON(this.peerKey);
     this.libp2p = await createLibp2p({ peerId, ...config });
 
-    (this.libp2p.pubsub as CenterSub).addEventListener('message', ({ detail }) => {
-      logger.trace(`Message: ${decodeText(detail.data)} on topic ${detail.topic}`);
-    });
+    (this.libp2p.pubsub as CenterSub).addEventListener(
+      'message',
+      ({ detail }) => {
+        logger.trace(
+          `Message: ${decodeText(detail.data)} on topic ${detail.topic}`,
+        );
+      },
+    );
 
     await this.libp2p.start();
     this.dispatchEvent(new CustomEvent<void>('start'));

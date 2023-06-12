@@ -4,7 +4,7 @@ import { Contracts } from './types.js';
 
 export type NoncePeriodOption = {
   /** Period while the node waits and accepting requests with the same Id */
-  noncePeriod: number;
+  noncePeriod: number | string;
 };
 
 export type ChainsConfigOption = {

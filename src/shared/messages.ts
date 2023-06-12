@@ -1,4 +1,10 @@
-import { Address, Hash, verifyTypedData, HDAccount, PrivateKeyAccount } from 'viem';
+import {
+  Address,
+  Hash,
+  verifyTypedData,
+  HDAccount,
+  PrivateKeyAccount,
+} from 'viem';
 import { TypedDataDomain } from 'abitype';
 import {
   BuildRequestOptions,
@@ -167,7 +173,9 @@ export const buildOffer = async <
   } else if (signatureOverride) {
     signature = signatureOverride;
   } else {
-    throw new Error('Either account or signatureOverride must be provided with options');
+    throw new Error(
+      'Either account or signatureOverride must be provided with options',
+    );
   }
 
   return {

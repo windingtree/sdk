@@ -19,5 +19,12 @@ export const generateMnemonic = (): string => generateMnemonic_(english);
  * @param {number} addressIndex
  * @returns {Account}
  */
-export const deriveAccount = (mnemonic: string, addressIndex: number): Account =>
-  mnemonicToAccount(mnemonic, { accountIndex: 0, changeIndex: 0, addressIndex });
+export const deriveAccount = (
+  mnemonic: string,
+  addressIndex: number,
+): Account =>
+  mnemonicToAccount(mnemonic, {
+    accountIndex: 0,
+    changeIndex: 0,
+    addressIndex,
+  });

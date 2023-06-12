@@ -9,8 +9,12 @@ describe('Utils.uid', () => {
 
   describe('#simpleUid', () => {
     it('should throw if invalid length provided', () => {
-      expect(() => simpleUid(4)).to.throw('Length value must be between 5 and 14');
-      expect(() => simpleUid(15)).to.throw('Length value must be between 5 and 14');
+      expect(() => simpleUid(4)).to.throw(
+        'Length value must be between 5 and 14',
+      );
+      expect(() => simpleUid(15)).to.throw(
+        'Length value must be between 5 and 14',
+      );
     });
 
     it('should generate simple uid', () => {
@@ -33,7 +37,8 @@ describe('Utils.uid', () => {
     const owner = mnemonicToAccount(generateMnemonic());
 
     it('should generate bytes32-formatted supplierId', () => {
-      expect(bytes32RegExp.exec(supplierId(randomSalt(), owner.address))).to.not.null;
+      expect(bytes32RegExp.exec(supplierId(randomSalt(), owner.address))).to.not
+        .null;
     });
   });
 });

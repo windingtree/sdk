@@ -1,5 +1,9 @@
 import { Address } from 'viem';
-import { GenericQuery, GenericOfferOptions, Contracts } from '../../src/shared/types.js';
+import {
+  GenericQuery,
+  GenericOfferOptions,
+  Contracts,
+} from '../../src/shared/types.js';
 
 export interface RequestQuery extends GenericQuery {
   greeting: string;
@@ -18,7 +22,9 @@ export interface LocalEnv {
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const env =
-  typeof window === 'undefined' ? process.env : (import.meta as unknown as { env: LocalEnv }).env;
+  typeof window === 'undefined'
+    ? process.env
+    : (import.meta as unknown as { env: LocalEnv }).env;
 
 export const contractsConfig: Contracts =
   env.LOCAL_NODE === 'hardhat' || env.VITE_LOCAL_NODE === 'hardhat'
