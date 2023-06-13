@@ -9,21 +9,25 @@ import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
-import { Address, Chain, Hash, PublicClient, WalletClient } from 'viem';
 import {
-  BuildRequestOptions,
+  Address,
+  Chain,
+  Hash,
+  PublicClient,
+  WalletClient,
+  stringify,
+} from 'viem';
+import {
   OfferData,
   GenericOfferOptions,
   GenericQuery,
-  RequestData,
   Contracts,
+  RequestData,
 } from '../shared/types.js';
 import { centerSub, CenterSub } from '../shared/pubsub.js';
-import { buildRequest } from '../shared/messages.js';
 import { ChainsConfigOption, ServerAddressOption } from '../shared/options.js';
-import { RequestRecord, RequestsRegistry } from './requestsRegistry.js';
 import { DealRecord, DealsRegistry } from './dealsRegistry.js';
-import { decodeText } from '../utils/text.js';
+import { encodeText, decodeText } from '../utils/text.js';
 import { StorageInitializer } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
 import { TxCallback } from '../shared/contracts.js';
@@ -31,8 +35,8 @@ import { TxCallback } from '../shared/contracts.js';
 const logger = createLogger('Client');
 
 export interface ClientEvents<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
 > {
   /**
    * @example
@@ -93,102 +97,23 @@ export interface ClientEvents<
    * @example
    *
    * ```js
-   * client.addEventListener('request:create', () => {
-   *    // ... request created
-   * })
-   * ```
-   */
-  'request:create': CustomEvent<
-    RequestRecord<CustomRequestQuery, CustomOfferOptions>
-  >;
-
-  /**
-   * @example
-   *
-   * ```js
-   * client.addEventListener('request:publish', ({ details: id }) => {
+   * client.addEventListener('publish', ({ detail }) => {
    *    // ... request published
    * })
    * ```
    */
-  'request:publish': CustomEvent<string>;
+  publish: CustomEvent<RequestData<CustomRequestQuery>>;
 
   /**
    * @example
    *
    * ```js
-   * client.addEventListener('request:subscribe', ({ details: id }) => {
-   *    // ... request unsubscribed
+   * client.addEventListener('publish', ({ detail }) => {
+   *    // ... offer arrived
    * })
    * ```
    */
-  'request:subscribe': CustomEvent<string>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * client.addEventListener('request:unsubscribe', ({ details: id }) => {
-   *    // ... request subscribed
-   * })
-   * ```
-   */
-  'request:unsubscribe': CustomEvent<string>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * client.addEventListener('request:expire', ({ details: id }) => {
-   *    // ... request expired
-   * })
-   * ```
-   */
-  'request:expire': CustomEvent<string>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * client.addEventListener('request:cancel', ({ details: id }) => {
-   *    // ... request cancelled
-   * })
-   * ```
-   */
-  'request:cancel': CustomEvent<string>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * client.addEventListener('request:delete', ({ details: id }) => {
-   *    // ... request deleted
-   * })
-   * ```
-   */
-  'request:delete': CustomEvent<string>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * client.addEventListener('request:offer', ({ details: id }) => {
-   *    // ... offer added to request ${id}
-   * })
-   * ```
-   */
-  'request:offer': CustomEvent<string>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * client.addEventListener('request:clear', () => {
-   *    // ... requests are cleared
-   * })
-   * ```
-   */
-  'request:clear': CustomEvent<void>;
+  offer: CustomEvent<OfferData<CustomRequestQuery, CustomOfferOptions>>;
 
   /**
    * @example
@@ -240,14 +165,10 @@ export interface ClientOptions extends ChainsConfigOption, ServerAddressOption {
  * @template CustomOfferOptions
  */
 export class Client<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
 > extends EventEmitter<ClientEvents<CustomRequestQuery, CustomOfferOptions>> {
   private libp2pInit: Libp2pOptions;
-  private requestsRegistry?: RequestsRegistry<
-    CustomRequestQuery,
-    CustomOfferOptions
-  >;
   private dealsRegistry?: DealsRegistry<CustomRequestQuery, CustomOfferOptions>;
   private storageInitializer: StorageInitializer;
   private dbKeysPrefix: string;
@@ -383,11 +304,8 @@ export class Client<
 
     this.libp2p.pubsub.addEventListener('message', ({ detail }) => {
       logger.trace(`Message on topic ${detail.topic}`);
-      try {
-        if (!this.requestsRegistry) {
-          throw new Error('Requests registry not initialized yet');
-        }
 
+      try {
         /** Check is the message is an offer */
         const offer = JSON.parse(decodeText(detail.data)) as OfferData<
           CustomRequestQuery,
@@ -398,92 +316,21 @@ export class Client<
 
         logger.trace('Offer received:', offer);
 
-        // Verify the offer
         // @todo Implement offer verification
 
         logger.trace('Offer:', offer);
 
-        /** Add the offer to the associated request */
-        this.requestsRegistry.addOffer(offer);
+        this.dispatchEvent(
+          new CustomEvent<OfferData<CustomRequestQuery, CustomOfferOptions>>(
+            'offer',
+            {
+              detail: offer,
+            },
+          ),
+        );
       } catch (error) {
         logger.error(error);
       }
-    });
-
-    this.requestsRegistry = new RequestsRegistry<
-      CustomRequestQuery,
-      CustomOfferOptions
-    >({
-      client: this,
-      storage: await this.storageInitializer(),
-      prefix: this.dbKeysPrefix,
-    });
-
-    /**
-     * Listening on request registry events
-     */
-
-    this.requestsRegistry.addEventListener('request', ({ detail }) => {
-      this.dispatchEvent(
-        new CustomEvent<RequestRecord<CustomRequestQuery, CustomOfferOptions>>(
-          'request:create',
-          {
-            detail,
-          },
-        ),
-      );
-    });
-
-    this.requestsRegistry.addEventListener('publish', ({ detail }) => {
-      this.dispatchEvent(
-        new CustomEvent<string>('request:publish', {
-          detail,
-        }),
-      );
-    });
-
-    this.requestsRegistry.addEventListener('unsubscribe', ({ detail }) => {
-      this.dispatchEvent(
-        new CustomEvent<string>('request:unsubscribe', {
-          detail,
-        }),
-      );
-    });
-
-    this.requestsRegistry.addEventListener('subscribe', ({ detail }) => {
-      this.dispatchEvent(
-        new CustomEvent<string>('request:subscribe', {
-          detail,
-        }),
-      );
-    });
-
-    this.requestsRegistry.addEventListener('cancel', ({ detail }) => {
-      this.dispatchEvent(
-        new CustomEvent<string>('request:cancel', {
-          detail,
-        }),
-      );
-    });
-
-    this.requestsRegistry.addEventListener('delete', ({ detail }) => {
-      this.dispatchEvent(
-        new CustomEvent<string>('request:delete', {
-          detail,
-        }),
-      );
-    });
-
-    this.requestsRegistry.addEventListener('offer', ({ detail }) => {
-      this.dispatchEvent(
-        new CustomEvent<string>('request:offer', {
-          detail,
-        }),
-      );
-    });
-
-    this.requestsRegistry.addEventListener('clear', () => {
-      this.dispatchEvent(new CustomEvent<void>('request:clear'));
     });
 
     this.dealsRegistry = new DealsRegistry<
@@ -515,6 +362,57 @@ export class Client<
   }
 
   /**
+   * Publishes new request
+   *
+   * @param {RequestData<CustomRequestQuery>} request
+   * @memberof Client
+   */
+  publish(request: RequestData<CustomRequestQuery>) {
+    if (!this.libp2p) {
+      throw new Error('libp2p not initialized yet');
+    }
+
+    this.libp2p.pubsub
+      .publish(request.topic, encodeText(stringify(request)))
+      .then(() => {
+        this.dispatchEvent(
+          new CustomEvent<RequestData<CustomRequestQuery>>('publish', {
+            detail: request,
+          }),
+        );
+      })
+      .catch(logger.error);
+  }
+
+  /**
+   * Subscribes the client to topic
+   *
+   * @param {string} topic
+   * @memberof Client
+   */
+  subscribe(topic: string) {
+    if (!this.libp2p) {
+      throw new Error('libp2p not initialized yet');
+    }
+
+    this.libp2p.pubsub.subscribe(topic);
+  }
+
+  /**
+   * Unsubscribes the client from topic
+   *
+   * @param {string} topic
+   * @memberof Client
+   */
+  unsubscribe(topic: string) {
+    if (!this.libp2p) {
+      throw new Error('libp2p not initialized yet');
+    }
+
+    this.libp2p.pubsub.unsubscribe(topic);
+  }
+
+  /**
    * Stops the client
    *
    * @returns {Promise<void>}
@@ -529,168 +427,6 @@ export class Client<
     this.dealsRegistry?.stop();
     this.dispatchEvent(new CustomEvent<void>('stop'));
     logger.trace('👋 Client stopped at:', new Date().toISOString());
-  }
-
-  /**
-   *
-   * Requests API
-   *
-   */
-
-  /**
-   * Creates a new request
-   *
-   * @private
-   * @param {(Omit<BuildRequestOptions<CustomRequestQuery>, 'idOverride'>)} requestOptions
-   * @returns {Promise<RequestData<CustomRequestQuery>>}
-   * @memberof Client
-   */
-  private async _createRequest(
-    requestOptions: Omit<BuildRequestOptions<CustomRequestQuery>, 'idOverride'>,
-  ): Promise<RequestData<CustomRequestQuery>> {
-    if (!this.libp2p || !this.requestsRegistry) {
-      throw new Error('Client not initialized yet');
-    }
-
-    return await buildRequest<CustomRequestQuery>(requestOptions);
-  }
-
-  /**
-   * Adds request to the request registry
-   *
-   * @private
-   * @param {RequestData<CustomRequestQuery>} request
-   * @returns
-   * @memberof Client
-   */
-  private _addRequest(request: RequestData<CustomRequestQuery>) {
-    if (!this.requestsRegistry) {
-      throw new Error('Client not initialized yet');
-    }
-
-    return this.requestsRegistry.add(request);
-  }
-
-  /**
-   * Returns all requests from the registry
-   *
-   * @private
-   * @returns {Required<RequestRecord<CustomRequestQuery, CustomOfferOptions>>[]}
-   * @memberof Client
-   */
-  private _getRequests(): Required<
-    RequestRecord<CustomRequestQuery, CustomOfferOptions>
-  >[] {
-    if (!this.requestsRegistry) {
-      throw new Error('Client not initialized yet');
-    }
-
-    return this.requestsRegistry.getAll();
-  }
-
-  /**
-   * Return request from the registry by Id
-   *
-   * @private
-   * @param {string} id
-   * @returns {(RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined)}
-   * @memberof Client
-   */
-  private _getRequest(
-    id: string,
-  ): RequestRecord<CustomRequestQuery, CustomOfferOptions> | undefined {
-    if (!this.requestsRegistry) {
-      throw new Error('Client not initialized yet');
-    }
-
-    return this.requestsRegistry.get(id);
-  }
-
-  /**
-   * Cancels request by Id
-   *
-   * @private
-   * @param {string} id
-   * @memberof Client
-   */
-  private _cancelRequest(id: string) {
-    if (!this.requestsRegistry) {
-      throw new Error('Client not initialized yet');
-    }
-
-    this.requestsRegistry.cancel(id);
-  }
-
-  /**
-   * Deletes request by Id
-   *
-   * @private
-   * @param {string} id
-   * @memberof Client
-   */
-  private _deleteRequest(id: string) {
-    if (!this.requestsRegistry) {
-      throw new Error('Client not initialized yet');
-    }
-
-    this.requestsRegistry.delete(id);
-  }
-
-  /**
-   * Cancels and removes all requests from registry
-   *
-   * @private
-   * @memberof Client
-   */
-  private _clearRequests() {
-    if (!this.requestsRegistry) {
-      throw new Error('Client not initialized yet');
-    }
-
-    this.requestsRegistry.clear();
-  }
-
-  /**
-   * Checks if request is currently subscribe by its Id
-   *
-   * @private
-   * @param {string} id
-   * @returns {boolean}
-   * @memberof Client
-   */
-  private _subscribed(id: string): boolean {
-    if (!this.requestsRegistry) {
-      throw new Error('Client not initialized yet');
-    }
-
-    return this.requestsRegistry.subscribed(id);
-  }
-
-  /**
-   * Provides access to subset of requests API
-   *
-   * @readonly
-   * @memberof Client
-   */
-  get requests() {
-    return {
-      /** @see _createRequest */
-      create: this._createRequest.bind(this),
-      /** @see _addRequest */
-      publish: this._addRequest.bind(this),
-      /** @see _cancelRequest */
-      cancel: this._cancelRequest.bind(this),
-      /** @see _deleteRequest */
-      delete: this._deleteRequest.bind(this),
-      /** @see _clearRequests */
-      clear: this._clearRequests.bind(this),
-      /** @see _subscribed */
-      subscribed: this._subscribed.bind(this),
-      /** @see _getRequest */
-      get: this._getRequest.bind(this),
-      /** @see _getRequests */
-      getAll: this._getRequests.bind(this),
-    };
   }
 
   /**
@@ -883,7 +619,7 @@ export const createClient = <
 /**
  * Requests registry exports
  */
-export * from './requestsRegistry.js';
+export * from './requestsManager.js';
 
 /**
  * Deals registry exports
