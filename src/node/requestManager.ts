@@ -9,7 +9,7 @@ const logger = createLogger('NodeRequestManager');
 /**
  * Type for initialization options of the request manager in the protocol node.
  */
-export type RequestManagerOptions = NoncePeriodOption;
+export type NodeRequestManagerOptions = NoncePeriodOption;
 
 /**
  * Type for custom event for request
@@ -74,15 +74,15 @@ export class NodeRequestManager<
 
   /**
    * Creates an instance of NodeRequestManager.
-   * @param {RequestManagerOptions} options
+   * @param {NodeRequestManagerOptions} options
    * @memberof NodeRequestManager
    */
-  constructor(options: RequestManagerOptions) {
+  constructor(options: NodeRequestManagerOptions) {
     super();
 
     const { noncePeriod } = options;
 
-    // @todo Validate RequestManagerOptions
+    // @todo Validate NodeRequestManagerOptions
 
     // requestId => RequestCacheItem
     this.cache = new Map<string, RequestCacheItem<CustomRequestQuery>>();
@@ -98,33 +98,6 @@ export class NodeRequestManager<
    */
   setNoncePeriod(noncePeriod: number | string) {
     this.noncePeriod = Number(parseSeconds(noncePeriod));
-  }
-
-  /**
-   * Clears the requests cache
-   *
-   * @memberof NodeRequestManager
-   */
-  clear() {
-    this.cache.clear();
-  }
-
-  /**
-   * Deletes expired requests from the cache
-   *
-   * @memberof NodeRequestManager
-   */
-  prune() {
-    const now = Math.ceil(Date.now() / 1000);
-    for (const [id, record] of this.cache.entries()) {
-      try {
-        if (record.data.expire < now) {
-          this.cache.delete(id);
-        }
-      } catch (error) {
-        logger.error('Cache prune error', error);
-      }
-    }
   }
 
   /**
@@ -147,7 +120,7 @@ export class NodeRequestManager<
       }
 
       // Check if request will expire before it can be processed
-      if (BigInt(nowSec() + this.noncePeriod) > BigInt(requestData.expire)) {
+      if (nowSec() + this.noncePeriod > Number(requestData.expire)) {
         logger.trace(
           `Request #${requestData.id} will expire before it can bee processed`,
         );
@@ -203,6 +176,32 @@ export class NodeRequestManager<
           detail: new Error('Unable to add request to cache due to error'),
         }),
       );
+    }
+  }
+
+  /**
+   * Clears the requests cache
+   *
+   * @memberof NodeRequestManager
+   */
+  clear() {
+    this.cache.clear();
+  }
+
+  /**
+   * Deletes expired requests from the cache
+   *
+   * @memberof NodeRequestManager
+   */
+  prune() {
+    for (const [id, record] of this.cache.entries()) {
+      try {
+        if (isExpired(record.data.expire)) {
+          this.cache.delete(id);
+        }
+      } catch (error) {
+        logger.error('Cache prune error', error);
+      }
     }
   }
 }
