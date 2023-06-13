@@ -5,6 +5,8 @@ import {
   ClientOptions,
   createClient,
   storage,
+  ClientRequestsManager,
+  buildRequest,
 } from '../../../src/index.js'; // @windingtree/sdk
 import {
   RequestQuery,
@@ -37,6 +39,9 @@ const defaultTopic = 'hello';
  */
 export const App = () => {
   const client = useRef<Client<RequestQuery, OfferOptions> | undefined>();
+  const requestsManager = useRef<
+    ClientRequestsManager<RequestQuery, OfferOptions> | undefined
+  >();
   const { publicClient } = useWallet();
   const [connected, setConnected] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState<number>(0);
@@ -56,21 +61,31 @@ export const App = () => {
       try {
         setError(undefined);
 
+        const storageInitializer = storage.localStorage.createInitializer({
+          session: false, // session or local storage
+        });
+
+        const store = await storageInitializer();
+
+        const clientRequestManager = new ClientRequestsManager<
+          RequestQuery,
+          OfferOptions
+        >({
+          storage: store,
+          prefix: 'wt_requests_',
+        });
+
         const options: ClientOptions = {
           chain,
           contracts: contractsConfig,
           serverAddress,
-          storageInitializer: storage.localStorage.createInitializer({
-            session: false, // session or local storage
-          }),
+          storageInitializer,
           dbKeysPrefix: 'wt_',
           publicClient,
         };
 
         const updateRequests = () => {
-          if (client.current) {
-            setRequests(client.current.requests.getAll());
-          }
+          setRequests(clientRequestManager.getAll());
         };
 
         const updateDeals = () => {
@@ -113,15 +128,26 @@ export const App = () => {
         });
 
         /** Listening for requests events and update tables */
-        client.current.addEventListener('request:create', updateRequests);
-        client.current.addEventListener('request:subscribe', updateRequests);
-        client.current.addEventListener('request:publish', updateRequests);
-        client.current.addEventListener('request:unsubscribe', updateRequests);
-        client.current.addEventListener('request:expire', updateRequests);
-        client.current.addEventListener('request:cancel', updateRequests);
-        client.current.addEventListener('request:delete', updateRequests);
-        client.current.addEventListener('request:offer', updateRequests);
-        client.current.addEventListener('request:clear', updateRequests);
+        clientRequestManager.addEventListener('request', updateRequests);
+        clientRequestManager.addEventListener('expire', updateRequests);
+        clientRequestManager.addEventListener('cancel', updateRequests);
+        clientRequestManager.addEventListener('delete', updateRequests);
+        clientRequestManager.addEventListener('clear', updateRequests);
+        clientRequestManager.addEventListener('offer', updateRequests);
+
+        clientRequestManager.addEventListener('subscribe', ({ detail }) => {
+          client.current?.subscribe(detail.data.id);
+        });
+        clientRequestManager.addEventListener('unsubscribe', ({ detail }) => {
+          client.current?.unsubscribe(detail.data.id);
+        });
+
+        client.current.addEventListener('publish', ({ detail }) => {
+          clientRequestManager.add(detail);
+        });
+        client.current.addEventListener('offer', ({ detail }) => {
+          clientRequestManager.addOffer(detail);
+        });
         client.current.addEventListener('deal:changed', updateDeals);
 
         await client.current.start();
@@ -131,7 +157,15 @@ export const App = () => {
       }
     };
 
+    const stopClient = async () => {
+      client.current?.stop();
+    };
+
     startClient();
+
+    return () => {
+      stopClient().catch(console.error);
+    };
   }, [publicClient]);
 
   /** Publishing of request */
@@ -143,7 +177,7 @@ export const App = () => {
         throw new Error('The client is not initialized yet');
       }
 
-      const request = await client.current.requests.create({
+      const request = await buildRequest<RequestQuery>({
         topic,
         expire: defaultExpire,
         nonce: BigInt(1),
@@ -152,7 +186,7 @@ export const App = () => {
         },
       });
 
-      client.current.requests.publish(request);
+      client.current.publish(request);
     } catch (error) {
       console.log('@@@', error);
       setError((error as Error).message);
@@ -193,15 +227,15 @@ export const App = () => {
       <TabPanel id={0} activeTab={selectedTab}>
         <Requests
           requests={requests}
-          subscribed={(id) => client.current?.requests.subscribed(id) || false}
+          subscribed={(id) =>
+            requestsManager.current?.get(id)?.subscribed || false
+          }
           onClear={() => {
-            if (client.current) {
-              client.current?.requests.clear();
-            }
+            requestsManager.current?.clear();
           }}
           onCancel={(id) => {
             if (client.current) {
-              client.current.requests.cancel(id);
+              requestsManager.current?.cancel(id);
             }
           }}
           onOffers={setOffers}
