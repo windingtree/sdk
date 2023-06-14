@@ -68,11 +68,8 @@ describe('Node.NodeRequestManager', () => {
       const data = stringify({
         id: '1',
         nonce: 1,
-        expire:
-          Math.floor(Date.now() / 1000) +
-          Number(parseSeconds(defaultNoncePeriod)),
+        expire: Math.floor(Date.now() / 1000),
       });
-
       nodeRequestManager.add(requestTopic, data);
       expect(nodeRequestManager['cache'].has('1')).to.be.false;
     });

@@ -1,30 +1,17 @@
-import { expect, expectDeepEqual } from './setup.js';
+import {
+  expect,
+  expectDeepEqual,
+  CustomQuery,
+  CustomOfferOptions,
+  createRequest,
+  createOffer,
+} from './setup.js';
 import { mnemonicToAccount } from 'viem/accounts';
 import { generateMnemonic } from '../src/utils/wallet.js';
 import { supplierId as spId } from '../src/utils/uid.js';
 import { randomSalt } from '@windingtree/contracts';
-import {
-  GenericQuery,
-  GenericOfferOptions,
-  RequestData,
-  OfferData,
-} from '../src/shared/types.js';
-import {
-  buildRequest,
-  buildOffer,
-  verifyOffer,
-} from '../src/shared/messages.js';
-
-interface CustomQuery extends GenericQuery {
-  guests: bigint;
-  rooms: bigint;
-}
-
-interface CustomOfferOptions extends GenericOfferOptions {
-  room: string;
-  checkIn: bigint;
-  checkOut: bigint;
-}
+import { RequestData, OfferData } from '../src/shared/types.js';
+import { buildOffer, verifyOffer } from '../src/shared/messages.js';
 
 describe('Shared.messages', () => {
   const topic = 'test';
@@ -37,79 +24,44 @@ describe('Shared.messages', () => {
   };
   const supplierId = spId(randomSalt(), signer.address);
 
-  const createRequest = (expire: bigint | string = BigInt(1)) =>
-    buildRequest<CustomQuery>({
-      expire,
-      nonce: BigInt(1),
-      topic,
-      query: {
-        guests: BigInt(2),
-        rooms: BigInt(1),
-      },
-    });
-
-  const createOffer = (
-    request: RequestData<CustomQuery>,
-    expire: bigint | string = BigInt(1),
-  ) =>
-    buildOffer<CustomQuery, CustomOfferOptions>({
-      domain: typedDomain,
-      account: signer,
-      supplierId,
-      expire,
-      request,
-      options: {
-        room: 'big',
-        checkIn: 1n,
-        checkOut: 2n,
-      },
-      payment: [
-        {
-          id: randomSalt(),
-          asset: signer.address, // fake
-          price: 1n,
-        },
-      ],
-      cancel: [
-        {
-          time: 1n,
-          penalty: 1n,
-        },
-      ],
-      checkIn: 1n,
-      checkOut: 1n,
-      transferable: true,
-    });
-
   let request: RequestData<CustomQuery>;
 
   before(async () => {
-    request = await createRequest();
+    request = await createRequest(topic);
   });
 
   describe('#buildRequest', () => {
     it('should build a request', async () => {
-      await expect(createRequest()).to.not.rejected;
-      await expect(createRequest('1h')).to.not.rejected;
+      await expect(createRequest(topic)).to.not.rejected;
+      await expect(createRequest(topic, '1h')).to.not.rejected;
     });
   });
 
   describe('#buildOffer', () => {
     it('should build an offer', async () => {
       try {
-        await createOffer(request, '30s');
+        await createOffer(request, '30s', typedDomain, supplierId, signer);
       } catch (error) {
         console.log(error);
       }
-      await expect(createOffer(request)).to.not.rejected;
-      await expect(createOffer(request, '30s')).to.not.rejected;
+      await expect(
+        createOffer(request, BigInt(1), typedDomain, supplierId, signer),
+      ).to.not.rejected;
+      await expect(createOffer(request, '30s', typedDomain, supplierId, signer))
+        .to.not.rejected;
     });
 
     describe('Offer restoration', () => {
       let offer: OfferData<CustomQuery, CustomOfferOptions>;
 
       before(async () => {
-        offer = await createOffer(request);
+        offer = await createOffer(
+          request,
+          BigInt(1),
+          typedDomain,
+          supplierId,
+          signer,
+        );
       });
 
       it('should restore an offer from raw data', async () => {
@@ -157,7 +109,13 @@ describe('Shared.messages', () => {
     let offer: OfferData<CustomQuery, CustomOfferOptions>;
 
     before(async () => {
-      offer = await createOffer(request);
+      offer = await createOffer(
+        request,
+        BigInt(1),
+        typedDomain,
+        supplierId,
+        signer,
+      );
     });
 
     it('should throw if wrong signer provided', async () => {

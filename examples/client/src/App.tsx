@@ -1,10 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
+import { EventHandler } from '@libp2p/interfaces/events';
 import {
   Client,
   ClientOptions,
   createClient,
   storage,
+  ClientRequestsManager,
+  buildRequest,
+  ClientDealsManager,
+  ClientRequestRecord,
 } from '../../../src/index.js'; // @windingtree/sdk
 import {
   RequestQuery,
@@ -12,7 +17,7 @@ import {
   contractsConfig,
   serverAddress,
 } from '../../shared/index.js';
-import { OfferData } from '../../../src/shared/types.js';
+import { OfferData, RequestData } from '../../../src/shared/types.js';
 import { useWallet } from './providers/WalletProvider/WalletProviderContext.js';
 import { AccountWidget } from './providers/WalletProvider/AccountWidget.js';
 import { FormValues, RequestForm } from './components/RequestForm.js';
@@ -37,6 +42,13 @@ const defaultTopic = 'hello';
  */
 export const App = () => {
   const client = useRef<Client<RequestQuery, OfferOptions> | undefined>();
+  const requestsManager = useRef<
+    ClientRequestsManager<RequestQuery, OfferOptions> | undefined
+  >();
+  const dealsManager = useRef<ClientDealsManager<
+    RequestQuery,
+    OfferOptions
+  >>();
   const { publicClient } = useWallet();
   const [connected, setConnected] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState<number>(0);
@@ -52,77 +64,114 @@ export const App = () => {
 
   /** This hook starts the client that will be available via `client.current` */
   useEffect(() => {
+    const updateRequests = () => {
+      setRequests(requestsManager.current?.getAll() || []);
+    };
+
+    const updateDeals = () => {
+      if (dealsManager.current) {
+        dealsManager.current
+          .getAll()
+          .then((newDeals) => {
+            setDeals(newDeals);
+          })
+          .catch(console.error);
+      }
+    };
+
+    const onClientStart = () => {
+      console.log('🚀 Client started at:', new Date().toISOString());
+      updateRequests();
+      updateDeals();
+    };
+
+    const onClientStop = () => {
+      console.log('👋 Client stopped at:', new Date().toISOString());
+    };
+
+    const onClientConnected = () => {
+      setConnected(true);
+      console.log(
+        '🔗 Client connected to server at:',
+        new Date().toISOString(),
+      );
+    };
+
+    const onClientDisconnected = () => {
+      setConnected(false);
+      console.log(
+        '🔌 Client disconnected from server at:',
+        new Date().toISOString(),
+      );
+    };
+
+    const onRequestSubscribe: EventHandler<CustomEvent<ClientRequestRecord>> = ({ detail }) => {
+      client.current?.subscribe(detail.data.id);
+    };
+
+    const onRequestUnsubscribe: EventHandler<CustomEvent<ClientRequestRecord>> = ({ detail }) => {
+      client.current?.unsubscribe(detail.data.id);
+    };
+
+    const onRequestPublish: EventHandler<CustomEvent<RequestData<RequestQuery>>> = ({ detail }) => {
+      requestsManager.current?.add(detail);
+    };
+
+    const onOffer: EventHandler<CustomEvent<OfferData<RequestQuery, OfferOptions>>> = ({ detail }) => {
+      requestsManager.current?.addOffer(detail);
+    };
+
     const startClient = async () => {
       try {
         setError(undefined);
 
-        const options: ClientOptions = {
+        const storageInitializer = storage.localStorage.createInitializer({
+          session: false, // session or local storage
+        });
+
+        const store = await storageInitializer();
+
+        requestsManager.current = new ClientRequestsManager<
+          RequestQuery,
+          OfferOptions
+        >({
+          storage: store,
+          prefix: 'wt_requests_',
+        });
+
+        dealsManager.current = new ClientDealsManager<
+          RequestQuery,
+          OfferOptions
+        >({
+          storage: store,
+          prefix: 'wt_deals_',
+          checkInterval: '5s',
           chain,
           contracts: contractsConfig,
-          serverAddress,
-          storageInitializer: storage.localStorage.createInitializer({
-            session: false, // session or local storage
-          }),
-          dbKeysPrefix: 'wt_',
           publicClient,
-        };
-
-        const updateRequests = () => {
-          if (client.current) {
-            setRequests(client.current.requests.getAll());
-          }
-        };
-
-        const updateDeals = () => {
-          if (client.current) {
-            client.current.deals
-              .getAll()
-              .then((newDeals) => {
-                setDeals(newDeals);
-              })
-              .catch(console.error);
-          }
-        };
-
-        client.current = createClient<RequestQuery, OfferOptions>(options);
-
-        client.current.addEventListener('start', () => {
-          console.log('🚀 Client started at:', new Date().toISOString());
-          updateRequests();
-          updateDeals();
         });
 
-        client.current.addEventListener('stop', () => {
-          console.log('👋 Client stopped at:', new Date().toISOString());
+        client.current = createClient<RequestQuery, OfferOptions>({
+          serverAddress,
         });
 
-        client.current.addEventListener('connected', () => {
-          setConnected(true);
-          console.log(
-            '🔗 Client connected to server at:',
-            new Date().toISOString(),
-          );
-        });
+        client.current.addEventListener('start', onClientStart);
+        client.current.addEventListener('stop', onClientStop);
+        client.current.addEventListener('connected', onClientConnected);
+        client.current.addEventListener('disconnected', onClientDisconnected);
+        client.current.addEventListener('publish', onRequestPublish);
+        client.current.addEventListener('offer', onOffer);
 
-        client.current.addEventListener('disconnected', () => {
-          setConnected(false);
-          console.log(
-            '🔌 Client disconnected from server at:',
-            new Date().toISOString(),
-          );
-        });
+        requestsManager.current.addEventListener('request', updateRequests);
+        requestsManager.current.addEventListener('expire', updateRequests);
+        requestsManager.current.addEventListener('cancel', updateRequests);
+        requestsManager.current.addEventListener('delete', updateRequests);
+        requestsManager.current.addEventListener('clear', updateRequests);
+        requestsManager.current.addEventListener('offer', updateRequests);
+        requestsManager.current.addEventListener('subscribe', onRequestSubscribe);
+        requestsManager.current.addEventListener('unsubscribe', onRequestUnsubscribe);
 
-        /** Listening for requests events and update tables */
-        client.current.addEventListener('request:create', updateRequests);
-        client.current.addEventListener('request:subscribe', updateRequests);
-        client.current.addEventListener('request:publish', updateRequests);
-        client.current.addEventListener('request:unsubscribe', updateRequests);
-        client.current.addEventListener('request:expire', updateRequests);
-        client.current.addEventListener('request:cancel', updateRequests);
-        client.current.addEventListener('request:delete', updateRequests);
-        client.current.addEventListener('request:offer', updateRequests);
-        client.current.addEventListener('request:clear', updateRequests);
-        client.current.addEventListener('deal:changed', updateDeals);
+        dealsManager.current.addEventListener('changed', updateDeals);
 
         await client.current.start();
       } catch (error) {
@@ -131,7 +180,34 @@ export const App = () => {
       }
     };
 
+    const stopClient = async () => {
+      client.current?.stop();
+    };
+
     startClient();
+
+    return () => {
+      client.current?.removeEventListener('start', onClientStart);
+      client.current?.removeEventListener('stop', onClientStop);
+      client.current?.removeEventListener('connected', onClientConnected);
+      client.current?.removeEventListener('disconnected', onClientDisconnected);
+      client.current?.removeEventListener('publish', onRequestPublish);
+      client.current?.removeEventListener('offer', onOffer);
+
+      requestsManager.current?.removeEventListener('request', updateRequests);
+      requestsManager.current?.removeEventListener('expire', updateRequests);
+      requestsManager.current?.removeEventListener('cancel', updateRequests);
+      requestsManager.current?.removeEventListener('delete', updateRequests);
+      requestsManager.current?.removeEventListener('clear', updateRequests);
+      requestsManager.current?.removeEventListener('offer', updateRequests);
+      requestsManager.current?.removeEventListener('subscribe', onRequestSubscribe);
+      requestsManager.current?.removeEventListener('unsubscribe', onRequestUnsubscribe);
+
+      dealsManager.current?.removeEventListener('changed', updateDeals);
+
+      stopClient().catch(console.error);
+      dealsManager.current?.stop();
+    };
   }, [publicClient]);
 
   /** Publishing of request */
@@ -143,7 +219,7 @@ export const App = () => {
         throw new Error('The client is not initialized yet');
       }
 
-      const request = await client.current.requests.create({
+      const request = await buildRequest<RequestQuery>({
         topic,
         expire: defaultExpire,
         nonce: BigInt(1),
@@ -152,7 +228,7 @@ export const App = () => {
         },
       });
 
-      client.current.requests.publish(request);
+      client.current.publish(request);
     } catch (error) {
       console.log('@@@', error);
       setError((error as Error).message);
@@ -193,15 +269,15 @@ export const App = () => {
       <TabPanel id={0} activeTab={selectedTab}>
         <Requests
           requests={requests}
-          subscribed={(id) => client.current?.requests.subscribed(id) || false}
+          subscribed={(id) =>
+            requestsManager.current?.get(id)?.subscribed || false
+          }
           onClear={() => {
-            if (client.current) {
-              client.current?.requests.clear();
-            }
+            requestsManager.current?.clear();
           }}
           onCancel={(id) => {
             if (client.current) {
-              client.current.requests.cancel(id);
+              requestsManager.current?.cancel(id);
             }
           }}
           onOffers={setOffers}
@@ -214,10 +290,10 @@ export const App = () => {
             setOffers(undefined);
           }}
         />
-        <MakeDeal offer={offer} client={client.current} />
+        <MakeDeal offer={offer} manager={dealsManager.current} />
       </TabPanel>
       <TabPanel id={1} activeTab={selectedTab}>
-        <Deals deals={deals} client={client.current} />
+        <Deals deals={deals} manager={dealsManager.current} />
       </TabPanel>
 
       {error && <div style={{ marginTop: 20 }}>🚨 {error}</div>}

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
-import { Address, Hash } from 'viem';
-import { Client, DealRecord, DealStatus } from '../../../../src/index.js'; // @windingtree/sdk
+import { Address } from 'viem';
+import { ClientDealsManager, DealRecord, DealStatus } from '../../../../src/index.js'; // @windingtree/sdk
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import { centerEllipsis, formatBalance, parseWalletError } from '../utils.js';
 import { useWallet } from '../providers/WalletProvider/WalletProviderContext.js';
@@ -12,23 +12,32 @@ export type DealsRegistryRecord = Required<
 
 export interface DealsProps {
   deals: DealsRegistryRecord[];
-  client?: Client<RequestQuery, OfferOptions>;
+  manager?: ClientDealsManager<
+    RequestQuery,
+    OfferOptions
+  >;
 }
 
 export interface TransferFormProps {
   deal?: DealsRegistryRecord;
-  client?: Client<RequestQuery, OfferOptions>;
+  manager?: ClientDealsManager<
+    RequestQuery,
+    OfferOptions
+  >;
   onClose: () => void;
 }
 
 export interface CancelProps {
   deal?: DealsRegistryRecord;
-  client?: Client<RequestQuery, OfferOptions>;
+  manager?: ClientDealsManager<
+    RequestQuery,
+    OfferOptions
+  >;
   onClose: () => void;
 }
 
 // Transfer deal to...
-export const TransferForm = ({ deal, client, onClose }: TransferFormProps) => {
+export const TransferForm = ({ deal, manager, onClose }: TransferFormProps) => {
   const { publicClient, walletClient } = useWallet();
   const [to, setTo] = useState<string>('');
   const [tx, setTx] = useState<string | undefined>();
@@ -51,15 +60,15 @@ export const TransferForm = ({ deal, client, onClose }: TransferFormProps) => {
       setError(undefined);
       setLoading(true);
 
-      if (!client || !deal) {
-        throw new Error('Client not ready');
+      if (!manager || !deal) {
+        throw new Error('Deals manager not ready');
       }
 
       if (!publicClient || !walletClient) {
         throw new Error('Ethereum client not ready');
       }
 
-      await client.deals.transfer(
+      await manager.transfer(
         deal.offer,
         to as Address,
         walletClient,
@@ -72,9 +81,9 @@ export const TransferForm = ({ deal, client, onClose }: TransferFormProps) => {
       setError(parseWalletError(err));
       setLoading(false);
     }
-  }, [client, deal, to, publicClient, walletClient]);
+  }, [manager, deal, to, publicClient, walletClient]);
 
-  if (!client || !deal) {
+  if (!manager || !deal) {
     return null;
   }
 
@@ -127,7 +136,7 @@ export const TransferForm = ({ deal, client, onClose }: TransferFormProps) => {
 };
 
 // Cancel the deal
-export const Cancel = ({ deal, client, onClose }: CancelProps) => {
+export const Cancel = ({ deal, manager, onClose }: CancelProps) => {
   const { publicClient, walletClient } = useWallet();
   const [tx, setTx] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
@@ -148,15 +157,15 @@ export const Cancel = ({ deal, client, onClose }: CancelProps) => {
       setError(undefined);
       setLoading(true);
 
-      if (!client || !deal) {
-        throw new Error('Client not ready');
+      if (!manager || !deal) {
+        throw new Error('Deals manager not ready');
       }
 
       if (!publicClient || !walletClient) {
         throw new Error('Ethereum client not ready');
       }
 
-      await client.deals.cancel(deal.offer, walletClient, setTx);
+      await manager.cancel(deal.offer, walletClient, setTx);
       setLoading(false);
       setSuccess(true);
     } catch (err) {
@@ -164,9 +173,9 @@ export const Cancel = ({ deal, client, onClose }: CancelProps) => {
       setError(parseWalletError(err));
       setLoading(false);
     }
-  }, [client, deal, publicClient, walletClient]);
+  }, [manager, deal, publicClient, walletClient]);
 
-  if (!client || !deal) {
+  if (!manager || !deal) {
     return null;
   }
 
@@ -219,7 +228,7 @@ export const Cancel = ({ deal, client, onClose }: CancelProps) => {
 /**
  * Created deals table
  */
-export const Deals = ({ deals, client }: DealsProps) => {
+export const Deals = ({ deals, manager }: DealsProps) => {
   const [dealStates, setDealStates] = useState<Record<string, DealStatus>>({});
   const [transferDeal, setTransferDeal] = useState<
     DealsRegistryRecord | undefined
@@ -238,7 +247,7 @@ export const Deals = ({ deals, client }: DealsProps) => {
     }
   }, [deals]);
 
-  if (!client || deals.length === 0) {
+  if (!manager || deals.length === 0) {
     return null;
   }
 
@@ -312,12 +321,12 @@ export const Deals = ({ deals, client }: DealsProps) => {
       <div style={{ marginTop: 20 }}>
         <TransferForm
           deal={transferDeal}
-          client={client}
+          manager={manager}
           onClose={() => setTransferDeal(undefined)}
         />
         <Cancel
           deal={cancelDeal}
-          client={client}
+          manager={manager}
           onClose={() => setCancelDeal(undefined)}
         />
       </div>
