@@ -6,9 +6,11 @@ import {
   WalletClient,
   PublicClient,
   zeroAddress,
+  Chain,
 } from 'viem';
-import { Client, createCheckInOutSignature } from '../index.js';
+import { ChainsConfigOption, createCheckInOutSignature } from '../index.js';
 import {
+  Contracts,
   GenericOfferOptions,
   GenericQuery,
   OfferData,
@@ -20,15 +22,16 @@ import {
 } from '../shared/contracts.js';
 import { Storage } from '../storage/index.js';
 import { createLogger } from '../utils/logger.js';
+import { parseSeconds } from '../utils/time.js';
 
-const logger = createLogger('DealsRegistry');
+const logger = createLogger('ClientDealsManager');
 
 /**
  * Deals registry record
  */
 export interface DealRecord<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
 > {
   /** Network chain Id */
   chainId: number;
@@ -53,16 +56,13 @@ export interface DealCurrentStatus {
   status: DealStatus;
 }
 
-export interface DealsRegistryOptions<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
-> {
-  /** Instance of Client */
-  client: Client<CustomRequestQuery, CustomOfferOptions>;
+export interface DealsRegistryOptions extends ChainsConfigOption {
   /** Instance of storage */
   storage: Storage;
   /** Registry storage prefix */
   prefix: string;
+  /** Deal status check interval in seconds */
+  checkInterval: number | string;
   /** Public client */
   publicClient: PublicClient;
   /** Wallet client */
@@ -73,8 +73,8 @@ export interface DealsRegistryOptions<
  * Deals manager events interface
  */
 export interface DealEvents<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
 > {
   /**
    * @example
@@ -100,16 +100,15 @@ export interface DealEvents<
 }
 
 /**
- * Creates an instance of DealsRegistry.
+ * Creates an instance of ClientDealsManager.
  *
  * @param {DealsRegistryOptions<CustomRequestQuery, CustomOfferOptions>} options
- * @memberof RequestsRegistry
+ * @memberof ClientDealsManager
  */
-export class DealsRegistry<
-  CustomRequestQuery extends GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions,
+export class ClientDealsManager<
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
 > extends EventEmitter<DealEvents<CustomRequestQuery, CustomOfferOptions>> {
-  private client: Client<CustomRequestQuery, CustomOfferOptions>;
   private contractsManager: ProtocolContracts<
     CustomRequestQuery,
     CustomOfferOptions
@@ -118,45 +117,54 @@ export class DealsRegistry<
   private deals: Map<
     string,
     DealRecord<CustomRequestQuery, CustomOfferOptions>
-  >; // id => Deal
-  private storage?: Storage;
-  private storageKey: string;
+  >;
+  private storage: Storage;
+  private contracts: Contracts;
+  private chain: Chain;
+  private storageKeyPrefix: string;
   private checkInterval?: NodeJS.Timer;
   private ongoingCheck = false;
 
   /**
-   * Creates an instance of DealsRegistry.
+   * Creates an instance of ClientDealsManager.
    *
-   * @param {DealsRegistryOptions<CustomRequestQuery, CustomOfferOptions>} options
-   * @memberof DealsRegistry
+   * @param {DealsRegistryOptions} options
+   * @memberof ClientDealsManager
    */
-  constructor(
-    options: DealsRegistryOptions<CustomRequestQuery, CustomOfferOptions>,
-  ) {
+  constructor(options: DealsRegistryOptions) {
     super();
 
-    const { client, storage, prefix, publicClient, walletClient } = options;
+    const {
+      storage,
+      contracts,
+      chain,
+      prefix,
+      checkInterval,
+      publicClient,
+      walletClient,
+    } = options;
 
-    this.client = client;
     this.contractsManager = new ProtocolContracts<
       CustomRequestQuery,
       CustomOfferOptions
     >({
-      contracts: this.client.contracts,
+      contracts,
       publicClient,
       walletClient,
     });
+    this.chain = chain;
+    this.contracts = contracts;
     this.deals = new Map<
       string,
       DealRecord<CustomRequestQuery, CustomOfferOptions>
     >();
-    this.storageKey = `${prefix}_deals_records`;
+    this.storageKeyPrefix = prefix;
     this.storage = storage;
     this._storageUp()
       .then(() => {
         this.checkInterval = setInterval(() => {
           this._checkDealsStates().catch(logger.error);
-        }, 5000);
+        }, Number(parseSeconds(checkInterval)));
       })
       .catch(logger.error);
   }
@@ -166,16 +174,16 @@ export class DealsRegistry<
    *
    * @private
    * @returns {Promise<void>}
-   * @memberof RequestsRegistry
+   * @memberof ClientDealsManager
    */
-  private async _storageUp(): Promise<void> {
+  protected async _storageUp(): Promise<void> {
     if (!this.storage) {
       throw new Error('Invalid requests registry storage');
     }
 
     const rawRecords = await this.storage.get<
       DealRecord<CustomRequestQuery, CustomOfferOptions>[]
-    >(this.storageKey);
+    >(this.storageKeyPrefix);
 
     if (rawRecords) {
       for (const dealRecord of rawRecords) {
@@ -192,15 +200,15 @@ export class DealsRegistry<
    * Stores class state to the storage
    *
    * @private
-   * @memberof RequestsRegistry
+   * @memberof ClientDealsManager
    */
-  private _storageDown(): void {
+  protected _storageDown(): void {
     if (!this.storage) {
       throw new Error('Invalid requests registry storage');
     }
 
     this.storage
-      .set(this.storageKey, Array.from(this.deals.values()))
+      .set(this.storageKeyPrefix, Array.from(this.deals.values()))
       .catch(logger.error);
   }
 
@@ -208,7 +216,7 @@ export class DealsRegistry<
    * Checks and updates state of all deals records
    *
    * @private
-   * @memberof DealsRegistry
+   * @memberof ClientDealsManager
    */
   private async _checkDealsStates(): Promise<void> {
     if (this.ongoingCheck) {
@@ -254,7 +262,7 @@ export class DealsRegistry<
    * @private
    * @param {OfferData<CustomRequestQuery, CustomOfferOptions>} offer Offer data object
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>>}
-   * @memberof DealsRegistry
+   * @memberof ClientDealsManager
    */
   private async _buildDealRecord(
     offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
@@ -269,7 +277,7 @@ export class DealsRegistry<
 
     // Preparing deal record for registry
     const dealRecord: DealRecord<CustomRequestQuery, CustomOfferOptions> = {
-      chainId: this.client.chain.id,
+      chainId: this.chain.id,
       created: created,
       offer,
       retailerId: retailerId,
@@ -302,7 +310,7 @@ export class DealsRegistry<
    * @param {WalletClient} [walletClient] Wallet client
    * @param {TxCallback} [txCallback] Optional transaction hash callback
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>>} Deal record
-   * @memberof DealsRegistry
+   * @memberof ClientDealsManager
    */
   async create(
     offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
@@ -343,7 +351,7 @@ export class DealsRegistry<
    *
    * @param {OfferData<CustomRequestQuery, CustomOfferOptions>} offer Offer data object
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>>}
-   * @memberof DealsRegistry
+   * @memberof ClientDealsManager
    */
   async get(
     offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
@@ -361,7 +369,7 @@ export class DealsRegistry<
    * Returns all an up-to-date deal records
    *
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]>}
-   * @memberof DealsRegistry
+   * @memberof ClientDealsManager
    */
   async getAll(): Promise<
     DealRecord<CustomRequestQuery, CustomOfferOptions>[]
@@ -386,7 +394,7 @@ export class DealsRegistry<
    * @param {WalletClient} [walletClient] Wallet client
    * @param {TxCallback} [txCallback] Optional tx hash callback
    * @returns {Promise<void>}
-   * @memberof DealsRegistry
+   * @memberof ClientDealsManager
    */
   async cancel(
     offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
@@ -428,7 +436,7 @@ export class DealsRegistry<
    * @param {WalletClient} [walletClient] Wallet client
    * @param {TxCallback} [txCallback] Optional tx hash callback
    * @returns {Promise<void>}
-   * @memberof DealsRegistry
+   * @memberof ClientDealsManager
    */
   async transfer(
     offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
@@ -468,7 +476,7 @@ export class DealsRegistry<
    * @param {WalletClient} walletClient
    * @param {TxCallback} [txCallback] Optional tx hash callback
    * @returns {Promise<void>}
-   * @memberof DealsRegistry
+   * @memberof ClientDealsManager
    */
   async checkIn(
     offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
@@ -491,10 +499,10 @@ export class DealsRegistry<
     const buyerSignature = await createCheckInOutSignature({
       offerId: dealRecord.offer.payload.id,
       domain: {
-        chainId: this.client.chain.id,
-        name: this.client.contracts.market.name,
-        version: this.client.contracts.market.version,
-        verifyingContract: this.client.contracts.market.address,
+        chainId: this.chain.id,
+        name: this.contracts.market.name,
+        version: this.contracts.market.version,
+        verifyingContract: this.contracts.market.address,
       },
       account: walletClient.account as unknown as HDAccount,
     });
