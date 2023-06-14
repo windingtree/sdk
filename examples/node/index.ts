@@ -224,6 +224,10 @@ const main = async (): Promise<void> => {
     createRequestsHandler(node, queue),
   );
 
+  node.addEventListener('heartbeat', () => {
+    requestManager.prune();
+  });
+
   node.addEventListener('message', (e) => {
     const { topic, data } = e.detail;
     // here you are able to pre-validate arrived messages

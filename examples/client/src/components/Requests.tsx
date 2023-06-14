@@ -1,10 +1,10 @@
-import { RequestRecord, utils } from '../../../../src/index.js'; // @windingtree/sdk
+import { ClientRequestRecord, utils } from '../../../../src/index.js'; // @windingtree/sdk
 import { OfferData } from '../../../../src/shared/types.js';
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import { centerEllipsis } from '../utils.js';
 
 export type RequestsRegistryRecord = Required<
-  RequestRecord<RequestQuery, OfferOptions>
+  ClientRequestRecord<RequestQuery, OfferOptions>
 >;
 
 export interface RequestsProps {
@@ -50,9 +50,7 @@ export const Requests = ({
               <td>{centerEllipsis(r.data.id)}</td>
               <td>{JSON.stringify(r.data.query)}</td>
               <td>{subscribed && subscribed(r.data.id) ? '✅' : 'no'}</td>
-              <td>
-                {utils.isExpired(r.data.expire) || r.cancelled ? '✅' : 'no'}
-              </td>
+              <td>{utils.isExpired(r.data.expire) ? '✅' : 'no'}</td>
               <td>
                 {r.offers.length === 0 ? 0 : ''}
                 {r.offers.length > 0 && (
@@ -62,7 +60,7 @@ export const Requests = ({
                 )}
               </td>
               <td>
-                {!r.cancelled && !utils.isExpired(r.data.expire) ? (
+                {!r.subscribed && !utils.isExpired(r.data.expire) && (
                   <button
                     onClick={() => {
                       onCancel(r.data.id);
@@ -70,8 +68,6 @@ export const Requests = ({
                   >
                     Cancel
                   </button>
-                ) : (
-                  'cancelled'
                 )}
               </td>
             </tr>

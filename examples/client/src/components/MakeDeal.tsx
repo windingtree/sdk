@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Hash, stringify } from 'viem';
-import { Client } from '../../../../src/index.js'; // @windingtree/sdk
+import { ClientDealsManager } from '../../../../src/index.js'; // @windingtree/sdk
 import { OfferData } from '../../../../src/shared/types.js';
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import {
@@ -14,13 +14,16 @@ import { ConnectButton } from '../providers/WalletProvider/ConnectButton.js';
 
 interface MakeDealProps {
   offer?: OfferData<RequestQuery, OfferOptions>;
-  client?: Client<RequestQuery, OfferOptions>;
+  manager?: ClientDealsManager<
+    RequestQuery,
+    OfferOptions
+  >;
 }
 
 /**
  * Making of deal form
  */
-export const MakeDeal = ({ offer, client }: MakeDealProps) => {
+export const MakeDeal = ({ offer, manager }: MakeDealProps) => {
   const { account, walletClient } = useWallet();
   const [tx, setTx] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
@@ -41,7 +44,7 @@ export const MakeDeal = ({ offer, client }: MakeDealProps) => {
         setError(undefined);
         setLoading(true);
 
-        if (!client) {
+        if (!manager) {
           throw new Error('Client not ready');
         }
 
@@ -53,7 +56,7 @@ export const MakeDeal = ({ offer, client }: MakeDealProps) => {
           throw new Error('Invalid deal configuration');
         }
 
-        await client.deals.create(
+        await manager.create(
           offer,
           paymentId,
           ZeroHash,
@@ -68,10 +71,10 @@ export const MakeDeal = ({ offer, client }: MakeDealProps) => {
         setLoading(false);
       }
     },
-    [client, offer, walletClient],
+    [manager, offer, walletClient],
   );
 
-  if (!offer || !client) {
+  if (!offer || !manager) {
     return null;
   }
 
