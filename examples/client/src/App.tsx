@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
+import { EventHandler } from '@libp2p/interfaces/events';
 import {
   Client,
   ClientOptions,
@@ -7,6 +8,8 @@ import {
   storage,
   ClientRequestsManager,
   buildRequest,
+  ClientDealsManager,
+  ClientRequestRecord,
 } from '../../../src/index.js'; // @windingtree/sdk
 import {
   RequestQuery,
@@ -14,7 +17,7 @@ import {
   contractsConfig,
   serverAddress,
 } from '../../shared/index.js';
-import { OfferData } from '../../../src/shared/types.js';
+import { OfferData, RequestData } from '../../../src/shared/types.js';
 import { useWallet } from './providers/WalletProvider/WalletProviderContext.js';
 import { AccountWidget } from './providers/WalletProvider/AccountWidget.js';
 import { FormValues, RequestForm } from './components/RequestForm.js';
@@ -42,6 +45,10 @@ export const App = () => {
   const requestsManager = useRef<
     ClientRequestsManager<RequestQuery, OfferOptions> | undefined
   >();
+  const dealsManager = useRef<ClientDealsManager<
+    RequestQuery,
+    OfferOptions
+  >>();
   const { publicClient } = useWallet();
   const [connected, setConnected] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState<number>(0);
@@ -57,6 +64,63 @@ export const App = () => {
 
   /** This hook starts the client that will be available via `client.current` */
   useEffect(() => {
+    const updateRequests = () => {
+      setRequests(requestsManager.current?.getAll() || []);
+    };
+
+    const updateDeals = () => {
+      if (dealsManager.current) {
+        dealsManager.current
+          .getAll()
+          .then((newDeals) => {
+            setDeals(newDeals);
+          })
+          .catch(console.error);
+      }
+    };
+
+    const onClientStart = () => {
+      console.log('🚀 Client started at:', new Date().toISOString());
+      updateRequests();
+      updateDeals();
+    };
+
+    const onClientStop = () => {
+      console.log('👋 Client stopped at:', new Date().toISOString());
+    };
+
+    const onClientConnected = () => {
+      setConnected(true);
+      console.log(
+        '🔗 Client connected to server at:',
+        new Date().toISOString(),
+      );
+    };
+
+    const onClientDisconnected = () => {
+      setConnected(false);
+      console.log(
+        '🔌 Client disconnected from server at:',
+        new Date().toISOString(),
+      );
+    };
+
+    const onRequestSubscribe: EventHandler<CustomEvent<ClientRequestRecord>> = ({ detail }) => {
+      client.current?.subscribe(detail.data.id);
+    };
+
+    const onRequestUnsubscribe: EventHandler<CustomEvent<ClientRequestRecord>> = ({ detail }) => {
+      client.current?.unsubscribe(detail.data.id);
+    };
+
+    const onRequestPublish: EventHandler<CustomEvent<RequestData<RequestQuery>>> = ({ detail }) => {
+      requestsManager.current?.add(detail);
+    };
+
+    const onOffer: EventHandler<CustomEvent<OfferData<RequestQuery, OfferOptions>>> = ({ detail }) => {
+      requestsManager.current?.addOffer(detail);
+    };
+
     const startClient = async () => {
       try {
         setError(undefined);
@@ -67,7 +131,7 @@ export const App = () => {
 
         const store = await storageInitializer();
 
-        const clientRequestManager = new ClientRequestsManager<
+        requestsManager.current = new ClientRequestsManager<
           RequestQuery,
           OfferOptions
         >({
@@ -75,80 +139,39 @@ export const App = () => {
           prefix: 'wt_requests_',
         });
 
-        const options: ClientOptions = {
+        dealsManager.current = new ClientDealsManager<
+          RequestQuery,
+          OfferOptions
+        >({
+          storage: store,
+          prefix: 'wt_deals_',
+          checkInterval: '5s',
           chain,
           contracts: contractsConfig,
-          serverAddress,
-          storageInitializer,
-          dbKeysPrefix: 'wt_',
           publicClient,
-        };
-
-        const updateRequests = () => {
-          setRequests(clientRequestManager.getAll());
-        };
-
-        const updateDeals = () => {
-          if (client.current) {
-            client.current.deals
-              .getAll()
-              .then((newDeals) => {
-                setDeals(newDeals);
-              })
-              .catch(console.error);
-          }
-        };
-
-        client.current = createClient<RequestQuery, OfferOptions>(options);
-
-        client.current.addEventListener('start', () => {
-          console.log('🚀 Client started at:', new Date().toISOString());
-          updateRequests();
-          updateDeals();
         });
 
-        client.current.addEventListener('stop', () => {
-          console.log('👋 Client stopped at:', new Date().toISOString());
+        client.current = createClient<RequestQuery, OfferOptions>({
+          serverAddress,
         });
 
-        client.current.addEventListener('connected', () => {
-          setConnected(true);
-          console.log(
-            '🔗 Client connected to server at:',
-            new Date().toISOString(),
-          );
-        });
+        client.current.addEventListener('start', onClientStart);
+        client.current.addEventListener('stop', onClientStop);
+        client.current.addEventListener('connected', onClientConnected);
+        client.current.addEventListener('disconnected', onClientDisconnected);
+        client.current.addEventListener('publish', onRequestPublish);
+        client.current.addEventListener('offer', onOffer);
 
-        client.current.addEventListener('disconnected', () => {
-          setConnected(false);
-          console.log(
-            '🔌 Client disconnected from server at:',
-            new Date().toISOString(),
-          );
-        });
+        requestsManager.current.addEventListener('request', updateRequests);
+        requestsManager.current.addEventListener('expire', updateRequests);
+        requestsManager.current.addEventListener('cancel', updateRequests);
+        requestsManager.current.addEventListener('delete', updateRequests);
+        requestsManager.current.addEventListener('clear', updateRequests);
+        requestsManager.current.addEventListener('offer', updateRequests);
+        requestsManager.current.addEventListener('subscribe', onRequestSubscribe);
+        requestsManager.current.addEventListener('unsubscribe', onRequestUnsubscribe);
 
-        /** Listening for requests events and update tables */
-        clientRequestManager.addEventListener('request', updateRequests);
-        clientRequestManager.addEventListener('expire', updateRequests);
-        clientRequestManager.addEventListener('cancel', updateRequests);
-        clientRequestManager.addEventListener('delete', updateRequests);
-        clientRequestManager.addEventListener('clear', updateRequests);
-        clientRequestManager.addEventListener('offer', updateRequests);
-
-        clientRequestManager.addEventListener('subscribe', ({ detail }) => {
-          client.current?.subscribe(detail.data.id);
-        });
-        clientRequestManager.addEventListener('unsubscribe', ({ detail }) => {
-          client.current?.unsubscribe(detail.data.id);
-        });
-
-        client.current.addEventListener('publish', ({ detail }) => {
-          clientRequestManager.add(detail);
-        });
-        client.current.addEventListener('offer', ({ detail }) => {
-          clientRequestManager.addOffer(detail);
-        });
-        client.current.addEventListener('deal:changed', updateDeals);
+        dealsManager.current.addEventListener('changed', updateDeals);
 
         await client.current.start();
       } catch (error) {
@@ -164,7 +187,26 @@ export const App = () => {
     startClient();
 
     return () => {
+      client.current?.removeEventListener('start', onClientStart);
+      client.current?.removeEventListener('stop', onClientStop);
+      client.current?.removeEventListener('connected', onClientConnected);
+      client.current?.removeEventListener('disconnected', onClientDisconnected);
+      client.current?.removeEventListener('publish', onRequestPublish);
+      client.current?.removeEventListener('offer', onOffer);
+
+      requestsManager.current?.removeEventListener('request', updateRequests);
+      requestsManager.current?.removeEventListener('expire', updateRequests);
+      requestsManager.current?.removeEventListener('cancel', updateRequests);
+      requestsManager.current?.removeEventListener('delete', updateRequests);
+      requestsManager.current?.removeEventListener('clear', updateRequests);
+      requestsManager.current?.removeEventListener('offer', updateRequests);
+      requestsManager.current?.removeEventListener('subscribe', onRequestSubscribe);
+      requestsManager.current?.removeEventListener('unsubscribe', onRequestUnsubscribe);
+
+      dealsManager.current?.removeEventListener('changed', updateDeals);
+
       stopClient().catch(console.error);
+      dealsManager.current?.stop();
     };
   }, [publicClient]);
 
@@ -248,10 +290,10 @@ export const App = () => {
             setOffers(undefined);
           }}
         />
-        <MakeDeal offer={offer} client={client.current} />
+        <MakeDeal offer={offer} manager={dealsManager.current} />
       </TabPanel>
       <TabPanel id={1} activeTab={selectedTab}>
-        <Deals deals={deals} client={client.current} />
+        <Deals deals={deals} manager={dealsManager.current} />
       </TabPanel>
 
       {error && <div style={{ marginTop: 20 }}>🚨 {error}</div>}
