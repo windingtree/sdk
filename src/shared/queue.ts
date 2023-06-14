@@ -1,4 +1,5 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { stringify } from 'viem';
 import { simpleUid } from '@windingtree/contracts';
 import { Storage } from '../storage/index.js';
 import {
@@ -206,6 +207,7 @@ export interface QueueEvents {
  * @extends {EventEmitter<QueueEvents>}
  */
 export class Queue extends EventEmitter<QueueEvents> {
+  /** External job storage */
   private storage: Storage;
   private hashKey: string;
   /** All jobs in queue */
@@ -241,7 +243,7 @@ export class Queue extends EventEmitter<QueueEvents> {
     this.liveJobs = new Set<string>();
     this.jobHandlers = new Map<string, JobHandlerClosure>();
     this.processing = false;
-    this._init().catch(logger.error);
+    void this._init();
     logger.trace('Queue instantiated');
   }
 
@@ -250,30 +252,35 @@ export class Queue extends EventEmitter<QueueEvents> {
    *
    * @returns {Promise<void>}
    */
-  private async _init(): Promise<void> {
+  protected async _init(): Promise<void> {
     if (this.heartbeatInterval) {
       return;
     }
 
-    const rawJobKeys = await this.storage.get<string>(this.hashKey);
+    try {
+      // Read stored serialized array of jobs Ids from an external storage
+      const rawJobKeys = await this.storage.get<string>(this.hashKey);
 
-    if (rawJobKeys) {
-      new Set<string>(JSON.parse(rawJobKeys) as string[]);
-    }
-
-    /** Heartbeat callback */
-    const tick = () => {
-      if (this.jobs.size > 0) {
-        this._process().catch(logger.error);
-        return;
+      if (rawJobKeys) {
+        new Set<string>(JSON.parse(rawJobKeys) as string[]);
       }
 
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = undefined;
-      logger.trace('Queue interval cleared');
-    };
+      /** Heartbeat callback */
+      const tick = () => {
+        if (this.jobs.size > 0) {
+          void this._process();
+          return;
+        }
 
-    this.heartbeatInterval = setInterval(tick.bind(this), this.heartbeat);
+        clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = undefined;
+        logger.trace('Queue interval cleared');
+      };
+
+      this.heartbeatInterval = setInterval(tick.bind(this), this.heartbeat);
+    } catch (error) {
+      logger.error('_init', error);
+    }
   }
 
   /**
@@ -282,8 +289,38 @@ export class Queue extends EventEmitter<QueueEvents> {
    * @returns {Promise<void>}
    */
   private async _sync(): Promise<void> {
-    await this.storage.set(this.hashKey, JSON.stringify(Array.from(this.jobs)));
+    await this.storage.set(this.hashKey, stringify(Array.from(this.jobs)));
     logger.trace('Storage synced');
+  }
+
+  /**
+   * Saves a new job to storage
+   *
+   * @private
+   * @param {string} jobId
+   * @param {Job} job
+   * @returns {Promise<void>}
+   * @memberof Queue
+   */
+  private async _saveJob(jobId: string, job: Job): Promise<void> {
+    try {
+      await this.storage.set<Job>(jobId, job);
+
+      this.jobs.add(jobId);
+      logger.trace(`Added job #${jobId}`);
+
+      this.dispatchEvent(
+        new CustomEvent('job', {
+          detail: job,
+        }),
+      );
+      logger.trace(`Added job #${jobId}`, job);
+
+      await this._sync();
+      await this._init();
+    } catch (error) {
+      logger.error('_saveJob', error);
+    }
   }
 
   /**
@@ -452,62 +489,68 @@ export class Queue extends EventEmitter<QueueEvents> {
       }
 
       this.liveJobs.delete(job.id);
+
+      logger.trace(`Job #${job.id} fulfilled`);
     } catch (error) {
       logger.error(`Job #${job.id} error:`, error);
 
-      job = await this._updatedJobState(job, {
-        status: JobStatus.ERRORED,
-        errors: [
-          ...(job.state.errors ?? []),
-          {
-            time: Date.now(),
-            error: (error as Error).stack || (error as Error).message,
-          },
-        ],
-      });
-      logger.trace(`Job #${job.id} errored`, job);
-
-      this.dispatchEvent(
-        new CustomEvent<Job>('error', {
-          detail: job,
-        }),
-      );
-
-      if (
-        job.options.attempts &&
-        job.options.attempts > 0 &&
-        job.state.attempts < job.options.attempts
-      ) {
+      try {
         job = await this._updatedJobState(job, {
-          attempts: job.state.attempts + 1,
-          scheduled: Date.now() + job.options.attemptsDelay,
+          status: JobStatus.ERRORED,
+          errors: [
+            ...(job.state.errors ?? []),
+            {
+              time: Date.now(),
+              error: (error as Error).stack || (error as Error).message,
+            },
+          ],
         });
-        logger.trace(`Errored job #${job.id} scheduled`, job);
-
-        this.liveJobs.delete(job.id);
+        logger.trace(`Job #${job.id} errored`, job);
 
         this.dispatchEvent(
-          new CustomEvent<Job>('scheduled', {
+          new CustomEvent<Job>('error', {
             detail: job,
           }),
         );
-        return;
+
+        if (
+          job.options.attempts &&
+          job.options.attempts > 0 &&
+          job.state.attempts < job.options.attempts
+        ) {
+          job = await this._updatedJobState(job, {
+            attempts: job.state.attempts + 1,
+            scheduled: Date.now() + job.options.attemptsDelay,
+          });
+          logger.trace(`Errored job #${job.id} scheduled`, job);
+
+          this.liveJobs.delete(job.id);
+
+          this.dispatchEvent(
+            new CustomEvent<Job>('scheduled', {
+              detail: job,
+            }),
+          );
+          return;
+        }
+
+        job = await this._updatedJobState(job, {
+          status: JobStatus.FAILED,
+        });
+
+        this.jobs.delete(job.id);
+        await this._sync();
+        this.liveJobs.delete(job.id);
+        logger.trace(`Job #${job.id} failed`, job);
+
+        this.dispatchEvent(
+          new CustomEvent<Job>('fail', {
+            detail: job,
+          }),
+        );
+      } catch (error) {
+        logger.error(error);
       }
-
-      job = await this._updatedJobState(job, {
-        status: JobStatus.FAILED,
-      });
-
-      this.jobs.delete(job.id);
-      await this._sync();
-      this.liveJobs.delete(job.id);
-      logger.trace(`Job #${job.id} failed`, job);
-
-      this.dispatchEvent(
-        new CustomEvent<Job>('fail', {
-          detail: job,
-        }),
-      );
     }
   }
 
@@ -521,22 +564,20 @@ export class Queue extends EventEmitter<QueueEvents> {
       return;
     }
 
-    this.processing = true;
-    const jobs = await this._pickJobs();
+    try {
+      this.processing = true;
+      const jobs = await this._pickJobs();
 
-    if (jobs.length > 0) {
-      logger.trace(`Picked #${jobs.length} jobs`);
+      if (jobs.length > 0) {
+        logger.trace(`Picked #${jobs.length} jobs`);
 
-      await Promise.allSettled(
-        jobs.map((job) =>
-          this._doJob(job)
-            .then(() => logger.trace(`Job #${job.id} fulfilled`))
-            .catch((error) => logger.error(`Job #${job.id} error`, error)),
-        ),
-      );
+        await Promise.allSettled(jobs.map((job) => this._doJob(job)));
+      }
+
+      this.processing = false;
+    } catch (error) {
+      logger.error(error);
     }
-
-    this.processing = false;
   }
 
   /**
@@ -586,9 +627,8 @@ export class Queue extends EventEmitter<QueueEvents> {
       throw new Error(`Job handler with name #${name} not registered yet`);
     }
 
-    const jobId = simpleUid();
     const job: Job<JobDataType> = {
-      id: jobId,
+      id: simpleUid(),
       name,
       data,
       options: {
@@ -603,25 +643,7 @@ export class Queue extends EventEmitter<QueueEvents> {
       },
     };
 
-    // @todo Validate job data
-
-    this.storage
-      .set<Job>(jobId, job)
-      .then(() => {
-        this.jobs.add(jobId);
-        logger.trace(`Added job Id #${jobId}`);
-      })
-      .then(() => {
-        logger.trace(`Added job #${jobId}`, job);
-        this.dispatchEvent(
-          new CustomEvent('job', {
-            detail: job,
-          }),
-        );
-      })
-      .then(() => this._sync())
-      .then(() => this._init())
-      .catch(logger.error);
+    void this._saveJob(job.id, job);
 
     return job;
   }
@@ -636,7 +658,7 @@ export class Queue extends EventEmitter<QueueEvents> {
     const job = await this.storage.get<Job>(id);
 
     if (!job) {
-      throw new Error(`Job $${id} not found`);
+      throw new Error(`Job #${id} not found`);
     }
 
     return job;
@@ -648,7 +670,7 @@ export class Queue extends EventEmitter<QueueEvents> {
    * @param {string} id Job id
    * @returns {Promise<void>}
    */
-  async cancelJob(id: string) {
+  async cancelJob(id: string): Promise<void> {
     if (!this.jobs.has(id)) {
       throw new Error(`Job #${id} not in the queue`);
     }
