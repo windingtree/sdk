@@ -2,7 +2,6 @@ import './setup.js';
 import { expect } from 'chai';
 import { stringify } from 'viem';
 import { NodeRequestManager } from '../src/index.js';
-import { parseSeconds } from '../src/utils/time.js';
 
 describe('Node.NodeRequestManager', () => {
   const defaultNoncePeriod = 1;

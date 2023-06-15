@@ -14,10 +14,7 @@ import { ConnectButton } from '../providers/WalletProvider/ConnectButton.js';
 
 interface MakeDealProps {
   offer?: OfferData<RequestQuery, OfferOptions>;
-  manager?: ClientDealsManager<
-    RequestQuery,
-    OfferOptions
-  >;
+  manager?: ClientDealsManager<RequestQuery, OfferOptions>;
 }
 
 /**
@@ -56,13 +53,7 @@ export const MakeDeal = ({ offer, manager }: MakeDealProps) => {
           throw new Error('Invalid deal configuration');
         }
 
-        await manager.create(
-          offer,
-          paymentId,
-          ZeroHash,
-          walletClient,
-          setTx,
-        );
+        await manager.create(offer, paymentId, ZeroHash, walletClient, setTx);
         setLoading(false);
         setSuccess(true);
       } catch (err) {
