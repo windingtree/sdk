@@ -2,6 +2,7 @@ import { createLibp2p, Libp2pOptions, Libp2p } from 'libp2p';
 import { createFromJSON } from '@libp2p/peer-id-factory';
 import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
+import { yamux } from '@chainsafe/libp2p-yamux';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
@@ -10,7 +11,6 @@ import { centerSub, CenterSub } from '../shared/pubsub.js';
 import { decodeText } from '../utils/text.js';
 import { StorageInitializer } from '../storage/abstract.js';
 import { createLogger } from '../utils/logger.js';
-import { yamux } from '@chainsafe/libp2p-yamux';
 
 const logger = createLogger('Server');
 

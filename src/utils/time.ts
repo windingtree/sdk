@@ -122,3 +122,20 @@ export const nowSec = () => Math.round(DateTime.now().toSeconds());
  */
 export const isExpired = (expire: bigint): boolean =>
   BigInt(nowSec()) + 1n > expire;
+
+/**
+ * Calculates a backoff with jitter
+ *
+ * @param {number} initialDelay
+ * @param {number} retries
+ * @param {number} maxDelay
+ * @returns {number}
+ */
+export const backoffWithJitter = (
+  initialDelay: number,
+  retries: number,
+  maxDelay: number,
+): number => {
+  const delay = Math.min(initialDelay * Math.pow(2, retries), maxDelay);
+  return delay / 2 + Math.floor((Math.random() * delay) / 2);
+};

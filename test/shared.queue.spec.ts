@@ -1,228 +1,290 @@
-import './setup.js';
-import { memoryStorage } from '../src/storage/index.js';
-import {
-  Queue,
-  JobStatus,
-  createJobHandler,
-  JobHandlerClosure,
-  Job,
-} from '../src/shared/queue.js';
-import { nowSec } from '../src/utils/time.js';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/require-await */
 import { expect } from 'chai';
+import { Storage, memoryStorage } from '../src/storage/index.js';
+import {
+  Job,
+  JobStatus,
+  Queue,
+  JobHandler,
+  JobConfig,
+  JobData,
+  JobHandlerRegistry,
+} from '../src/shared/queue.js';
 
-export interface JobData {
-  shouldThrow: boolean;
-  shouldFail: boolean;
-  repeat: number;
-  delay: number;
-}
+describe('Job', function () {
+  let config: JobConfig;
+  let handler: JobHandler;
 
-export interface JobConfiguration {
-  name: string;
-  data: JobData;
-}
+  beforeEach(function () {
+    config = {
+      handlerName: 'testHandler',
+      data: {},
+    };
+    handler = async () => true; // sample job handler
+  });
 
-describe('Shared.Queue', () => {
-  const name = 'test';
-  const totalJobs = 30;
-  const minAttempts = 3;
-  const maxAttempts = 5;
-  const minDelay = 10;
-  const maxDelay = 100;
+  it('should create a new job with pending status', function () {
+    const job = new Job(config);
+    expect(job.status).to.equal(JobStatus.Pending);
+  });
+
+  it('should correctly set job status', function () {
+    const job = new Job(config);
+    job.status = JobStatus.Started;
+    expect(job.status).to.equal(JobStatus.Started);
+  });
+
+  it('should correctly identify expired job', function () {
+    const expiredConfig = { ...config, expire: -1 }; // set expiration time in the past
+    const job = new Job(expiredConfig);
+    expect(job.expired).to.be.true;
+    expect(job.status).to.equal(JobStatus.Expired);
+  });
+
+  it('should correctly identify executable job', function () {
+    const job = new Job(config);
+    expect(job.executable).to.be.true;
+  });
+
+  it('should correctly identify non-executable job', function () {
+    const job = new Job(config);
+    job.status = JobStatus.Started;
+    expect(job.executable).to.be.false;
+  });
+
+  it('should correctly execute job handler', async function () {
+    const job = new Job(config);
+    const result = await job.execute(handler);
+    expect(result).to.be.true;
+  });
+
+  it('should correctly handle failed job execution', function (done) {
+    const failingHandler = async () => {
+      throw new Error('Job failed');
+    };
+    const job = new Job(config);
+    job.execute(failingHandler).catch((err) => {
+      expect((err as Error).message).to.equal('Job failed');
+      done();
+    });
+  });
+});
+
+describe('JobHandlerRegistry', () => {
+  let registry: JobHandlerRegistry;
+  let sampleHandler: JobHandler;
+
+  beforeEach(function () {
+    registry = new JobHandlerRegistry();
+    sampleHandler = async () => true; // sample job handler
+  });
+
+  it('should be able to register a handler', function () {
+    registry.register('test', sampleHandler);
+    expect(registry.handlers.has('test')).to.be.true;
+  });
+
+  it('should be able to get a registered handler', function () {
+    registry.register('test', sampleHandler);
+    const handler = registry.getHandler('test');
+    expect(handler).to.be.eq(sampleHandler);
+  });
+
+  it('should throw an error when trying to get a handler that does not exist', function () {
+    expect(() => registry.getHandler('nonexistent')).to.throw;
+  });
+
+  it('should not allow to register a handler with a name that already exists', function () {
+    registry.register('test', sampleHandler);
+    expect(() => registry.register('test', sampleHandler)).to.throw;
+  });
+});
+
+describe('Queue', function () {
+  let config: JobConfig;
+  let handler: JobHandler<JobData>;
   let queue: Queue;
-  let jobs: JobConfiguration[];
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  before(async () => {
-    jobs = Array(totalJobs)
-      .fill(null)
-      .map(() => {
-        const shouldThrow = Math.random() < 0.5;
-        const shouldFail = shouldThrow && Math.random() < 0.5;
-        const repeatOpts = shouldThrow
-          ? {
-              repeat:
-                Math.floor(Math.random() * (maxAttempts - minAttempts)) +
-                minAttempts,
-              delay:
-                Math.floor(Math.random() * (maxDelay - minDelay)) + minDelay,
-            }
-          : {};
-
-        return {
-          name: 'test',
-          data: {
-            shouldThrow,
-            shouldFail,
-            ...repeatOpts,
-          },
-        } as JobConfiguration;
-      });
-  });
-
-  beforeEach(async () => {
-    const storageInit = memoryStorage.createInitializer();
-    queue = new Queue({
-      storage: await storageInit(),
-      hashKey: 'jobs',
-      concurrentJobsNumber: 2,
-    });
-  });
-
-  it('should process all jobs', (done) => {
-    const { ok, fail } = jobs.reduce(
-      (a, v) => ({
-        ok:
-          (!v.data.repeat && !v.data.shouldThrow) ||
-          (v.data.repeat && !v.data.shouldFail)
-            ? a.ok + 1
-            : a.ok,
-        fail: v.data.shouldFail ? a.fail + 1 : a.fail,
-      }),
-      { ok: 0, fail: 0 },
-    );
-    const result = {
-      ok: 0,
-      fail: 0,
+  beforeEach(function () {
+    config = {
+      handlerName: 'testHandler',
+      data: {},
     };
 
-    const checkDone = () => {
-      if (result.ok === ok && result.fail === fail) {
-        done();
-      }
-    };
+    handler = async () => Promise.resolve(true);
 
-    // eslint-disable-next-line @typescript-eslint/require-await
-    const handler = createJobHandler<JobData>(async (job) => {
-      if (
-        (job.data.repeat && job.state.attempts < job.data.repeat) ||
-        job.data.shouldFail
-      ) {
-        throw new Error('Should throw');
-      }
-    });
-
-    queue.addJobHandler('test', handler());
-
-    queue.addEventListener('done', () => {
-      result.ok++;
-      checkDone();
-    });
-    queue.addEventListener('fail', () => {
-      result.fail++;
-      checkDone();
-    });
-
-    jobs.forEach((job) =>
-      queue.addJob<JobData>(job.name, job.data, {
-        attempts: job.data.repeat,
-        attemptsDelay: job.data.delay,
-      }),
-    );
+    queue = new Queue({ concurrencyLimit: 5 });
+    queue.registerHandler('testHandler', handler);
   });
 
-  it('should process recurrent jobs', (done) => {
-    const counter = 5;
-    const handler: JobHandlerClosure = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    };
+  it('should add and execute a job', async function () {
+    let jobId: string;
 
-    queue.addJobHandler(name, handler);
+    await new Promise<void>((resolve) => {
+      queue.addEventListener(
+        'stop',
+        () => {
+          expect(queue.getLocal(jobId)?.status).to.equal(JobStatus.Done);
+          resolve();
+        },
+        { once: true },
+      );
 
-    queue.addEventListener('cancel', ({ detail: job }) => {
-      expect(job.state.status).to.eq(JobStatus.CANCELLED);
-      done();
+      jobId = queue.add(config);
     });
-
-    queue.addEventListener('done', ({ detail: job }) => {
-      if (job.state.attempts === counter) {
-        queue.cancelJob(job.id).catch(done);
-      }
-    });
-
-    queue.addJob(
-      name,
-      {},
-      {
-        every: 100,
-        attemptsDelay: 100,
-      },
-    );
   });
 
-  it('should cancel recurrent job using handler return', (done) => {
-    const counter = 5;
-    const handler: JobHandlerClosure = async (job: Job) => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
+  it('should cancel a job', function () {
+    const jobId = queue.add(config);
+    expect(queue.cancel(jobId)).to.be.true;
+    expect(queue.getLocal(jobId)?.status).to.equal(JobStatus.Cancelled);
+  });
 
-      if (job.state.attempts >= counter) {
+  it('should not cancel a non-existent job', function () {
+    expect(queue.cancel('nonExistentJobId')).to.be.false;
+  });
+
+  it('should delete a job', function () {
+    const jobId = queue.add(config);
+    expect(queue.delete(jobId)).to.be.true;
+    expect(queue.getLocal(jobId)).to.be.undefined;
+  });
+
+  it('should not delete a non-existent job', function () {
+    expect(queue.delete('nonExistentJobId')).to.be.false;
+  });
+
+  it('should not exceed concurrency limit', async function () {
+    const concurrencyLimit = 2;
+
+    queue = new Queue({ concurrencyLimit });
+    queue.registerHandler('testHandler', handler);
+
+    await new Promise<void>((resolve) => {
+      queue.addEventListener(
+        'stop',
+        () => {
+          expect(
+            queue.jobs.filter((job) => job.status === JobStatus.Started).length,
+          ).to.equal(concurrencyLimit);
+          resolve();
+        },
+        { once: true },
+      );
+
+      for (let i = 0; i < 5; i++) {
+        queue.add(config);
+      }
+    });
+  });
+
+  describe('recurrent jobs', () => {
+    let queue: Queue;
+
+    beforeEach(() => {
+      queue = new Queue({ concurrencyLimit: 1 });
+    });
+
+    it('should correctly handle recurrent jobs', async () => {
+      const maxRecurrences = 3;
+      let count = 0;
+
+      const handler = async () => {
         return true;
-      }
+      };
+      queue.registerHandler('recurrent', handler);
 
-      return;
-    };
+      await new Promise<void>((resolve) => {
+        queue.addEventListener('stop', () => {
+          if (count >= maxRecurrences) {
+            resolve();
+          }
+          count++;
+        });
 
-    queue.addJobHandler(name, handler);
-
-    queue.addEventListener('cancel', ({ detail: job }) => {
-      expect(job.state.status).to.eq(JobStatus.CANCELLED);
-      done();
+        // Add a recurrent job that should run every 10ms
+        queue.add({
+          handlerName: 'recurrent',
+          isRecurrent: true,
+          recurrenceInterval: 10,
+          maxRecurrences,
+        });
+      });
     });
 
-    queue.addJob(
-      name,
-      {},
-      {
-        every: 100,
-        attemptsDelay: 100,
-      },
-    );
+    it('should correctly stop recurrent jobs by returning false from handler', async () => {
+      const maxRecurrences = 5;
+      const exitStep = 2;
+      let count = 0;
+      let timer: NodeJS.Timeout;
+
+      const handler = async () => {
+        count++;
+        if (count === exitStep) {
+          return false;
+        }
+        return true;
+      };
+      queue.registerHandler('recurrent', handler);
+
+      await new Promise<void>((resolve) => {
+        queue.addEventListener('stop', () => {
+          clearTimeout(timer);
+          timer = setTimeout(resolve, maxRecurrences * 2);
+        });
+
+        // Add a recurrent job that should run every 10ms
+        queue.add({
+          handlerName: 'recurrent',
+          isRecurrent: true,
+          recurrenceInterval: 10,
+          maxRecurrences,
+        });
+      });
+
+      expect(count).to.be.eq(exitStep);
+    });
   });
 
-  it('should cancel recurrent job using max attempts option', (done) => {
-    const counter = 5;
-    const handler: JobHandlerClosure = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    };
+  describe('with storage', () => {
+    const idsKeyName = 'jobsIds';
+    let storage: Storage;
+    let queue: Queue;
 
-    queue.addJobHandler(name, handler);
-
-    queue.addEventListener('cancel', ({ detail: job }) => {
-      expect(job.state.status).to.eq(JobStatus.CANCELLED);
-      done();
+    beforeEach(async () => {
+      storage = await memoryStorage.createInitializer()();
+      queue = new Queue({
+        concurrencyLimit: 1,
+        storage,
+        idsKeyName,
+      });
+      queue.registerHandler('stored', handler);
     });
 
-    queue.addJob(
-      name,
-      {},
-      {
-        every: 100,
-        attempts: counter,
-        attemptsDelay: 100,
-      },
-    );
-  });
+    it('should add and execute a job', async function () {
+      let jobId: string | undefined;
 
-  it('should cancel expired job', (done) => {
-    const handler: JobHandlerClosure = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    };
+      await new Promise<void>((resolve) => {
+        queue.addEventListener(
+          'stop',
+          () => {
+            expect(queue.getLocal(jobId!)?.status).to.equal(JobStatus.Done);
+            resolve();
+          },
+          { once: true },
+        );
 
-    queue.addJobHandler(name, handler);
+        jobId = queue.add({
+          handlerName: 'stored',
+        });
+      });
 
-    queue.addEventListener('expired', ({ detail: job }) => {
-      expect(job.state.status).to.eq(JobStatus.EXPIRED);
-      done();
+      const ids = new Set(await queue.storage?.get<string[]>(idsKeyName));
+      expect(ids.has(jobId!)).to.be.true;
+      const localJob = queue.getLocal(jobId!);
+      const storedJob = await queue.get(jobId!);
+      expect(storedJob).to.deep.eq(localJob?.toJSON());
     });
-
-    queue.addJob(
-      name,
-      {},
-      {
-        every: 100,
-        attemptsDelay: 100,
-        expire: nowSec() + 1,
-      },
-    );
   });
 });

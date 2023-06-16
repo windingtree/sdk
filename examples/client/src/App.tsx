@@ -45,10 +45,7 @@ export const App = () => {
   const requestsManager = useRef<
     ClientRequestsManager<RequestQuery, OfferOptions> | undefined
   >();
-  const dealsManager = useRef<ClientDealsManager<
-    RequestQuery,
-    OfferOptions
-  >>();
+  const dealsManager = useRef<ClientDealsManager<RequestQuery, OfferOptions>>();
   const { publicClient } = useWallet();
   const [connected, setConnected] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState<number>(0);
@@ -105,19 +102,27 @@ export const App = () => {
       );
     };
 
-    const onRequestSubscribe: EventHandler<CustomEvent<ClientRequestRecord>> = ({ detail }) => {
+    const onRequestSubscribe: EventHandler<
+      CustomEvent<ClientRequestRecord>
+    > = ({ detail }) => {
       client.current?.subscribe(detail.data.id);
     };
 
-    const onRequestUnsubscribe: EventHandler<CustomEvent<ClientRequestRecord>> = ({ detail }) => {
+    const onRequestUnsubscribe: EventHandler<
+      CustomEvent<ClientRequestRecord>
+    > = ({ detail }) => {
       client.current?.unsubscribe(detail.data.id);
     };
 
-    const onRequestPublish: EventHandler<CustomEvent<RequestData<RequestQuery>>> = ({ detail }) => {
+    const onRequestPublish: EventHandler<
+      CustomEvent<RequestData<RequestQuery>>
+    > = ({ detail }) => {
       requestsManager.current?.add(detail);
     };
 
-    const onOffer: EventHandler<CustomEvent<OfferData<RequestQuery, OfferOptions>>> = ({ detail }) => {
+    const onOffer: EventHandler<
+      CustomEvent<OfferData<RequestQuery, OfferOptions>>
+    > = ({ detail }) => {
       requestsManager.current?.addOffer(detail);
     };
 
@@ -168,8 +173,14 @@ export const App = () => {
         requestsManager.current.addEventListener('delete', updateRequests);
         requestsManager.current.addEventListener('clear', updateRequests);
         requestsManager.current.addEventListener('offer', updateRequests);
-        requestsManager.current.addEventListener('subscribe', onRequestSubscribe);
-        requestsManager.current.addEventListener('unsubscribe', onRequestUnsubscribe);
+        requestsManager.current.addEventListener(
+          'subscribe',
+          onRequestSubscribe,
+        );
+        requestsManager.current.addEventListener(
+          'unsubscribe',
+          onRequestUnsubscribe,
+        );
 
         dealsManager.current.addEventListener('changed', updateDeals);
 
@@ -200,8 +211,14 @@ export const App = () => {
       requestsManager.current?.removeEventListener('delete', updateRequests);
       requestsManager.current?.removeEventListener('clear', updateRequests);
       requestsManager.current?.removeEventListener('offer', updateRequests);
-      requestsManager.current?.removeEventListener('subscribe', onRequestSubscribe);
-      requestsManager.current?.removeEventListener('unsubscribe', onRequestUnsubscribe);
+      requestsManager.current?.removeEventListener(
+        'subscribe',
+        onRequestSubscribe,
+      );
+      requestsManager.current?.removeEventListener(
+        'unsubscribe',
+        onRequestUnsubscribe,
+      );
 
       dealsManager.current?.removeEventListener('changed', updateDeals);
 
