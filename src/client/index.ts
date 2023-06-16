@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { createLibp2p, Libp2pOptions, Libp2p, Libp2pInit } from 'libp2p';
 import { noise } from '@chainsafe/libp2p-noise';
@@ -9,18 +8,18 @@ import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
-import { Chain, stringify } from 'viem';
+import { stringify } from 'viem';
 import {
   OfferData,
   GenericOfferOptions,
   GenericQuery,
-  Contracts,
   RequestData,
 } from '../shared/types.js';
 import { centerSub, CenterSub } from '../shared/pubsub.js';
-import { ChainsConfigOption, ServerAddressOption } from '../shared/options.js';
+import { ServerAddressOption } from '../shared/options.js';
 import { encodeText, decodeText } from '../utils/text.js';
 import { createLogger } from '../utils/logger.js';
+import { yamux } from '@chainsafe/libp2p-yamux';
 
 const logger = createLogger('Client');
 
@@ -168,7 +167,7 @@ export class Client<
   get connected(): boolean {
     return (
       !!this.libp2p &&
-      (this.libp2p.pubsub as CenterSub).started &&
+      (this.libp2p.services.pubsub as CenterSub).started &&
       this.libp2p.getPeers().length > 0 &&
       this.libp2p.getConnections(this.serverPeerId)[0]?.stat.status === OPEN
     );
@@ -183,23 +182,45 @@ export class Client<
   async start(): Promise<void> {
     const config: Libp2pOptions = {
       transports: [webSockets({ filter: all })],
-      streamMuxers: [mplex()],
+      streamMuxers: [yamux(), mplex()],
       connectionEncryption: [noise()],
-      pubsub: centerSub({
-        isClient: true,
-        /** Client must be connected to the coordination server */
-        directPeers: [
-          {
-            id: this.serverPeerId,
-            addrs: [this.serverMultiaddr],
-          },
-        ],
-      }),
+      services: {
+        pubsub: centerSub({
+          isClient: true,
+          /** Client must be connected to the coordination server */
+          directPeers: [
+            {
+              id: this.serverPeerId,
+              addrs: [this.serverMultiaddr],
+            },
+          ],
+        }),
+      },
+      connectionManager: {
+        maxPeerAddrsToDial: 10,
+        minConnections: 0,
+        maxConnections: 100,
+        maxParallelDials: 20,
+      },
+      connectionGater: {
+        //todo check all settings
+        denyDialPeer: async () => Promise.resolve(false),
+        denyDialMultiaddr: async () => Promise.resolve(false),
+        denyInboundConnection: async () => Promise.resolve(false),
+        denyOutboundConnection: async () => Promise.resolve(false),
+        denyInboundEncryptedConnection: async () => Promise.resolve(false),
+        denyOutboundEncryptedConnection: async () => Promise.resolve(false),
+        denyInboundUpgradedConnection: async () => Promise.resolve(false),
+        denyOutboundUpgradedConnection: async () => Promise.resolve(false),
+        denyInboundRelayReservation: async () => Promise.resolve(false),
+        denyOutboundRelayedConnection: async () => Promise.resolve(false),
+        denyInboundRelayedConnection: async () => Promise.resolve(false),
+      },
       ...this.libp2pInit,
     };
     this.libp2p = await createLibp2p(config);
 
-    (this.libp2p.pubsub as CenterSub).addEventListener(
+    (this.libp2p.services.pubsub as CenterSub).addEventListener(
       'gossipsub:heartbeat',
       () => {
         this.dispatchEvent(new CustomEvent<void>('heartbeat'));
@@ -208,7 +229,7 @@ export class Client<
 
     this.libp2p.addEventListener('peer:connect', ({ detail }) => {
       try {
-        if (detail.remotePeer.equals(this.serverPeerId)) {
+        if (detail.equals(this.serverPeerId)) {
           this.dispatchEvent(new CustomEvent<void>('connected'));
           logger.trace(
             '🔗 Client connected to server at:',
@@ -222,7 +243,7 @@ export class Client<
 
     this.libp2p.addEventListener('peer:disconnect', ({ detail }) => {
       try {
-        if (detail.remotePeer.equals(this.serverPeerId)) {
+        if (detail.equals(this.serverPeerId)) {
           this.dispatchEvent(new CustomEvent<void>('disconnected'));
           logger.trace(
             '🔌 Client disconnected from server at:',
@@ -234,34 +255,37 @@ export class Client<
       }
     });
 
-    this.libp2p.pubsub.addEventListener('message', ({ detail }) => {
-      logger.trace(`Message on topic ${detail.topic}`);
+    (this.libp2p.services.pubsub as CenterSub).addEventListener(
+      'message',
+      ({ detail }) => {
+        logger.trace(`Message on topic ${detail.topic}`);
 
-      try {
-        /** Check is the message is an offer */
-        const offer = JSON.parse(decodeText(detail.data)) as OfferData<
-          CustomRequestQuery,
-          CustomOfferOptions
-        >;
+        try {
+          /** Check is the message is an offer */
+          const offer = JSON.parse(decodeText(detail.data)) as OfferData<
+            CustomRequestQuery,
+            CustomOfferOptions
+          >;
 
-        // @todo Validate offer
+          // @todo Validate offer
 
-        logger.trace('Offer received:', offer);
+          logger.trace('Offer received:', offer);
 
-        // @todo Implement offer verification
+          // @todo Implement offer verification
 
-        this.dispatchEvent(
-          new CustomEvent<OfferData<CustomRequestQuery, CustomOfferOptions>>(
-            'offer',
-            {
-              detail: offer,
-            },
-          ),
-        );
-      } catch (error) {
-        logger.error(error);
-      }
-    });
+          this.dispatchEvent(
+            new CustomEvent<OfferData<CustomRequestQuery, CustomOfferOptions>>(
+              'offer',
+              {
+                detail: offer,
+              },
+            ),
+          );
+        } catch (error) {
+          logger.error(error);
+        }
+      },
+    );
 
     await this.libp2p.start();
     this.dispatchEvent(new CustomEvent<void>('start'));
@@ -279,7 +303,7 @@ export class Client<
       throw new Error('libp2p not initialized yet');
     }
 
-    this.libp2p.pubsub
+    (this.libp2p.services.pubsub as CenterSub)
       .publish(request.topic, encodeText(stringify(request)))
       .then(() => {
         this.dispatchEvent(
@@ -302,7 +326,7 @@ export class Client<
       throw new Error('libp2p not initialized yet');
     }
 
-    this.libp2p.pubsub.subscribe(topic);
+    (this.libp2p.services.pubsub as CenterSub).subscribe(topic);
   }
 
   /**
@@ -316,7 +340,7 @@ export class Client<
       throw new Error('libp2p not initialized yet');
     }
 
-    this.libp2p.pubsub.unsubscribe(topic);
+    (this.libp2p.services.pubsub as CenterSub).unsubscribe(topic);
   }
 
   /**
