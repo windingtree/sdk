@@ -1,4 +1,9 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { simpleUid } from '@windingtree/contracts';
+import { backoffWithJitter } from '../utils/time.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('Queue');
 
 /**
  * Enum to represent the different states a job can be in.
@@ -44,6 +49,8 @@ export interface JobConfig<T extends JobData = JobData> {
   maxRetries?: number;
   /** Initial retries value */
   retries?: number;
+  /** Retries delay */
+  retriesDelay?: number;
 }
 
 /**
@@ -90,6 +97,8 @@ export class Job<T extends JobData = JobData> {
   maxRetries: number;
   /** The number of times the job has been retried */
   retries: number;
+  /** The period of time between retries */
+  retriesDelay: number;
   /** The history of the job */
   history: JobHistory;
 
@@ -99,7 +108,7 @@ export class Job<T extends JobData = JobData> {
    * @memberof Job
    */
   constructor(config: JobConfig<T>) {
-    this.id = Date.now().toString();
+    this.id = simpleUid();
     this.history = new JobHistory();
     this.handlerName = config.handlerName;
     this.data = config.data;
@@ -110,6 +119,7 @@ export class Job<T extends JobData = JobData> {
     this.maxRecurrences = config.maxRecurrences ?? 0;
     this.maxRetries = config.maxRetries ?? 0;
     this.retries = config.retries ?? 0;
+    this.retriesDelay = config.retriesDelay ?? 0;
   }
 
   /**
@@ -122,6 +132,7 @@ export class Job<T extends JobData = JobData> {
       timestamp: new Date(),
       status: newStatus,
     });
+    logger.trace(`Job #${this.id} status changed to: ${this.status}`);
   }
 
   /**
@@ -179,6 +190,7 @@ export class Job<T extends JobData = JobData> {
    * @memberof Job
    */
   async execute(handler: JobHandler<T>) {
+    logger.trace(`Job #${this.id} executed`);
     return Promise.resolve(handler(this.data));
   }
 }
@@ -329,8 +341,11 @@ export class Queue extends EventEmitter<QueueEvents> {
         (job) => job.status === JobStatus.Started,
       );
       const pendingJobs = this.jobs.filter((job) => job.executable);
+      logger.trace(`Active jobs: ${activeJobs.length}`);
+      logger.trace(`Pending jobs: ${pendingJobs.length}`);
 
       const availableSlots = this.concurrencyLimit - activeJobs.length;
+      logger.trace(`Available slots: ${availableSlots}`);
 
       if (availableSlots <= 0 || pendingJobs.length === 0) {
         this.dispatchEvent(new CustomEvent<void>('stop'));
@@ -339,6 +354,9 @@ export class Queue extends EventEmitter<QueueEvents> {
 
       // Get the jobs that will be started now
       const jobsToStart = pendingJobs.slice(0, availableSlots);
+      logger.trace(
+        `Jobs to start: [${jobsToStart.map((j) => j.id).join(', ')}]`,
+      );
 
       // Start all the selected jobs concurrently
       const promises = jobsToStart.map(async (job) => {
@@ -347,11 +365,13 @@ export class Queue extends EventEmitter<QueueEvents> {
 
           const handler = this.handlers.getHandler(job.handlerName);
 
-          const shouldRecur = await job.execute(handler);
+          const result = await job.execute(handler);
+          logger.trace(`Job #${job.id} execution result: ${String(result)}`);
 
-          if (shouldRecur && job.isRecurrent) {
+          if (result && job.isRecurrent) {
             // If the job is recurrent and the handler returned true, reschedule the job
             if (!job.expired) {
+              logger.trace(`Job #${job.id} is done but new one is scheduled`);
               this.changeJobStatus(job, JobStatus.Done);
               setTimeout(() => {
                 this.add({
@@ -366,19 +386,39 @@ export class Queue extends EventEmitter<QueueEvents> {
                 });
               }, job.recurrenceInterval);
             } else {
+              logger.trace(`Job #${job.id} is expired`);
               this.changeJobStatus(job, JobStatus.Expired);
             }
           } else {
+            logger.trace(`Job #${job.id} is done`);
             this.changeJobStatus(job, JobStatus.Done);
           }
         } catch (error) {
+          logger.error(`Job #${job.id} is errored`, error);
           job.history.errors.push(error as Error);
 
           if (job.maxRetries > 0 && job.retries < job.maxRetries) {
             // If the job hasn't reached the maximum number of retries, retry it
             job.retries++;
-            this.changeJobStatus(job, JobStatus.Pending);
+
+            if (job.retriesDelay > 0) {
+              logger.trace(`Job #${job.id} filed but scheduled for restart`);
+              this.changeJobStatus(job, JobStatus.Failed);
+              setTimeout(() => {
+                this.add({
+                  handlerName: job.handlerName,
+                  data: job.data,
+                  expire: job.expire,
+                  maxRetries: job.maxRetries,
+                  retries: job.retries + 1,
+                });
+              }, backoffWithJitter(job.retriesDelay, job.retries, job.retriesDelay * 10));
+            } else {
+              logger.trace(`Job #${job.id} failed and immediately restarted`);
+              this.changeJobStatus(job, JobStatus.Pending);
+            }
           } else {
+            logger.trace(`Job #${job.id} filed`);
             this.changeJobStatus(job, JobStatus.Failed);
           }
         }
@@ -387,9 +427,10 @@ export class Queue extends EventEmitter<QueueEvents> {
       await Promise.allSettled(promises);
 
       // After these jobs are done, check if there are any more jobs to process
+      logger.trace('Trying to restart queue');
       void this.start();
     } catch (error) {
-      console.error(error);
+      logger.error('Queue start failed', error);
     }
   }
 
@@ -415,6 +456,7 @@ export class Queue extends EventEmitter<QueueEvents> {
   add<T extends JobData = JobData>(config: JobConfig<T>): string {
     const job = new Job<T>(config);
     this.jobs.push(job);
+    logger.trace('Job added:', job);
     void this.start();
     return job.id;
   }
@@ -441,9 +483,12 @@ export class Queue extends EventEmitter<QueueEvents> {
     const job = this.jobs.find((job) => job.id === id);
 
     if (job) {
+      logger.trace(`Job #${id} is cancelled`);
       job.status = JobStatus.Cancelled;
       return true;
     }
+
+    logger.trace(`Job #${id} has not been cancelled`);
 
     return false;
   }
@@ -458,6 +503,14 @@ export class Queue extends EventEmitter<QueueEvents> {
   delete(id: string): boolean {
     const size = this.jobs.length;
     this.jobs = this.jobs.filter((job) => job.id !== id);
-    return this.jobs.length < size;
+    const isDeleted = this.jobs.length < size;
+
+    if (isDeleted) {
+      logger.trace(`Job #${id} is deleted`);
+    } else {
+      logger.trace(`Job #${id} has not been deleted`);
+    }
+
+    return isDeleted;
   }
 }
