@@ -16,8 +16,8 @@ import {
   NodeOptions,
   NodeRequestManager,
   Queue,
+  JobHandler,
   createNode,
-  createJobHandler,
 } from '../../src/index.js';
 import { OfferData } from '../../src/shared/types.js';
 import { DealStatus, ProtocolContracts } from '../../src/shared/contracts.js';
@@ -63,6 +63,14 @@ process.once('unhandledRejection', (error) => {
   process.exit(1);
 });
 
+const createJobHandler =
+  <JobData = unknown, HandlerOptions = unknown>(
+    handler: JobHandler<JobData, HandlerOptions>,
+  ) =>
+  (options: HandlerOptions = {} as HandlerOptions) =>
+  (data: JobData) =>
+    handler(data, options);
+
 /**
  * This is interface of object that you want to pass to the job handler as options
  */
@@ -76,8 +84,18 @@ interface DealHandlerOptions {
 const dealHandler = createJobHandler<
   OfferData<RequestQuery, OfferOptions>,
   DealHandlerOptions
->(async ({ name, id, data: offer }, { contracts }) => {
-  logger.trace(`Job "${name}" #${id} Checking for a deal. Offer #${offer.id}`);
+>(async (offer, options) => {
+  if (!offer || !options) {
+    throw new Error('Invalid job execution configuration');
+  }
+
+  const { contracts } = options;
+
+  if (!contracts) {
+    throw new Error('Contracts manager must be provided to job handler config');
+  }
+
+  logger.trace(`Checking for a deal. Offer #${offer.id}`);
 
   // Check for a deal
   const [, , , buyer, , , status] = await contracts.getDeal(offer);
@@ -98,10 +116,10 @@ const dealHandler = createJobHandler<
       },
     );
 
-    return true; // Returning true means that the job must be stopped
+    return false; // Returning true means that the job must be stopped
   }
 
-  return; // Job continuing
+  return true; // Job continuing
 });
 
 /**
@@ -155,17 +173,20 @@ const createRequestsHandler =
         checkOut: BigInt(nowSec() + 2000),
       });
 
-      queue.addEventListener('expired', ({ detail: job }) => {
-        logger.trace(`Job #${job.id} is expired`);
+      queue.addEventListener('status', ({ detail: job }) => {
+        logger.trace(`Job #${job.id} status changed`, job);
       });
 
       /**
        * On every published offer we expecting a deal.
        * So, we add a job for detection of deals
        */
-      queue.addJob('deal', offer, {
+      queue.add({
+        handlerName: 'deal',
+        data: offer,
+        isRecurrent: true,
+        recurrenceInterval: 5000,
         expire: Number(offer.expire),
-        every: 5000, // 5 sec
       });
     };
 
@@ -211,8 +232,8 @@ const main = async (): Promise<void> => {
 
   const queue = new Queue({
     storage,
-    hashKey: 'jobs',
-    concurrentJobsNumber: 3,
+    idsKeyName: 'jobsIds',
+    concurrencyLimit: 3,
   });
 
   const requestManager = new NodeRequestManager<RequestQuery>({
@@ -234,7 +255,7 @@ const main = async (): Promise<void> => {
     requestManager.add(topic, data);
   });
 
-  queue.addJobHandler('deal', dealHandler({ contracts: contractsManager }));
+  queue.registerHandler('deal', dealHandler({ contracts: contractsManager }));
 
   /**
    * Graceful Shutdown handler

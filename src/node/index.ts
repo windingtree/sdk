@@ -1,6 +1,7 @@
 import { createLibp2p, Libp2pInit, Libp2pOptions, Libp2p } from 'libp2p';
 import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
+import { yamux } from '@chainsafe/libp2p-yamux';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
@@ -233,7 +234,7 @@ export class Node<
   get connected(): boolean {
     return (
       !!this.libp2p &&
-      (this.libp2p.pubsub as CenterSub).started &&
+      (this.libp2p.services.pubsub as CenterSub).started &&
       this.libp2p.getPeers().length > 0 &&
       this.libp2p.getConnections(this.serverPeerId)[0]?.stat.status === OPEN
     );
@@ -250,7 +251,7 @@ export class Node<
     }
 
     for (const topic of this.topics) {
-      this.libp2p.pubsub.subscribe(topic);
+      (this.libp2p.services.pubsub as CenterSub).subscribe(topic);
       logger.trace(`Node subscribed to topic #${topic}`);
     }
 
@@ -268,7 +269,7 @@ export class Node<
     }
 
     for (const topic of this.topics) {
-      this.libp2p.pubsub.unsubscribe(topic);
+      (this.libp2p.services.pubsub as CenterSub).unsubscribe(topic);
       logger.trace(`Node unsubscribed from topic #${topic}`);
     }
 
@@ -329,7 +330,7 @@ export class Node<
     });
     logger.trace(`Offer #${offer.id} is built`);
 
-    await this.libp2p.pubsub.publish(
+    await (this.libp2p.services.pubsub as CenterSub).publish(
       offer.request.id,
       encodeText(stringify(offer)),
     );
@@ -347,22 +348,29 @@ export class Node<
   async start(): Promise<void> {
     const config: Libp2pOptions = {
       transports: [webSockets({ filter: all })],
-      streamMuxers: [mplex()],
+      streamMuxers: [yamux(), mplex()],
       connectionEncryption: [noise()],
-      pubsub: centerSub({
-        isClient: true,
-        directPeers: [
-          {
-            id: this.serverPeerId,
-            addrs: [this.serverMultiaddr],
-          },
-        ],
-      }),
+      services: {
+        pubsub: centerSub({
+          isClient: true,
+          directPeers: [
+            {
+              id: this.serverPeerId,
+              addrs: [this.serverMultiaddr],
+            },
+          ],
+        }),
+      },
+      connectionManager: {
+        maxPeerAddrsToDial: 10,
+        minConnections: 0,
+        maxConnections: 10000,
+        maxParallelDials: 20,
+      },
       ...this.libp2pInit,
     };
     this.libp2p = await createLibp2p(config);
-
-    (this.libp2p.pubsub as CenterSub).addEventListener(
+    (this.libp2p.services.pubsub as CenterSub).addEventListener(
       'gossipsub:heartbeat',
       () => {
         this.dispatchEvent(new CustomEvent<void>('heartbeat'));
@@ -371,7 +379,7 @@ export class Node<
 
     this.libp2p.addEventListener('peer:connect', ({ detail }) => {
       try {
-        if (detail.remotePeer.equals(this.serverPeerId)) {
+        if (detail.equals(this.serverPeerId)) {
           this.dispatchEvent(new CustomEvent<void>('connected'));
           logger.trace(
             '🔗 Node connected to server at:',
@@ -385,7 +393,7 @@ export class Node<
 
     this.libp2p.addEventListener('peer:disconnect', ({ detail }) => {
       try {
-        if (detail.remotePeer.equals(this.serverPeerId)) {
+        if (detail.equals(this.serverPeerId)) {
           this.dispatchEvent(new CustomEvent<void>('disconnected'));
           logger.trace(
             '🔌 Node disconnected from server at:',
@@ -397,23 +405,26 @@ export class Node<
       }
     });
 
-    this.libp2p.pubsub.addEventListener('message', ({ detail }) => {
-      try {
-        const topic = detail.topic;
-        const data = decodeText(detail.data);
-        logger.trace(`Message on topic ${detail.topic} with data: ${data}`);
-        this.dispatchEvent(
-          new CustomEvent<RawDecodedMessage>('message', {
-            detail: {
-              topic,
-              data,
-            },
-          }),
-        );
-      } catch (error) {
-        logger.error(error);
-      }
-    });
+    (this.libp2p.services.pubsub as CenterSub).addEventListener(
+      'message',
+      ({ detail }) => {
+        try {
+          const topic = detail.topic;
+          const data = decodeText(detail.data);
+          logger.trace(`Message on topic ${detail.topic} with data: ${data}`);
+          this.dispatchEvent(
+            new CustomEvent<RawDecodedMessage>('message', {
+              detail: {
+                topic,
+                data,
+              },
+            }),
+          );
+        } catch (error) {
+          logger.error(error);
+        }
+      },
+    );
 
     // Subscribe to topics
     this.enable();

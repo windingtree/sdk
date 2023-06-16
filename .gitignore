@@ -12,3 +12,6 @@ temp
 coverage
 typedoc
 typechain
+
+#ide
+.idea

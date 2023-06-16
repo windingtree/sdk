@@ -1,7 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
 import { Address } from 'viem';
-import { ClientDealsManager, DealRecord, DealStatus } from '../../../../src/index.js'; // @windingtree/sdk
+import {
+  ClientDealsManager,
+  DealRecord,
+  DealStatus,
+} from '../../../../src/index.js'; // @windingtree/sdk
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import { centerEllipsis, formatBalance, parseWalletError } from '../utils.js';
 import { useWallet } from '../providers/WalletProvider/WalletProviderContext.js';
@@ -12,27 +16,18 @@ export type DealsRegistryRecord = Required<
 
 export interface DealsProps {
   deals: DealsRegistryRecord[];
-  manager?: ClientDealsManager<
-    RequestQuery,
-    OfferOptions
-  >;
+  manager?: ClientDealsManager<RequestQuery, OfferOptions>;
 }
 
 export interface TransferFormProps {
   deal?: DealsRegistryRecord;
-  manager?: ClientDealsManager<
-    RequestQuery,
-    OfferOptions
-  >;
+  manager?: ClientDealsManager<RequestQuery, OfferOptions>;
   onClose: () => void;
 }
 
 export interface CancelProps {
   deal?: DealsRegistryRecord;
-  manager?: ClientDealsManager<
-    RequestQuery,
-    OfferOptions
-  >;
+  manager?: ClientDealsManager<RequestQuery, OfferOptions>;
   onClose: () => void;
 }
 
@@ -68,12 +63,7 @@ export const TransferForm = ({ deal, manager, onClose }: TransferFormProps) => {
         throw new Error('Ethereum client not ready');
       }
 
-      await manager.transfer(
-        deal.offer,
-        to as Address,
-        walletClient,
-        setTx,
-      );
+      await manager.transfer(deal.offer, to as Address, walletClient, setTx);
       setLoading(false);
       setSuccess(true);
     } catch (err) {

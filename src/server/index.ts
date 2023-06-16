@@ -2,6 +2,7 @@ import { createLibp2p, Libp2pOptions, Libp2p } from 'libp2p';
 import { createFromJSON } from '@libp2p/peer-id-factory';
 import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
+import { yamux } from '@chainsafe/libp2p-yamux';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
@@ -98,17 +99,25 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
         listen: [`/ip4/0.0.0.0/tcp/${this.port}/ws`],
       },
       transports: [webSockets({ filter: all })],
-      streamMuxers: [mplex()],
+      streamMuxers: [yamux(), mplex()],
       connectionEncryption: [noise()],
-      pubsub: centerSub({
-        messagesStorage,
-      }),
+      services: {
+        pubsub: centerSub({
+          messagesStorage,
+        }),
+      },
+      connectionManager: {
+        maxPeerAddrsToDial: 10,
+        minConnections: 0,
+        maxConnections: 10000,
+        maxParallelDials: 20,
+      },
     };
 
     const peerId = await createFromJSON(this.peerKey);
     this.libp2p = await createLibp2p({ peerId, ...config });
 
-    (this.libp2p.pubsub as CenterSub).addEventListener(
+    (this.libp2p.services.pubsub as CenterSub).addEventListener(
       'message',
       ({ detail }) => {
         logger.trace(
