@@ -3,5 +3,5 @@
   "compilerOptions": {
     "outDir": "./lib"
   },
-  "exclude": ["./examples", "./test"]
+  "exclude": ["./examples", "./test", "./temp"]
 }
