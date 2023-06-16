@@ -1,699 +1,744 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { stringify } from 'viem';
 import { simpleUid } from '@windingtree/contracts';
 import { Storage } from '../storage/index.js';
-import {
-  queueConcurrentJobsNumber,
-  queueJobAttemptsDelay,
-  queueHeartbeat,
-} from '../constants.js';
+import { backoffWithJitter } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('Queue');
 
-export interface QueueOptions {
-  /** Queue storage object. See available options here: ./storage */
-  storage: Storage;
-  /** Name of key for storing current queued jobs */
-  hashKey: string;
-  /** Maximum jobs at once */
-  concurrentJobsNumber: number;
-  /** Queue heartbeat interval time in milliseconds */
-  heartbeat: number;
-}
-
 /**
- * Queue initialization options
- */
-export type QueueInit = Partial<QueueOptions> & Pick<QueueOptions, 'storage'>;
-
-/**
- * Queue job options
- */
-export interface JobOptions {
-  /** Maximum number of attempts when a job is failing */
-  attempts: number;
-  /** Delay between attempts in milliseconds */
-  attemptsDelay: number;
-  /** Interval time for scheduled jobs in milliseconds */
-  every?: number;
-  /** Job expiration time in seconds */
-  expire?: number;
-}
-
-/**
- * Allowed job statuses
+ * Enum to represent the different states a job can be in.
  */
 export enum JobStatus {
-  PENDING,
-  STARTED,
-  DONE,
-  CANCELLED,
-  ERRORED,
-  FAILED,
-  EXPIRED,
+  Pending,
+  Started,
+  Done,
+  Cancelled,
+  Failed,
+  Expired,
 }
 
 /**
- * Internal job state type
+ * Type for the data that a job can operate on.
  */
-export interface JobState {
-  /** Current job status */
-  status: JobStatus;
-  /** Job run attempts made */
-  attempts: number;
-  /** Scheduled run time */
-  scheduled?: number;
-  /** Array with errors occurred */
-  errors: {
-    time: number;
-    error: string;
-  }[];
+export type JobData = unknown;
+
+/**
+ * Interface for the function that a job runs.
+ */
+export type JobHandler<JobData = unknown, HandlerOptions = unknown> = (
+  data?: JobData,
+  options?: HandlerOptions,
+) => Promise<boolean>;
+
+export interface JobHistoryInterface {
+  /** A history of all status changes for the job. */
+  statusChanges?: { timestamp: number; status: JobStatus }[];
+  /** A history of all errors for the job. */
+  errors?: string[];
 }
 
 /**
- * Job type
+ * A class to manage the history of a job. This includes status changes and errors.
+ *
+ * @export
+ * @class JobHistory
  */
-export interface Job<JobDataType = unknown> {
+export class JobHistory implements JobHistoryInterface {
+  /** A history of all status changes for the job. */
+  statusChanges: { timestamp: number; status: JobStatus }[];
+  /** A history of all errors for the job. */
+  errors: string[];
+
+  /**
+   * Creates an instance of JobHistory.
+   * @memberof JobHistory
+   */
+  constructor(config: JobHistoryInterface) {
+    this.statusChanges = config.statusChanges ?? [];
+    this.errors = config.errors ?? [];
+  }
+
+  static getStatus(source: JobHistory | JobHistoryInterface) {
+    return source.statusChanges && source.statusChanges.length > 0
+      ? source.statusChanges[source.statusChanges.length - 1].status
+      : JobStatus.Pending;
+  }
+
+  /**
+   * Returns class as object
+   *
+   * @returns
+   * @memberof JobHistory
+   */
+  toJSON(): JobHistoryInterface {
+    return {
+      statusChanges: this.statusChanges,
+      errors: this.errors,
+    };
+  }
+}
+
+/**
+ * Configuration object for a job.
+ */
+export interface JobConfig<T extends JobData = JobData> {
+  /** The name of the job handler to use. */
+  handlerName: string;
+  /** The data for the job to operate on. */
+  data?: T;
+  /** The number of seconds after which the job should expire. */
+  expire?: number;
+  /** Whether or not the job should be re-run after completion. */
+  isRecurrent?: boolean;
+  /** If the job is recurrent, the interval in seconds between runs. */
+  recurrenceInterval?: number;
+  /** If the job is recurrent, the maximum number of times the job should be re-run. */
+  maxRecurrences?: number;
+  /** The maximum number of times the job should be retried if it fails. */
+  maxRetries?: number;
+  /** Initial retries value */
+  retries?: number;
+  /** Retries delay */
+  retriesDelay?: number;
+  /** The history of the job */
+  history?: JobHistoryInterface;
+}
+
+/**
+ * A class to represent a job. A job has a handler, some data to operate on, and a status.
+ *
+ * @export
+ * @class Job
+ * @template T
+ */
+export class Job<T extends JobData = JobData> {
+  /** The unique identifier of the job */
   id: string;
-  name: string;
-  data: JobDataType;
-  options: JobOptions;
-  state: JobState;
+  /** The name of the handler to be used for this job */
+  handlerName: string;
+  /** The data to be processed by the job */
+  data?: T;
+  /** The time in seconds after which the job should be marked as expired */
+  expire?: number;
+  /** Whether the job should be recurrent or not */
+  isRecurrent: boolean;
+  /** If the job is recurrent, the interval in seconds between job executions */
+  recurrenceInterval: number;
+  /** If the job is recurrent, the maximum number of recurrences */
+  maxRecurrences: number;
+  /** The maximum number of times the job should be retried if it fails */
+  maxRetries: number;
+  /** The number of times the job has been retried */
+  retries: number;
+  /** The period of time between retries */
+  retriesDelay: number;
+  /** The history of the job */
+  history: JobHistory;
+
+  /**
+   * Creates an instance of Job.
+   * @param {JobConfig<T>} config
+   * @memberof Job
+   */
+  constructor(config: JobConfig<T>) {
+    this.id = simpleUid();
+    this.handlerName = config.handlerName;
+    this.data = config.data;
+    this.expire = config.expire;
+    this.isRecurrent = config.isRecurrent ?? false;
+    this.recurrenceInterval = config.recurrenceInterval ?? 0;
+    this.maxRecurrences = config.maxRecurrences ?? 0;
+    this.maxRetries = config.maxRetries ?? 0;
+    this.retries = config.retries ?? 0;
+    this.retriesDelay = config.retriesDelay ?? 0;
+    this.history = new JobHistory(config.history ?? {});
+  }
+
+  /**
+   * Setter for `status` property. Adds a new status change to the job history.
+   *
+   * @memberof Job
+   */
+  set status(newStatus: JobStatus) {
+    this.history.statusChanges.push({
+      timestamp: Date.now(),
+      status: newStatus,
+    });
+    logger.trace(`Job #${this.id} status changed to: ${this.status}`);
+  }
+
+  /**
+   * Getter for `status` property. Returns the most recent status of the job.
+   *
+   * @memberof Job
+   */
+  get status() {
+    return JobHistory.getStatus(this.history);
+  }
+
+  /**
+   * Getter for `expired` property. Returns whether the job has expired.
+   *
+   * @readonly
+   * @memberof Job
+   */
+  get expired() {
+    const isExpired =
+      this.status === JobStatus.Expired ||
+      (this.expire && this.expire * 1000 < Date.now());
+
+    if (isExpired) {
+      this.status = JobStatus.Expired;
+    }
+
+    return isExpired;
+  }
+
+  /**
+   * Getter for `executable` property. Returns whether the job can be executed.
+   *
+   * @readonly
+   * @memberof Job
+   */
+  get executable() {
+    return (
+      !this.expired &&
+      this.status === JobStatus.Pending &&
+      ((!this.isRecurrent &&
+        (this.maxRetries === 0 ||
+          (this.maxRetries > 0 && this.retries < this.maxRetries))) ||
+        (this.isRecurrent &&
+          (this.maxRecurrences === 0 ||
+            (this.maxRecurrences > 0 && this.retries < this.maxRecurrences))))
+    );
+  }
+
+  /**
+   * Returns Job as config object
+   *
+   * @returns {JobConfig<T>}
+   * @memberof Job
+   */
+  toJSON(): JobConfig<T> {
+    return {
+      handlerName: this.handlerName,
+      data: this.data,
+      expire: this.expire,
+      isRecurrent: this.isRecurrent,
+      recurrenceInterval: this.recurrenceInterval,
+      maxRecurrences: this.maxRecurrences,
+      maxRetries: this.maxRetries,
+      retries: this.retries,
+      retriesDelay: this.retriesDelay,
+      history: this.history.toJSON(),
+    };
+  }
+
+  /**
+   * Executes the job using the provided handler.
+   *
+   * @param {JobHandler<T>} handler
+   * @returns
+   * @memberof Job
+   */
+  async execute(handler: JobHandler<T>) {
+    logger.trace(`Job #${this.id} executed`);
+    return Promise.resolve(handler(this.data));
+  }
 }
 
 /**
- * Job handler function type
+ * A class to manage job handlers. Allows for registering and retrieving handlers by name.
+ *
+ * @export
+ * @class JobHandlerRegistry
  */
-export type JobHandler<
-  OfferData = unknown,
-  HandlerOptions extends object = object,
-> = (job: Job<OfferData>, options: HandlerOptions) => Promise<boolean | void>;
+export class JobHandlerRegistry {
+  /** Map to store the handlers */
+  handlers: Map<string, JobHandler>;
+
+  /**
+   * Creates an instance of JobHandlerRegistry.
+   * @memberof JobHandlerRegistry
+   */
+  constructor() {
+    this.handlers = new Map();
+  }
+
+  /**
+   * Registers a handler for a jobs
+   *
+   * @param {string} name
+   * @param {JobHandler} handler
+   * @memberof JobHandlerRegistry
+   */
+  register(name: string, handler: JobHandler) {
+    this.handlers.set(name, handler);
+  }
+
+  /**
+   * Returns a handler by Id
+   *
+   * @param {string} name
+   * @returns {JobHandler}
+   * @memberof JobHandlerRegistry
+   */
+  getHandler(name: string): JobHandler {
+    const handler = this.handlers.get(name);
+
+    if (!handler) {
+      throw new Error(`Unable to get job handler: ${name}`);
+    }
+
+    return handler;
+  }
+}
 
 /**
- * Job handler closure type
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type JobHandlerClosure = (job: any) => ReturnType<JobHandler<any>>;
-
-/**
- * Job handler function factory
+ * Queue class constructor options interface.
  *
- * @example
- *
- * const handler = createJobHandler<JobData, HandlerOptions>(
- *  async ({ name, id, data }, options) => {
- *    logger.trace(`Job "${name}" #${id}...`);
- *    // ...
- *  },
- * );
+ * @export
+ * @interface QueueOptions
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export const createJobHandler =
-  <OfferData = any, HandlerOptions extends object = object>(
-    handler: JobHandler<OfferData, HandlerOptions>,
-  ) =>
-  (options: HandlerOptions = {} as HandlerOptions) =>
-  (job: Job<OfferData>) =>
-    handler(job, options);
-/* eslint-disable @typescript-eslint/no-explicit-any */
+export interface QueueOptions {
+  /** Queue storage object */
+  storage?: Storage;
+  /** Name of the key that is used for storing jobs Ids */
+  idsKeyName?: string;
+  /** The maximum number of jobs that can be concurrently active. */
+  concurrencyLimit?: number;
+}
 
 /**
  * Queue events interface
  */
-export interface QueueEvents {
+export interface QueueEvents<T extends JobData = JobData> {
   /**
    * @example
    *
    * ```js
-   * queue.addEventListener('job', ({ detail: job }) => {
-   *    // job added
+   * queue.addEventListener('status', ({ detail }) => {
+   *    // job status changed
    * })
    * ```
    */
-  job: CustomEvent<Job>;
+  status: CustomEvent<Job<T>>;
 
   /**
    * @example
    *
    * ```js
-   * queue.addEventListener('done', ({ detail: job }) => {
-   *    // job - finished
+   * queue.addEventListener('stop', () => {
+   *    // queue stopped
    * })
    * ```
    */
-  done: CustomEvent<Job>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * queue.addEventListener('error', ({ detail: job }) => {
-   *    // job - errored job
-   * })
-   * ```
-   */
-  error: CustomEvent<Job>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * queue.addEventListener('cancel', ({ detail: job }) => {
-   *    // job - cancelled job
-   * })
-   * ```
-   */
-  cancel: CustomEvent<Job>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * queue.addEventListener('fail', ({ detail: job }) => {
-   *    // job - failed job
-   * })
-   * ```
-   */
-  fail: CustomEvent<Job>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * queue.addEventListener('expired', ({ detail: job }) => {
-   *    // job - expired job
-   * })
-   * ```
-   */
-  expired: CustomEvent<Job>;
-
-  /**
-   * @example
-   *
-   * ```js
-   * queue.addEventListener('scheduled', ({ detail: job }) => {
-   *    // job - scheduled job
-   * })
-   * ```
-   */
-  scheduled: CustomEvent<Job>;
+  stop: CustomEvent<void>;
 }
 
 /**
- * Queue manager
+ * The Queue class is responsible for managing and executing jobs.
+ * It inherits from EventEmitter to allow event-based behavior.
  *
+ * @export
  * @class Queue
  * @extends {EventEmitter<QueueEvents>}
  */
 export class Queue extends EventEmitter<QueueEvents> {
-  /** External job storage */
-  private storage: Storage;
-  private hashKey: string;
-  /** All jobs in queue */
-  private jobs: Set<string>;
-  /** Jobs in operation at the moment */
-  private liveJobs: Set<string>;
-  /** Job handlers registry */
-  private jobHandlers: Map<string, JobHandlerClosure>;
-  private concurrentJobsNumber: number;
-  private heartbeat: number;
-  /** Queue processing status */
-  private processing: boolean;
-  private heartbeatInterval?: NodeJS.Timeout;
+  /** Queue storage object */
+  storage?: Storage;
+  /** Name of the key that is used for storing jobs Ids */
+  idsKeyName: string;
+  /** The maximum number of jobs that can be concurrently active. */
+  concurrencyLimit: number;
+  /** The list of all jobs in the queue. */
+  jobs: Job[];
+  /** The registry of job handlers, where handlers are stored by their names. */
+  handlers: JobHandlerRegistry;
 
   /**
-   * Creates Queue instance
-   *
-   * @param {QueueInit} options Queue initialization options
-   */
-  constructor(options: QueueInit) {
-    super();
-
-    const { hashKey, concurrentJobsNumber, heartbeat, storage } = options;
-
-    // @todo Validate Queue initialization options
-
-    this.hashKey = hashKey ?? 'jobsKeys';
-    this.concurrentJobsNumber =
-      concurrentJobsNumber ?? queueConcurrentJobsNumber;
-    this.heartbeat = heartbeat ?? queueHeartbeat;
-    this.storage = storage;
-    this.jobs = new Set<string>();
-    this.liveJobs = new Set<string>();
-    this.jobHandlers = new Map<string, JobHandlerClosure>();
-    this.processing = false;
-    void this._init();
-    logger.trace('Queue instantiated');
-  }
-
-  /**
-   * Starts queue
-   *
-   * @returns {Promise<void>}
-   */
-  protected async _init(): Promise<void> {
-    if (this.heartbeatInterval) {
-      return;
-    }
-
-    try {
-      // Read stored serialized array of jobs Ids from an external storage
-      const rawJobKeys = await this.storage.get<string>(this.hashKey);
-
-      if (rawJobKeys) {
-        new Set<string>(JSON.parse(rawJobKeys) as string[]);
-      }
-
-      /** Heartbeat callback */
-      const tick = () => {
-        if (this.jobs.size > 0) {
-          void this._process();
-          return;
-        }
-
-        clearInterval(this.heartbeatInterval);
-        this.heartbeatInterval = undefined;
-        logger.trace('Queue interval cleared');
-      };
-
-      this.heartbeatInterval = setInterval(tick.bind(this), this.heartbeat);
-    } catch (error) {
-      logger.error('_init', error);
-    }
-  }
-
-  /**
-   * Synchronize queue state with storage
-   *
-   * @returns {Promise<void>}
-   */
-  private async _sync(): Promise<void> {
-    await this.storage.set(this.hashKey, stringify(Array.from(this.jobs)));
-    logger.trace('Storage synced');
-  }
-
-  /**
-   * Saves a new job to storage
-   *
-   * @private
-   * @param {string} jobId
-   * @param {Job} job
-   * @returns {Promise<void>}
+   * Creates an instance of Queue.
+   * It initializes the jobs list, the handler registry, and sets the concurrency limit.
+   * @param {QueueOptions} { concurrencyLimit }
    * @memberof Queue
    */
-  private async _saveJob(jobId: string, job: Job): Promise<void> {
+  constructor({ storage, idsKeyName, concurrencyLimit }: QueueOptions) {
+    super();
+    this.storage = storage;
+    this.idsKeyName = idsKeyName ?? 'jobsIds';
+    this.concurrencyLimit = concurrencyLimit ?? 5;
+    this.jobs = [];
+    this.handlers = new JobHandlerRegistry();
+    void this.storageUp();
+  }
+
+  /**
+   * Restores saved jobs from the storage
+   *
+   * @protected
+   * @returns
+   * @memberof Queue
+   */
+  protected async storageUp() {
     try {
-      await this.storage.set<Job>(jobId, job);
-
-      this.jobs.add(jobId);
-      logger.trace(`Added job #${jobId}`);
-
-      this.dispatchEvent(
-        new CustomEvent('job', {
-          detail: job,
-        }),
-      );
-      logger.trace(`Added job #${jobId}`, job);
-
-      await this._sync();
-      await this._init();
-    } catch (error) {
-      logger.error('_saveJob', error);
-    }
-  }
-
-  /**
-   * Picks a certain amount of jobs to run
-   *
-   * @returns {Promise<Job[]>}
-   */
-  private async _pickJobs(): Promise<Job[]> {
-    const size = this.concurrentJobsNumber - this.liveJobs.size;
-    const jobs: Job[] = [];
-
-    for (const key of this.jobs.values()) {
-      if (jobs.length === size) {
-        logger.trace(`Picked enough #${jobs.length}`);
-        break;
-      }
-
-      if (!this.liveJobs.has(key)) {
-        const job = await this.storage.get<Job>(key);
-
-        if (!job) {
-          throw new Error(`Job #${key} not found`);
-        }
-
-        if (job.state.status === JobStatus.CANCELLED) {
-          logger.trace(`Cancelled job #${job.id} skipped`);
-          continue;
-        }
-
-        if (job.state.scheduled && job.state.scheduled > Date.now()) {
-          continue;
-        }
-
-        jobs.push(job);
-        logger.trace(`Job #${job.id} picked`, job);
-      }
-    }
-
-    return jobs;
-  }
-
-  /**
-   * Updates job state
-   *
-   * @param {Job} job Job to update
-   * @param {Partial<JobState>} state New job state parameters
-   * @returns {Promise<Job>} Updated job
-   */
-  private async _updatedJobState(
-    job: Job,
-    state: Partial<JobState>,
-  ): Promise<Job> {
-    // @todo Validate state argument
-
-    job.state = {
-      ...job.state,
-      ...state,
-    };
-    await this.storage.set(job.id, job);
-    logger.trace(`Job #${job.id} state updated`, job);
-    return job;
-  }
-
-  /**
-   * Executes a job
-   *
-   * @param {Job} job Job to start
-   * @returns {Promise<void>}
-   */
-  private async _doJob(job: Job): Promise<void> {
-    try {
-      const callback = this.jobHandlers.get(job.name);
-
-      if (!callback) {
-        throw new Error(`Handler for job #${job.id} not found`);
-      }
-
-      if (job.state.status === JobStatus.FAILED) {
-        throw new Error(`Job #${job.id} already failed`);
-      }
-
-      /** Expired job must be removed from queue */
-      if (job.options.expire && job.options.expire * 1000 <= Date.now()) {
-        logger.trace(`Job #${job.id} expired at: ${job.options.expire}`);
-
-        const prevStatus =
-          job.state.status === JobStatus.ERRORED
-            ? JobStatus.FAILED
-            : JobStatus.DONE;
-        job = await this._updatedJobState(job, { status: JobStatus.EXPIRED });
-
-        this.jobs.delete(job.id);
-        await this._sync();
-        this.liveJobs.delete(job.id);
-
-        this.dispatchEvent(
-          new CustomEvent<Job>(
-            prevStatus === JobStatus.DONE ? 'done' : 'fail',
-            {
-              detail: job,
-            },
-          ),
-        );
-
-        this.dispatchEvent(
-          new CustomEvent<Job>('expired', {
-            detail: job,
-          }),
-        );
+      // Ignore storage features if not set up
+      if (!this.storage) {
         return;
       }
 
-      job = await this._updatedJobState(job, {
-        status: JobStatus.STARTED,
-      });
-      logger.trace(`Starting job #${job.id}`, job);
+      const jobsIds = await this.storage.get<string[]>(this.idsKeyName);
 
-      const shouldCancel = await Promise.resolve(callback(job));
+      if (jobsIds) {
+        for (const id of jobsIds) {
+          try {
+            const jobConfig = await this.storage.get<JobConfig>(id);
 
-      if (job.options.every && !shouldCancel) {
-        if (
-          job.options.attempts &&
-          job.state.attempts >= job.options.attempts
-        ) {
-          logger.trace(`Job #${job.id} should be cancelled (attempts rule)`);
-          await this.cancelJob(job.id);
-          return;
+            if (!jobConfig) {
+              throw new Error(`Unable to get job #${id} from storage`);
+            }
+
+            // Only Pending jobs must be restored
+            if (
+              jobConfig.history &&
+              JobHistory.getStatus(jobConfig.history) === JobStatus.Pending
+            ) {
+              this.add(jobConfig);
+            }
+          } catch (error) {
+            logger.error(error);
+          }
         }
-
-        job = await this._updatedJobState(job, {
-          status: JobStatus.PENDING,
-          scheduled: Date.now() + job.options.every,
-          attempts: job.state.attempts + 1,
-        });
-        logger.trace(`Job #${job.id} scheduled`, job);
-
-        this.dispatchEvent(
-          new CustomEvent<Job>('done', {
-            detail: job,
-          }),
-        );
-
-        this.dispatchEvent(
-          new CustomEvent<Job>('scheduled', {
-            detail: job,
-          }),
-        );
-      } else if (shouldCancel) {
-        logger.trace(`Job #${job.id} should be cancelled (handler rule)`);
-        await this.cancelJob(job.id);
-        return;
       } else {
-        job = await this._updatedJobState(job, {
-          status: JobStatus.DONE,
-        });
-
-        this.jobs.delete(job.id);
-        await this._sync();
-        logger.trace(`Job #${job.id} done`, job);
-
-        this.dispatchEvent(
-          new CustomEvent<Job>('done', {
-            detail: job,
-          }),
-        );
+        logger.trace('Jobs Ids not found in the storage');
       }
-
-      this.liveJobs.delete(job.id);
-
-      logger.trace(`Job #${job.id} fulfilled`);
     } catch (error) {
-      logger.error(`Job #${job.id} error:`, error);
-
-      try {
-        job = await this._updatedJobState(job, {
-          status: JobStatus.ERRORED,
-          errors: [
-            ...(job.state.errors ?? []),
-            {
-              time: Date.now(),
-              error: (error as Error).stack || (error as Error).message,
-            },
-          ],
-        });
-        logger.trace(`Job #${job.id} errored`, job);
-
-        this.dispatchEvent(
-          new CustomEvent<Job>('error', {
-            detail: job,
-          }),
-        );
-
-        if (
-          job.options.attempts &&
-          job.options.attempts > 0 &&
-          job.state.attempts < job.options.attempts
-        ) {
-          job = await this._updatedJobState(job, {
-            attempts: job.state.attempts + 1,
-            scheduled: Date.now() + job.options.attemptsDelay,
-          });
-          logger.trace(`Errored job #${job.id} scheduled`, job);
-
-          this.liveJobs.delete(job.id);
-
-          this.dispatchEvent(
-            new CustomEvent<Job>('scheduled', {
-              detail: job,
-            }),
-          );
-          return;
-        }
-
-        job = await this._updatedJobState(job, {
-          status: JobStatus.FAILED,
-        });
-
-        this.jobs.delete(job.id);
-        await this._sync();
-        this.liveJobs.delete(job.id);
-        logger.trace(`Job #${job.id} failed`, job);
-
-        this.dispatchEvent(
-          new CustomEvent<Job>('fail', {
-            detail: job,
-          }),
-        );
-      } catch (error) {
-        logger.error(error);
-      }
+      logger.error('storageUp error:', error);
     }
   }
 
   /**
-   * Runs queue iteration
+   * Stores all pending jobs to the storage
    *
-   * @returns {Promise<void>}
+   * @protected
+   * @returns
+   * @memberof Queue
    */
-  private async _process(): Promise<void> {
-    if (this.processing) {
-      return;
-    }
-
+  protected async storageDown() {
     try {
-      this.processing = true;
-      const jobs = await this._pickJobs();
-
-      if (jobs.length > 0) {
-        logger.trace(`Picked #${jobs.length} jobs`);
-
-        await Promise.allSettled(jobs.map((job) => this._doJob(job)));
+      // Ignore storage features if not set up
+      if (!this.storage) {
+        return;
       }
 
-      this.processing = false;
+      const pendingJobs = this.jobs.filter((job) => job.executable);
+
+      const { ids, configs } = pendingJobs.reduce<{
+        ids: string[];
+        configs: JobConfig[];
+      }>(
+        (a, v) => {
+          a.ids.push(v.id);
+          a.configs.push(v.toJSON());
+          return a;
+        },
+        {
+          ids: [],
+          configs: [],
+        },
+      );
+
+      const jobsIds = new Set(
+        (await this.storage.get<string[]>(this.idsKeyName)) ?? [],
+      );
+
+      for (let i = 0; i < ids.length; i++) {
+        try {
+          jobsIds.add(ids[i]);
+          await this.storage.set(ids[i], configs[i]);
+        } catch (error) {
+          logger.error(`Job #${ids[i]} save error:`, error);
+        }
+      }
+
+      await this.storage.set(this.idsKeyName, Array.from(jobsIds));
     } catch (error) {
-      logger.error(error);
+      logger.error('storageDown error:', error);
     }
   }
 
   /**
-   * Registers a job handler
+   * Updated saved job on storage
    *
-   * @param {string} name Job name
-   * @param {JobHandlerClosure} callback Job handler
+   * @protected
+   * @param {string} id
+   * @param {Job} job
+   * @returns
+   * @memberof Queue
    */
-  addJobHandler(name: string, callback: JobHandlerClosure) {
-    this.jobHandlers.set(name, callback);
-    logger.trace(`Added #${name} handler`);
+  protected async storageUpdate(id: string, job: Job) {
+    try {
+      // Ignore storage features if not set up
+      if (!this.storage) {
+        return;
+      }
+
+      const jobsIds = new Set(
+        (await this.storage.get<string[]>(this.idsKeyName)) ?? [],
+      );
+      jobsIds.add(id);
+      await this.storage.set(id, job.toJSON());
+      await this.storage.set(this.idsKeyName, Array.from(jobsIds));
+    } catch (error) {
+      logger.error('storageDown error:', error);
+    }
   }
 
   /**
-   * Removes handler from the registry
+   * Changes the job status and emits `status` event
    *
-   * @param {string} name Job name
+   * @private
+   * @param {Job} job
+   * @param {JobStatus} newStatus
+   * @memberof Queue
    */
-  deleteJobHandler(name: string) {
-    this.jobHandlers.delete(name);
-    logger.trace(`Deleted #${name} handler`);
-  }
-
-  /**
-   * Adds job
-   *
-   * @param {string} name Job name
-   * @param {JobDataType} data Job data
-   * @param {Partial<JobOptions>} options Job options, optional
-   * @param {z.ZodType<JobDataType>} dataSchema Job data validation schema
-   * @returns {Job} Added job
-   *
-   * @example
-   *
-   * queue.addJob('someJob', data, {
-   *  expire: 168001626,
-   *  every: 5000,
-   * });
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addJob<JobDataType = unknown>(
-    name: string,
-    data: JobDataType,
-    options?: Partial<JobOptions>,
-  ): Job {
-    if (!this.jobHandlers.has(name)) {
-      throw new Error(`Job handler with name #${name} not registered yet`);
-    }
-
-    const job: Job<JobDataType> = {
-      id: simpleUid(),
-      name,
-      data,
-      options: {
-        attempts: 0,
-        attemptsDelay: queueJobAttemptsDelay,
-        ...options,
-      },
-      state: {
-        status: JobStatus.PENDING,
-        attempts: 0,
-        errors: [],
-      },
-    };
-
-    void this._saveJob(job.id, job);
-
-    return job;
-  }
-
-  /**
-   * Gets gob from storage by Id
-   *
-   * @param {string} id Job id
-   * @returns {Promise<Job>}
-   */
-  async getJob(id: string): Promise<Job> {
-    const job = await this.storage.get<Job>(id);
-
-    if (!job) {
-      throw new Error(`Job #${id} not found`);
-    }
-
-    return job;
-  }
-
-  /**
-   * Cancels and deletes a job by Id
-   *
-   * @param {string} id Job id
-   * @returns {Promise<void>}
-   */
-  async cancelJob(id: string): Promise<void> {
-    if (!this.jobs.has(id)) {
-      throw new Error(`Job #${id} not in the queue`);
-    }
-
-    let job = await this.storage.get<Job>(id);
-
-    if (!job) {
-      throw new Error(`Job #${id} not found`);
-    }
-
-    job = await this._updatedJobState(job, {
-      status: JobStatus.CANCELLED,
-    });
-
-    this.jobs.delete(job.id);
-    await this._sync();
-    this.liveJobs.delete(job.id);
-    logger.trace(`Job #${job.id} cancelled`, job);
-
+  private changeJobStatus(job: Job, newStatus: JobStatus) {
+    job.status = newStatus;
     this.dispatchEvent(
-      new CustomEvent<Job>('cancel', {
+      new CustomEvent<Job>('status', {
         detail: job,
       }),
     );
+    void this.storageUpdate(job.id, job);
+  }
+
+  /**
+   * Starts processing jobs in the queue.
+   * It finds executable jobs and runs them concurrently up to the concurrency limit.
+   * If a job fails and it hasn't reached the maximum number of retries, it is set as pending again.
+   * If a job is recurrent (i.e., it is supposed to run repeatedly after a certain interval) and
+   * the job handler returns true (indicating successful completion of the job), the job is rescheduled.
+   *
+   * @returns
+   * @memberof Queue
+   */
+  private async start() {
+    try {
+      const activeJobs = this.jobs.filter(
+        (job) => job.status === JobStatus.Started,
+      );
+      const pendingJobs = this.jobs.filter((job) => job.executable);
+      logger.trace(`Active jobs: ${activeJobs.length}`);
+      logger.trace(`Pending jobs: ${pendingJobs.length}`);
+
+      const availableSlots = this.concurrencyLimit - activeJobs.length;
+      logger.trace(`Available slots: ${availableSlots}`);
+
+      if (availableSlots <= 0 || pendingJobs.length === 0) {
+        this.dispatchEvent(new CustomEvent<void>('stop'));
+        return; // No available slots or no pending jobs
+      }
+
+      // Get the jobs that will be started now
+      const jobsToStart = pendingJobs.slice(0, availableSlots);
+      logger.trace(
+        `Jobs to start: [${jobsToStart.map((j) => j.id).join(', ')}]`,
+      );
+
+      // Start all the selected jobs concurrently
+      const promises = jobsToStart.map(async (job) => {
+        try {
+          this.changeJobStatus(job, JobStatus.Started);
+
+          const handler = this.handlers.getHandler(job.handlerName);
+
+          const result = await job.execute(handler);
+          logger.trace(`Job #${job.id} execution result: ${String(result)}`);
+
+          if (result && job.isRecurrent) {
+            // If the job is recurrent and the handler returned true, reschedule the job
+            if (!job.expired) {
+              logger.trace(`Job #${job.id} is done but new one is scheduled`);
+              this.changeJobStatus(job, JobStatus.Done);
+              setTimeout(() => {
+                this.add({
+                  handlerName: job.handlerName,
+                  data: job.data,
+                  expire: job.expire,
+                  isRecurrent: job.isRecurrent,
+                  recurrenceInterval: job.recurrenceInterval,
+                  maxRecurrences: job.maxRecurrences,
+                  maxRetries: job.maxRetries,
+                  retries: job.retries + 1,
+                });
+              }, job.recurrenceInterval);
+            } else {
+              logger.trace(`Job #${job.id} is expired`);
+              this.changeJobStatus(job, JobStatus.Expired);
+            }
+          } else {
+            logger.trace(`Job #${job.id} is done`);
+            this.changeJobStatus(job, JobStatus.Done);
+          }
+        } catch (error) {
+          logger.error(`Job #${job.id} is errored`, error);
+          job.history.errors.push(String(error));
+
+          if (job.maxRetries > 0 && job.retries < job.maxRetries) {
+            // If the job hasn't reached the maximum number of retries, retry it
+            job.retries++;
+
+            if (job.retriesDelay > 0) {
+              logger.trace(`Job #${job.id} filed but scheduled for restart`);
+              this.changeJobStatus(job, JobStatus.Failed);
+              setTimeout(() => {
+                this.add({
+                  handlerName: job.handlerName,
+                  data: job.data,
+                  expire: job.expire,
+                  maxRetries: job.maxRetries,
+                  retries: job.retries + 1,
+                });
+              }, backoffWithJitter(job.retriesDelay, job.retries, job.retriesDelay * 10));
+            } else {
+              logger.trace(`Job #${job.id} failed and immediately restarted`);
+              this.changeJobStatus(job, JobStatus.Pending);
+            }
+          } else {
+            logger.trace(`Job #${job.id} filed`);
+            this.changeJobStatus(job, JobStatus.Failed);
+          }
+        }
+      });
+
+      await Promise.allSettled(promises);
+
+      // After these jobs are done, check if there are any more jobs to process
+      logger.trace('Trying to restart queue');
+      void this.start();
+    } catch (error) {
+      logger.error('Queue start failed', error);
+    }
+  }
+
+  /**
+   * Registers a new job handler in the handlers registry.
+   *
+   * @param {string} name
+   * @param {JobHandler} handler
+   * @memberof Queue
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  registerHandler(name: string, handler: JobHandler<any, any>) {
+    this.handlers.register(name, handler);
+  }
+
+  /**
+   * Adds a new job to the queue and starts the queue if it isn't already started.
+   *
+   * @template T
+   * @param {JobConfig<T>} config
+   * @returns {string}
+   * @memberof Queue
+   */
+  add<T extends JobData = JobData>(config: JobConfig<T>): string {
+    const job = new Job<T>(config);
+    this.jobs.push(job);
+    logger.trace('Job added:', job);
+    void this.storageUpdate(job.id, job);
+    void this.start();
+    return job.id;
+  }
+
+  /**
+   * Returns a job from the queue by its ID. Uses local in-memory source
+   *
+   * @param {string} id
+   * @returns {(Job | undefined)} The job if found, otherwise undefined.
+   * @memberof Queue
+   */
+  getLocal<T extends JobData = JobData>(id: string): Job<T> | undefined {
+    const localJob = this.jobs.find((job) => job.id === id) as Job<T>;
+
+    if (localJob) {
+      return localJob;
+    }
+
+    return;
+  }
+
+  /**
+   * Returns a job config from the queue by its ID. Uses both local and storage search
+   *
+   * @param {string} id
+   * @returns {Promise<JobConfig | undefined>} The job if found, otherwise undefined.
+   * @memberof Queue
+   */
+  async get<T extends JobData = JobData>(
+    id: string,
+  ): Promise<JobConfig<T> | undefined> {
+    const localJob = this.getLocal<T>(id);
+
+    if (localJob) {
+      return localJob.toJSON();
+    }
+
+    if (!this.storage) {
+      return;
+    }
+
+    // If job not found locally we will try to find on storage
+    return await this.storage.get<JobConfig<T>>(id);
+  }
+
+  /**
+   * Cancels a job by setting its status to Cancelled.
+   *
+   * @param {string} id
+   * @returns {boolean} true if the job was found and cancelled, false otherwise.
+   * @memberof Queue
+   */
+  cancel(id: string): boolean {
+    const job = this.jobs.find((job) => job.id === id);
+
+    if (job) {
+      logger.trace(`Job #${id} is cancelled`);
+      job.status = JobStatus.Cancelled;
+      return true;
+    }
+
+    logger.trace(`Job #${id} has not been cancelled`);
+
+    return false;
+  }
+
+  /**
+   * Deletes a job from the queue.
+   *
+   * @param {string} id
+   * @returns {boolean} true if the job was found and deleted, false otherwise.
+   * @memberof Queue
+   */
+  delete(id: string): boolean {
+    const size = this.jobs.length;
+    this.jobs = this.jobs.filter((job) => job.id !== id);
+    const isDeleted = this.jobs.length < size;
+
+    if (isDeleted) {
+      logger.trace(`Job #${id} is deleted`);
+    } else {
+      logger.trace(`Job #${id} has not been deleted`);
+    }
+
+    return isDeleted;
+  }
+
+  /**
+   * Graceful queue stop
+   *
+   * @memberof Queue
+   */
+  async stop() {
+    await this.storageDown();
   }
 }
