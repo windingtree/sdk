@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/require-await */
 import { expect } from 'chai';
+import { Storage, memoryStorage } from '../src/storage/index.js';
 import {
   Job,
   JobStatus,
@@ -123,7 +125,7 @@ describe('Queue', function () {
       queue.addEventListener(
         'stop',
         () => {
-          expect(queue.get(jobId)?.status).to.equal(JobStatus.Done);
+          expect(queue.getLocal(jobId)?.status).to.equal(JobStatus.Done);
           resolve();
         },
         { once: true },
@@ -136,7 +138,7 @@ describe('Queue', function () {
   it('should cancel a job', function () {
     const jobId = queue.add(config);
     expect(queue.cancel(jobId)).to.be.true;
-    expect(queue.get(jobId)?.status).to.equal(JobStatus.Cancelled);
+    expect(queue.getLocal(jobId)?.status).to.equal(JobStatus.Cancelled);
   });
 
   it('should not cancel a non-existent job', function () {
@@ -146,7 +148,7 @@ describe('Queue', function () {
   it('should delete a job', function () {
     const jobId = queue.add(config);
     expect(queue.delete(jobId)).to.be.true;
-    expect(queue.get(jobId)).to.be.undefined;
+    expect(queue.getLocal(jobId)).to.be.undefined;
   });
 
   it('should not delete a non-existent job', function () {
@@ -242,6 +244,47 @@ describe('Queue', function () {
       });
 
       expect(count).to.be.eq(exitStep);
+    });
+  });
+
+  describe.only('with storage', () => {
+    const idsKeyName = 'jobsIds';
+    let storage: Storage;
+    let queue: Queue;
+
+    beforeEach(async () => {
+      storage = await memoryStorage.createInitializer()();
+      queue = new Queue({
+        concurrencyLimit: 1,
+        storage,
+        idsKeyName,
+      });
+      queue.registerHandler('stored', handler);
+    });
+
+    it('should add and execute a job', async function () {
+      let jobId: string | undefined;
+
+      await new Promise<void>((resolve) => {
+        queue.addEventListener(
+          'stop',
+          () => {
+            expect(queue.getLocal(jobId!)?.status).to.equal(JobStatus.Done);
+            resolve();
+          },
+          { once: true },
+        );
+
+        jobId = queue.add({
+          handlerName: 'stored',
+        });
+      });
+
+      const ids = new Set(await queue.storage?.get<string[]>(idsKeyName));
+      expect(ids.has(jobId!)).to.be.true;
+      const localJob = queue.getLocal(jobId!);
+      const storedJob = await queue.get(jobId!);
+      expect(storedJob).to.deep.eq(localJob?.toJSON());
     });
   });
 });
