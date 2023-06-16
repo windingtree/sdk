@@ -1,5 +1,6 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { simpleUid } from '@windingtree/contracts';
+import { Storage } from '../storage/index.js';
 import { backoffWithJitter } from '../utils/time.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -29,6 +30,54 @@ export interface JobHandler<T extends JobData = JobData> {
   (data?: T): Promise<boolean>;
 }
 
+export interface JobHistoryInterface {
+  /** A history of all status changes for the job. */
+  statusChanges?: { timestamp: number; status: JobStatus }[];
+  /** A history of all errors for the job. */
+  errors?: string[];
+}
+
+/**
+ * A class to manage the history of a job. This includes status changes and errors.
+ *
+ * @export
+ * @class JobHistory
+ */
+export class JobHistory implements JobHistoryInterface {
+  /** A history of all status changes for the job. */
+  statusChanges: { timestamp: number; status: JobStatus }[];
+  /** A history of all errors for the job. */
+  errors: string[];
+
+  /**
+   * Creates an instance of JobHistory.
+   * @memberof JobHistory
+   */
+  constructor(config: JobHistoryInterface) {
+    this.statusChanges = config.statusChanges ?? [];
+    this.errors = config.errors ?? [];
+  }
+
+  static getStatus(source: JobHistory | JobHistoryInterface) {
+    return source.statusChanges && source.statusChanges.length > 0
+      ? source.statusChanges[source.statusChanges.length - 1].status
+      : JobStatus.Pending;
+  }
+
+  /**
+   * Returns class as object
+   *
+   * @returns
+   * @memberof JobHistory
+   */
+  toJSON(): JobHistoryInterface {
+    return {
+      statusChanges: this.statusChanges,
+      errors: this.errors,
+    };
+  }
+}
+
 /**
  * Configuration object for a job.
  */
@@ -51,24 +100,8 @@ export interface JobConfig<T extends JobData = JobData> {
   retries?: number;
   /** Retries delay */
   retriesDelay?: number;
-}
-
-/**
- * A class to manage the history of a job. This includes status changes and errors.
- *
- * @export
- * @class JobHistory
- */
-export class JobHistory {
-  /** A history of all status changes for the job. */
-  statusChanges: { timestamp: Date; status: JobStatus }[];
-  /** A history of all errors for the job. */
-  errors: Error[];
-
-  constructor() {
-    this.statusChanges = [];
-    this.errors = [];
-  }
+  /** The history of the job */
+  history?: JobHistoryInterface;
 }
 
 /**
@@ -109,17 +142,16 @@ export class Job<T extends JobData = JobData> {
    */
   constructor(config: JobConfig<T>) {
     this.id = simpleUid();
-    this.history = new JobHistory();
     this.handlerName = config.handlerName;
     this.data = config.data;
     this.expire = config.expire;
-    this.status = JobStatus.Pending;
     this.isRecurrent = config.isRecurrent ?? false;
     this.recurrenceInterval = config.recurrenceInterval ?? 0;
     this.maxRecurrences = config.maxRecurrences ?? 0;
     this.maxRetries = config.maxRetries ?? 0;
     this.retries = config.retries ?? 0;
     this.retriesDelay = config.retriesDelay ?? 0;
+    this.history = new JobHistory(config.history ?? {});
   }
 
   /**
@@ -129,7 +161,7 @@ export class Job<T extends JobData = JobData> {
    */
   set status(newStatus: JobStatus) {
     this.history.statusChanges.push({
-      timestamp: new Date(),
+      timestamp: Date.now(),
       status: newStatus,
     });
     logger.trace(`Job #${this.id} status changed to: ${this.status}`);
@@ -141,8 +173,7 @@ export class Job<T extends JobData = JobData> {
    * @memberof Job
    */
   get status() {
-    return this.history.statusChanges[this.history.statusChanges.length - 1]
-      .status;
+    return JobHistory.getStatus(this.history);
   }
 
   /**
@@ -180,6 +211,27 @@ export class Job<T extends JobData = JobData> {
           (this.maxRecurrences === 0 ||
             (this.maxRecurrences > 0 && this.retries < this.maxRecurrences))))
     );
+  }
+
+  /**
+   * Returns Job as config object
+   *
+   * @returns {JobConfig<T>}
+   * @memberof Job
+   */
+  toJSON(): JobConfig<T> {
+    return {
+      handlerName: this.handlerName,
+      data: this.data,
+      expire: this.expire,
+      isRecurrent: this.isRecurrent,
+      recurrenceInterval: this.recurrenceInterval,
+      maxRecurrences: this.maxRecurrences,
+      maxRetries: this.maxRetries,
+      retries: this.retries,
+      retriesDelay: this.retriesDelay,
+      history: this.history.toJSON(),
+    };
   }
 
   /**
@@ -249,6 +301,11 @@ export class JobHandlerRegistry {
  * @interface QueueOptions
  */
 export interface QueueOptions {
+  /** Queue storage object */
+  storage?: Storage;
+  /** Name of the key that is used for storing jobs Ids */
+  idsKeyName?: string;
+  /** The maximum number of jobs that can be concurrently active. */
   concurrencyLimit?: number;
 }
 
@@ -288,6 +345,10 @@ export interface QueueEvents<T extends JobData = JobData> {
  * @extends {EventEmitter<QueueEvents>}
  */
 export class Queue extends EventEmitter<QueueEvents> {
+  /** Queue storage object */
+  storage?: Storage;
+  /** Name of the key that is used for storing jobs Ids */
+  idsKeyName: string;
   /** The maximum number of jobs that can be concurrently active. */
   concurrencyLimit: number;
   /** The list of all jobs in the queue. */
@@ -301,11 +362,134 @@ export class Queue extends EventEmitter<QueueEvents> {
    * @param {QueueOptions} { concurrencyLimit }
    * @memberof Queue
    */
-  constructor({ concurrencyLimit }: QueueOptions) {
+  constructor({ storage, idsKeyName, concurrencyLimit }: QueueOptions) {
     super();
+    (this.storage = storage), (this.idsKeyName = idsKeyName ?? 'jobsIds');
     this.concurrencyLimit = concurrencyLimit ?? 5;
     this.jobs = [];
     this.handlers = new JobHandlerRegistry();
+    void this.storageUp();
+  }
+
+  /**
+   * Restores saved jobs from the storage
+   *
+   * @protected
+   * @returns
+   * @memberof Queue
+   */
+  protected async storageUp() {
+    try {
+      // Ignore storage features if not set up
+      if (!this.storage) {
+        return;
+      }
+
+      const jobsIds = await this.storage.get<string[]>(this.idsKeyName);
+
+      if (jobsIds) {
+        for (const id of jobsIds) {
+          try {
+            const jobConfig = await this.storage.get<JobConfig>(id);
+
+            if (!jobConfig) {
+              throw new Error(`Unable to get job #${id} from storage`);
+            }
+
+            // Only Pending jobs must be restored
+            if (
+              jobConfig.history &&
+              JobHistory.getStatus(jobConfig.history) === JobStatus.Pending
+            ) {
+              this.add(jobConfig);
+            }
+          } catch (error) {
+            logger.error(error);
+          }
+        }
+      } else {
+        logger.trace('Jobs Ids not found in the storage');
+      }
+    } catch (error) {
+      logger.error('storageUp error:', error);
+    }
+  }
+
+  /**
+   * Stores all pending jobs to the storage
+   *
+   * @protected
+   * @returns
+   * @memberof Queue
+   */
+  protected async storageDown() {
+    try {
+      // Ignore storage features if not set up
+      if (!this.storage) {
+        return;
+      }
+
+      const pendingJobs = this.jobs.filter((job) => job.executable);
+
+      const { ids, configs } = pendingJobs.reduce<{
+        ids: string[];
+        configs: JobConfig[];
+      }>(
+        (a, v) => {
+          a.ids.push(v.id);
+          a.configs.push(v.toJSON());
+          return a;
+        },
+        {
+          ids: [],
+          configs: [],
+        },
+      );
+
+      const jobsIds = new Set(
+        (await this.storage.get<string[]>(this.idsKeyName)) ?? [],
+      );
+
+      for (let i = 0; i < ids.length; i++) {
+        try {
+          jobsIds.add(ids[i]);
+          await this.storage.set(ids[i], configs[i]);
+        } catch (error) {
+          logger.error(`Job #${ids[i]} save error:`, error);
+        }
+      }
+
+      await this.storage.set(this.idsKeyName, Array.from(jobsIds));
+    } catch (error) {
+      logger.error('storageDown error:', error);
+    }
+  }
+
+  /**
+   * Updated saved job on storage
+   *
+   * @protected
+   * @param {string} id
+   * @param {Job} job
+   * @returns
+   * @memberof Queue
+   */
+  protected async storageUpdate(id: string, job: Job) {
+    try {
+      // Ignore storage features if not set up
+      if (!this.storage) {
+        return;
+      }
+
+      const jobsIds = new Set(
+        (await this.storage.get<string[]>(this.idsKeyName)) ?? [],
+      );
+      jobsIds.add(id);
+      await this.storage.set(id, job.toJSON());
+      await this.storage.set(this.idsKeyName, Array.from(jobsIds));
+    } catch (error) {
+      logger.error('storageDown error:', error);
+    }
   }
 
   /**
@@ -323,6 +507,7 @@ export class Queue extends EventEmitter<QueueEvents> {
         detail: job,
       }),
     );
+    void this.storageUpdate(job.id, job);
   }
 
   /**
@@ -395,7 +580,7 @@ export class Queue extends EventEmitter<QueueEvents> {
           }
         } catch (error) {
           logger.error(`Job #${job.id} is errored`, error);
-          job.history.errors.push(error as Error);
+          job.history.errors.push(String(error));
 
           if (job.maxRetries > 0 && job.retries < job.maxRetries) {
             // If the job hasn't reached the maximum number of retries, retry it
@@ -457,19 +642,50 @@ export class Queue extends EventEmitter<QueueEvents> {
     const job = new Job<T>(config);
     this.jobs.push(job);
     logger.trace('Job added:', job);
+    void this.storageUpdate(job.id, job);
     void this.start();
     return job.id;
   }
 
   /**
-   * Returns a job from the queue by its ID.
+   * Returns a job from the queue by its ID. Uses local in-memory source
    *
    * @param {string} id
    * @returns {(Job | undefined)} The job if found, otherwise undefined.
    * @memberof Queue
    */
-  get(id: string): Job | undefined {
-    return this.jobs.find((job) => job.id === id);
+  getLocal<T extends JobData = JobData>(id: string): Job<T> | undefined {
+    const localJob = this.jobs.find((job) => job.id === id) as Job<T>;
+
+    if (localJob) {
+      return localJob;
+    }
+
+    return;
+  }
+
+  /**
+   * Returns a job config from the queue by its ID. Uses both local and storage search
+   *
+   * @param {string} id
+   * @returns {Promise<JobConfig | undefined>} The job if found, otherwise undefined.
+   * @memberof Queue
+   */
+  async get<T extends JobData = JobData>(
+    id: string,
+  ): Promise<JobConfig<T> | undefined> {
+    const localJob = this.getLocal<T>(id);
+
+    if (localJob) {
+      return localJob.toJSON();
+    }
+
+    if (!this.storage) {
+      return;
+    }
+
+    // If job not found locally we will try to find on storage
+    return await this.storage.get<JobConfig<T>>(id);
   }
 
   /**
@@ -512,5 +728,14 @@ export class Queue extends EventEmitter<QueueEvents> {
     }
 
     return isDeleted;
+  }
+
+  /**
+   * Graceful queue stop
+   *
+   * @memberof Queue
+   */
+  async stop() {
+    await this.storageDown();
   }
 }
