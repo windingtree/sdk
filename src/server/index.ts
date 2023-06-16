@@ -10,6 +10,7 @@ import { centerSub, CenterSub } from '../shared/pubsub.js';
 import { decodeText } from '../utils/text.js';
 import { StorageInitializer } from '../storage/abstract.js';
 import { createLogger } from '../utils/logger.js';
+import { yamux } from '@chainsafe/libp2p-yamux';
 
 const logger = createLogger('Server');
 
@@ -98,17 +99,25 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
         listen: [`/ip4/0.0.0.0/tcp/${this.port}/ws`],
       },
       transports: [webSockets({ filter: all })],
-      streamMuxers: [mplex()],
+      streamMuxers: [yamux(), mplex()],
       connectionEncryption: [noise()],
-      pubsub: centerSub({
-        messagesStorage,
-      }),
+      services: {
+        pubsub: centerSub({
+          messagesStorage,
+        }),
+      },
+      connectionManager: {
+        maxPeerAddrsToDial: 10,
+        minConnections: 0,
+        maxConnections: 10000,
+        maxParallelDials: 20,
+      },
     };
 
     const peerId = await createFromJSON(this.peerKey);
     this.libp2p = await createLibp2p({ peerId, ...config });
 
-    (this.libp2p.pubsub as CenterSub).addEventListener(
+    (this.libp2p.services.pubsub as CenterSub).addEventListener(
       'message',
       ({ detail }) => {
         logger.trace(
