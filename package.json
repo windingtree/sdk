@@ -97,7 +97,8 @@
     "lint-staged": "^13.2.2",
     "c8": "^8.0.0",
     "typedoc": "^0.24.8",
-    "dotenv": "^16.1.4"
+    "dotenv": "^16.1.4",
+    "vitest": "^0.32.2"
   },
   "dependencies": {
     "libp2p": "^0.45.9",
@@ -116,7 +117,7 @@
   "scripts": {
     "clean": "rm -rf ./lib",
     "build": "npm run clean && tsc -p ./tsconfig.build.json",
-    "test": "mocha -t 60000 --extension spec.ts",
+    "test": "vitest --run test",
     "semantic-release": "semantic-release",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix && prettier --write .",

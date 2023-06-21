@@ -11,6 +11,7 @@ import {
   JobData,
   JobHandlerRegistry,
 } from '../src/shared/queue.js';
+import { describe, it, beforeEach } from 'vitest';
 
 describe('Job', function () {
   let config: JobConfig;
@@ -59,16 +60,17 @@ describe('Job', function () {
     expect(result).to.be.true;
   });
 
-  it('should correctly handle failed job execution', function (done) {
-    const failingHandler = async () => {
-      throw new Error('Job failed');
-    };
-    const job = new Job(config);
-    job.execute(failingHandler).catch((err) => {
-      expect((err as Error).message).to.equal('Job failed');
-      done();
-    });
-  });
+  it('should correctly handle failed job execution', () =>
+    new Promise((done) => {
+      const failingHandler = async () => {
+        throw new Error('Job failed');
+      };
+      const job = new Job(config);
+      job.execute(failingHandler).catch((err) => {
+        expect((err as Error).message).to.equal('Job failed');
+        done(true);
+      });
+    }));
 });
 
 describe('JobHandlerRegistry', () => {
