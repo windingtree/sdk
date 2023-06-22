@@ -1,4 +1,4 @@
-import { expect } from './setup.js';
+import { describe, it, expect } from './setup.js';
 import {
   validateDurationFormat,
   parseSeconds,
@@ -6,7 +6,6 @@ import {
   nowSec,
   isExpired,
 } from '../src/utils/time.js';
-import { describe, it } from 'vitest';
 
 describe('Utils.time', () => {
   describe('#validateDurationFormat', () => {
