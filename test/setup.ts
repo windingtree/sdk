@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import 'mocha';
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+
 import {
   GenericQuery,
   GenericOfferOptions,
@@ -12,8 +10,7 @@ import {
 import { Hash, HDAccount, TypedDataDomain } from 'viem';
 import { buildRequest, buildOffer } from '../src/shared/messages.js';
 import { randomSalt } from '@windingtree/contracts';
-
-chai.use(chaiAsPromised);
+import { expect } from 'vitest';
 
 process.on('unhandledRejection', (error) => {
   console.log('Unhandled rejection detected:', error);
@@ -49,7 +46,7 @@ export interface CustomOfferOptions extends GenericOfferOptions {
   checkOut: bigint;
 }
 
-export const createRequest = (
+export const createRequest = async (
   topic: string,
   expire: bigint | string = BigInt(1),
 ) =>

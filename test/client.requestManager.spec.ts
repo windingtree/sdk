@@ -6,6 +6,7 @@ import { nowSec } from '../src/utils/time.js';
 import { randomSalt } from '@windingtree/contracts';
 import { memoryStorage } from '../src/storage/index.js';
 import { ClientRequestsManager } from '../src/client/requestsManager.js';
+import { describe, it, beforeEach } from 'vitest';
 
 const expTime = (sec: number): bigint => BigInt(nowSec() + sec);
 

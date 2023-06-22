@@ -12,6 +12,7 @@ import { supplierId as spId } from '../src/utils/uid.js';
 import { randomSalt } from '@windingtree/contracts';
 import { RequestData, OfferData } from '../src/shared/types.js';
 import { buildOffer, verifyOffer } from '../src/shared/messages.js';
+import { describe, it, beforeAll } from 'vitest';
 
 describe('Shared.messages', () => {
   const topic = 'test';
@@ -26,14 +27,14 @@ describe('Shared.messages', () => {
 
   let request: RequestData<CustomQuery>;
 
-  before(async () => {
+  beforeAll(async () => {
     request = await createRequest(topic);
   });
 
   describe('#buildRequest', () => {
     it('should build a request', async () => {
-      await expect(createRequest(topic)).to.not.rejected;
-      await expect(createRequest(topic, '1h')).to.not.rejected;
+      await expect(createRequest(topic)).resolves.toBeTypeOf('object');
+      await expect(createRequest(topic, '1h')).resolves.toBeTypeOf('object');
     });
   });
 
@@ -46,15 +47,16 @@ describe('Shared.messages', () => {
       }
       await expect(
         createOffer(request, BigInt(1), typedDomain, supplierId, signer),
-      ).to.not.rejected;
-      await expect(createOffer(request, '30s', typedDomain, supplierId, signer))
-        .to.not.rejected;
+      ).resolves.toBeTypeOf('object');
+      await expect(
+        createOffer(request, '30s', typedDomain, supplierId, signer),
+      ).resolves.toBeTypeOf('object');
     });
 
     describe('Offer restoration', () => {
       let offer: OfferData<CustomQuery, CustomOfferOptions>;
 
-      before(async () => {
+      beforeAll(async () => {
         offer = await createOffer(
           request,
           BigInt(1),
@@ -98,7 +100,7 @@ describe('Shared.messages', () => {
             transferable: offer.payload.transferable,
             idOverride: offer.id,
           }),
-        ).to.rejectedWith(
+        ).rejects.toThrow(
           'Either account or signatureOverride must be provided with options',
         );
       });
@@ -108,7 +110,7 @@ describe('Shared.messages', () => {
   describe('#verifyOffer', () => {
     let offer: OfferData<CustomQuery, CustomOfferOptions>;
 
-    before(async () => {
+    beforeAll(async () => {
       offer = await createOffer(
         request,
         BigInt(1),
@@ -126,7 +128,7 @@ describe('Shared.messages', () => {
           address: unknownSigner.address,
           offer,
         }),
-      ).to.rejectedWith(`Invalid offer signer ${unknownSigner.address}`);
+      ).rejects.toThrow(`Invalid offer signer ${unknownSigner.address}`);
     });
 
     it('should verify an offer', async () => {
@@ -136,7 +138,7 @@ describe('Shared.messages', () => {
           address: signer.address,
           offer,
         }),
-      ).to.not.rejected;
+      ).resolves.toBeUndefined();
     });
   });
 });
