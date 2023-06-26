@@ -10,6 +10,8 @@ export interface User {
   login: string;
   /** The hashed password of the user */
   hashedPassword: string;
+  /** Flag which indicate that the use is admin */
+  isAdmin: boolean;
   /** The optional JSON Web Token of the user */
   jwt?: string;
 }
@@ -20,7 +22,7 @@ export interface User {
  */
 export const UserInputSchema = z.object({
   login: z.string().nonempty(),
-  password: z.string().nonempty(),
+  password: z.union([z.string().nonempty(), z.string().startsWith('0x')]),
 });
 
 /**
@@ -114,11 +116,12 @@ export class UsersDb {
    *
    * @param {string} login The login of the user to be added
    * @param {string} password The password of the user to be added
+   * @param {boolean} [isAdmin] Option which indicate that the use is admin
    * @returns {Promise<void>}
    * @throws Will throw an error if a user with the same login already exists
    * @memberof UsersDb
    */
-  async add(login: string, password: string): Promise<void> {
+  async add(login: string, password: string, isAdmin = false): Promise<void> {
     const knownUser = await this.storage.get<User>(this.loginKey(login));
 
     // Check if the user already exists
@@ -130,6 +133,7 @@ export class UsersDb {
     await this.storage.set<User>(this.loginKey(login), {
       login,
       hashedPassword: UsersDb.hashPassword(password, this.salt),
+      isAdmin,
     });
   }
 
