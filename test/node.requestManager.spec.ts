@@ -1,8 +1,6 @@
-import './setup.js';
-import { expect } from 'chai';
 import { stringify } from 'viem';
+import { describe, expect, it, beforeEach } from './setup.js';
 import { NodeRequestManager } from '../src/index.js';
-import { describe, it, beforeEach } from 'vitest';
 
 describe('Node.NodeRequestManager', () => {
   const defaultNoncePeriod = 1;

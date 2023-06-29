@@ -1,6 +1,5 @@
-import { expect } from './setup.js';
+import { describe, it, expect } from './setup.js';
 import { createLogger, enable, disable } from '../src/utils/logger.js';
-import { describe, it } from 'vitest';
 
 describe('Utils.logger', () => {
   describe('#createLogger', () => {

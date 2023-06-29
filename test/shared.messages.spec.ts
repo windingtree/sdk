@@ -1,18 +1,20 @@
+import { mnemonicToAccount } from 'viem/accounts';
 import {
   expect,
+  describe,
+  it,
+  beforeAll,
   expectDeepEqual,
   CustomQuery,
   CustomOfferOptions,
   createRequest,
   createOffer,
 } from './setup.js';
-import { mnemonicToAccount } from 'viem/accounts';
 import { generateMnemonic } from '../src/utils/wallet.js';
 import { supplierId as spId } from '../src/utils/uid.js';
 import { randomSalt } from '@windingtree/contracts';
 import { RequestData, OfferData } from '../src/shared/types.js';
 import { buildOffer, verifyOffer } from '../src/shared/messages.js';
-import { describe, it, beforeAll } from 'vitest';
 
 describe('Shared.messages', () => {
   const topic = 'test';

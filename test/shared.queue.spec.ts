@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/require-await */
-import { expect } from 'chai';
+import { expect, describe, it, beforeEach } from './setup.js';
 import { Storage, memoryStorage } from '../src/storage/index.js';
 import {
   Job,
@@ -11,7 +11,6 @@ import {
   JobData,
   JobHandlerRegistry,
 } from '../src/shared/queue.js';
-import { describe, it, beforeEach } from 'vitest';
 
 describe('Job', function () {
   let config: JobConfig;

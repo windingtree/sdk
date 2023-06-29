@@ -1,9 +1,8 @@
-import { expect } from './setup.js';
+import { describe, it, expect } from './setup.js';
 import { mnemonicToAccount } from 'viem/accounts';
 import { simpleUid, randomSalt } from '@windingtree/contracts';
 import { generateMnemonic } from '../src/utils/wallet.js';
 import { supplierId } from '../src/utils/uid.js';
-import { describe, it } from 'vitest';
 
 describe('Utils.uid', () => {
   const bytes32RegExp = /^0x[a-fA-F0-9]{64}$/;
