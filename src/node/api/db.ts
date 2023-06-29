@@ -13,7 +13,7 @@ export interface User {
   /** The hashed password of the user */
   hashedPassword: string;
   /** Flag which indicate that the use is admin */
-  isAdmin: boolean;
+  isAdmin?: boolean;
   /** The optional JSON Web Token of the user */
   jwt?: string;
 }

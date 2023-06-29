@@ -1,8 +1,14 @@
 import { describe, beforeAll, it, expect } from './setup.js';
 import { createInitializer } from '../src/storage/memory.js';
-import { UsersDb, UsersDbOptions, User } from '../src/node/api/db.js';
+import {
+  UsersDb,
+  UsersDbOptions,
+  User,
+  comparePassword,
+} from '../src/node/api/db.js';
 
 describe('Node.API.Db', () => {
+  const password = 'password';
   let userDb: UsersDb;
   let testUser: User;
 
@@ -10,27 +16,26 @@ describe('Node.API.Db', () => {
     const options: UsersDbOptions = {
       storage: await createInitializer()(),
       prefix: 'test',
-      salt: 'salt',
     };
     userDb = new UsersDb(options);
     testUser = {
       login: 'testUser',
-      hashedPassword: UsersDb.hashPassword('password', options.salt),
+      hashedPassword: await UsersDb.hashPassword('password'),
     };
   });
 
   describe('#add', () => {
     it('should add a new user', async () => {
-      await userDb.add(testUser.login, 'password');
+      await userDb.add(testUser.login, password);
       const user = await userDb.get(testUser.login);
       expect(user.login).to.be.eq(testUser.login);
-      expect(user.hashedPassword).to.be.eq(testUser.hashedPassword);
+      expect(await comparePassword(password, user.hashedPassword)).to.be.true;
     });
 
     it('should throw an error when trying to add an existing user', async () => {
       let error = null;
       try {
-        await userDb.add(testUser.login, 'password');
+        await userDb.add(testUser.login, password);
       } catch (err) {
         error = err;
       }
@@ -45,7 +50,7 @@ describe('Node.API.Db', () => {
     it('should get a user', async () => {
       const user = await userDb.get(testUser.login);
       expect(user.login).to.be.eq(testUser.login);
-      expect(user.hashedPassword).to.be.eq(testUser.hashedPassword);
+      expect(await comparePassword(password, user.hashedPassword)).to.be.true;
     });
 
     it('should throw an error when trying to get a non-existent user', async () => {
