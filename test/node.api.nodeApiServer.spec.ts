@@ -47,7 +47,6 @@ describe('NodeApiServer', () => {
     options = {
       storage: await createInitializer()(),
       prefix: 'test',
-      salt: 'salt',
       port: 3456,
       secret: 'secret',
       ownerAccount: owner.address,

@@ -1,6 +1,8 @@
-import { Hex, keccak256 } from 'viem';
 import { z } from 'zod';
+import { hash } from 'bcryptjs';
 import { Storage } from '../../storage/index.js';
+
+export { compare as comparePassword } from 'bcryptjs';
 
 /**
  * Interface defining the properties of a User object stored in storage.
@@ -39,8 +41,6 @@ export interface UsersDbOptions {
   storage: Storage;
   /** Prefix used for the storage key to avoid potential key collisions */
   prefix: string;
-  /** Salt used for hashing passwords */
-  salt: string;
 }
 
 export class UsersDb {
@@ -48,8 +48,6 @@ export class UsersDb {
   storage: Storage;
   /** Specific key prefix for the storage key to avoid potential key collisions */
   prefix: string;
-  /** Salt used for hashing passwords */
-  salt: string;
 
   /**
    * Creates an instance of UsersDb.
@@ -59,13 +57,12 @@ export class UsersDb {
    * @memberof NodeApiServer
    */
   constructor(options: UsersDbOptions) {
-    const { storage, prefix, salt } = options;
+    const { storage, prefix } = options;
 
     // TODO Validate NodeApiServerOptions
 
     this.prefix = `${prefix}_api_users_`;
     this.storage = storage;
-    this.salt = salt;
   }
 
   /**
@@ -73,12 +70,11 @@ export class UsersDb {
    *
    * @static
    * @param {string} password The password to be hashed
-   * @param {string} salt The salt to be used for hashing
    * @returns {string} The hashed password
    * @memberof UsersDb
    */
-  static hashPassword(password: string, salt: string): string {
-    return keccak256(`${password}${salt}` as Hex);
+  static async hashPassword(password: string): Promise<string> {
+    return await hash(password, 10);
   }
 
   /**
@@ -132,7 +128,7 @@ export class UsersDb {
     // Save the user into the storage
     await this.storage.set<User>(this.loginKey(login), {
       login,
-      hashedPassword: UsersDb.hashPassword(password, this.salt),
+      hashedPassword: await UsersDb.hashPassword(password),
       isAdmin,
     });
   }

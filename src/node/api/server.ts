@@ -124,12 +124,6 @@ export interface NodeApiServerOptions {
   port: number;
 
   /**
-   * A salt string used for hashing passwords. This adds an extra layer of security by
-   * making it much harder for someone to reverse-engineer the original password from the hash.
-   */
-  salt: string;
-
-  /**
    * A secret string used by the application for various purposes, often for signing and verifying tokens.
    */
   secret: string;
@@ -173,8 +167,7 @@ export class NodeApiServer {
    * @memberof NodeApiServer
    */
   constructor(options: NodeApiServerOptions) {
-    const { storage, prefix, port, salt, secret, ownerAccount, expire } =
-      options;
+    const { storage, prefix, port, secret, ownerAccount, expire } = options;
 
     // TODO Validate NodeApiServerOptions
 
@@ -184,7 +177,7 @@ export class NodeApiServer {
     this.expire = expire ?? '1h';
 
     /** Initialize the UsersDb instance with the provided options */
-    this.users = new UsersDb({ storage, prefix, salt });
+    this.users = new UsersDb({ storage, prefix });
   }
 
   /**

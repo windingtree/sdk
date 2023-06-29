@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { User, UserInputSchema, UsersDb } from '../db.js';
+import { User, UserInputSchema, comparePassword } from '../db.js';
 import {
   APIContext,
   router,
@@ -56,9 +56,12 @@ export const userRouter = router({
       });
     }
 
-    if (
-      user.hashedPassword !== UsersDb.hashPassword(password, server.users.salt)
-    ) {
+    const isValidPassword = await comparePassword(
+      password,
+      user.hashedPassword,
+    );
+
+    if (!isValidPassword) {
       throw new TRPCError({
         code: 'UNAUTHORIZED',
         message: 'Invalid login or password',
