@@ -43,6 +43,12 @@ export interface UsersDbOptions {
   prefix: string;
 }
 
+/**
+ * Class that implements an API to the users records storage
+ *
+ * @export
+ * @class UsersDb
+ */
 export class UsersDb {
   /** Storage instance for persisting the state of the API server */
   storage: Storage;
@@ -54,12 +60,12 @@ export class UsersDb {
    * Initializes an instance of UsersDb with given options.
    *
    * @param {UsersDbOptions} options
-   * @memberof NodeApiServer
+   * @memberof UsersDb
    */
   constructor(options: UsersDbOptions) {
     const { storage, prefix } = options;
 
-    // TODO Validate NodeApiServerOptions
+    // TODO Validate UsersDbOptions
 
     this.prefix = `${prefix}_api_users_`;
     this.storage = storage;
@@ -78,18 +84,6 @@ export class UsersDb {
   }
 
   /**
-   * Generates a prefixed login key
-   *
-   * @private
-   * @param {string} login The login for which the key is generated
-   * @returns {string} The prefixed login key
-   * @memberof UsersDb
-   */
-  private loginKey(login: string): string {
-    return `${this.prefix}${login}`;
-  }
-
-  /**
    * Retrieves the user with the given login from storage.
    *
    * @param {string} login The login of the user to be retrieved
@@ -98,7 +92,7 @@ export class UsersDb {
    * @memberof UsersDb
    */
   async get(login: string): Promise<User> {
-    const user = await this.storage.get<User>(this.loginKey(login));
+    const user = await this.storage.get<User>(`${this.prefix}${login}`);
 
     if (!user) {
       throw new Error(`User ${login} not found`);
@@ -118,7 +112,7 @@ export class UsersDb {
    * @memberof UsersDb
    */
   async add(login: string, password: string, isAdmin = false): Promise<void> {
-    const knownUser = await this.storage.get<User>(this.loginKey(login));
+    const knownUser = await this.storage.get<User>(`${this.prefix}${login}`);
 
     // Check if the user already exists
     if (knownUser) {
@@ -126,7 +120,7 @@ export class UsersDb {
     }
 
     // Save the user into the storage
-    await this.storage.set<User>(this.loginKey(login), {
+    await this.storage.set<User>(`${this.prefix}${login}`, {
       login,
       hashedPassword: await UsersDb.hashPassword(password),
       isAdmin,
@@ -141,7 +135,7 @@ export class UsersDb {
    * @memberof UsersDb
    */
   async set(user: User): Promise<void> {
-    await this.storage.set<User>(this.loginKey(user.login), user);
+    await this.storage.set<User>(`${this.prefix}${user.login}`, user);
   }
 
   /**
@@ -153,7 +147,7 @@ export class UsersDb {
    * @memberof UsersDb
    */
   async delete(login: string): Promise<void> {
-    const deleted = await this.storage.delete(this.loginKey(login));
+    const deleted = await this.storage.delete(`${this.prefix}${login}`);
 
     if (!deleted) {
       throw new Error(`Unable to delete user ${login}`);
