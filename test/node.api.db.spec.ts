@@ -5,7 +5,7 @@ import {
   UsersDbOptions,
   User,
   comparePassword,
-} from '../src/node/api/db.js';
+} from '../src/node/db/users.js';
 
 describe('Node.API.Db', () => {
   const password = 'password';

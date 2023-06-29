@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { Address, Hash, verifyTypedData } from 'viem';
 import { TypedDataDomain } from 'abitype';
 import { Account } from '../../../index.js';
-import { User, UserInputSchema } from '../db.js';
+import { User, UserInputSchema } from '../../db/users.js';
 import { router, procedure } from '../index.js';
 import { createLogger } from '../../../utils/logger.js';
 
