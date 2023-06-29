@@ -45,7 +45,9 @@ describe('NodeApiServer', () => {
 
   beforeAll(async () => {
     options = {
-      storage: await createInitializer()(),
+      storage: await createInitializer({
+        scope: 'users',
+      })(),
       prefix: 'test',
       port: 3456,
       secret: 'secret',

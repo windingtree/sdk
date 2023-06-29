@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { User, UserInputSchema, comparePassword } from '../db.js';
+import { User, UserInputSchema, comparePassword } from '../../db/users.js';
 import {
   APIContext,
   router,

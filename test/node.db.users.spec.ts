@@ -5,7 +5,7 @@ import {
   UsersDbOptions,
   User,
   comparePassword,
-} from '../src/node/api/db.js';
+} from '../src/node/db/users.js';
 
 describe('Node.API.Db', () => {
   const password = 'password';
@@ -14,7 +14,9 @@ describe('Node.API.Db', () => {
 
   beforeAll(async () => {
     const options: UsersDbOptions = {
-      storage: await createInitializer()(),
+      storage: await createInitializer({
+        scope: 'users',
+      })(),
       prefix: 'test',
     };
     userDb = new UsersDb(options);

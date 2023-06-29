@@ -9,7 +9,7 @@ import {
 import * as jwt from 'jsonwebtoken';
 import { Address } from 'viem';
 import { Storage } from '../../storage/index.js';
-import { User, UsersDb } from './db.js';
+import { User, UsersDb } from '../db/users.js';
 import { createLogger } from '../../utils/logger.js';
 
 const logger = createLogger('NodeApiServer');

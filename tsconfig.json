@@ -23,6 +23,5 @@
     "./src/**/*.ts",
     "./examples/**/*.ts",
     "./test/**/*.ts",
-    "temp/old/requestsRegistry.ts"
   ]
 }

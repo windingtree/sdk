@@ -154,7 +154,7 @@ export interface Contracts {
 /**
  * Deal data type
  */
-export interface DealData {
+export interface DealAData {
   /** NFT Id */
   tokenId: number;
   /** Supplier Id */
@@ -167,4 +167,37 @@ export interface DealData {
   created: string;
   /** Deal update date */
   updated: string;
+}
+
+/**
+ * Deals registry record
+ */
+export interface DealRecord<
+  CustomRequestQuery extends GenericQuery = GenericQuery,
+  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
+> {
+  /** Network chain Id */
+  chainId: number;
+  /** Deal creation time in seconds */
+  created: bigint;
+  /** Offer */
+  offer: OfferData<CustomRequestQuery, CustomOfferOptions>;
+  /** Deal retailer Id */
+  retailerId: string;
+  /** Deal owner */
+  buyer: Address;
+  /** Deal price */
+  price: bigint;
+  /** Deal asset */
+  asset: Address;
+  /** Current deal status */
+  status: DealStatus;
+}
+
+/**
+ * Pagination options
+ */
+export interface PaginationOptions {
+  start: number;
+  skip: number;
 }
