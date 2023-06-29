@@ -15,7 +15,9 @@ export abstract class Storage {
   >;
 }
 
-export type GenericStorageOptions = Record<string, unknown>;
+export interface GenericStorageOptions {
+  scope?: string;
+}
 
 /**
  * Storage initializer type
