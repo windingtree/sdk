@@ -1,7 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { User, UserInputSchema, comparePassword } from '../../db/users.js';
 import {
-  APIContext,
   router,
   procedure,
   authProcedure,
@@ -22,10 +21,10 @@ export const userRouter = router({
   register: authAdminProcedure
     .input(UserInputSchema)
     .mutation(async ({ input, ctx }) => {
-      const { login, password } = input;
-      const { server } = ctx;
       try {
-        await server.users.add(login, password);
+        const { login, password } = input;
+        const { users } = ctx;
+        await users.add(login, password);
         logger.trace(`User ${login} registered`);
       } catch (error) {
         logger.error('user.register', error);
@@ -42,12 +41,12 @@ export const userRouter = router({
    */
   login: procedure.input(UserInputSchema).mutation(async ({ input, ctx }) => {
     const { login, password } = input;
-    const { server, updateAccessToken } = ctx;
+    const { users, updateAccessToken } = ctx;
     let user: User;
 
     try {
       logger.trace(`Trying to log in user ${login}`);
-      user = await server.users.get(login);
+      user = await users.get(login);
     } catch (error) {
       logger.error('user.login', error);
       throw new TRPCError({
@@ -78,11 +77,10 @@ export const userRouter = router({
   logout: authProcedure
     .input(UserInputSchema.pick({ login: true }))
     .mutation(async ({ ctx }) => {
-      const { user, server } = ctx as Required<APIContext>;
-
       try {
+        const { user, users } = ctx;
         delete user.jwt;
-        await server.users.set(user);
+        await users.set(user);
         logger.trace(`User ${user.login} logged out`);
       } catch (error) {
         logger.error('user.logout', error);
@@ -98,10 +96,9 @@ export const userRouter = router({
    * User must be logged in to be able to delete his record.
    */
   delete: authProcedure.mutation(async ({ ctx }) => {
-    const { user, server } = ctx as Required<APIContext>;
-
     try {
-      await server.users.delete(user.login);
+      const { user, users } = ctx;
+      await users.delete(user.login);
       logger.trace(`User ${user.login} deleted`);
     } catch (error) {
       logger.error('user.delete', error);
