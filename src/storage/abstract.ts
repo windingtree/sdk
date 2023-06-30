@@ -22,11 +22,11 @@ export interface GenericStorageOptions {
 /**
  * Storage initializer type
  */
-export type StorageInitializer = () => Promise<Storage>;
+export type StorageInitializer<T extends Storage = Storage> = () => Promise<T>;
 
 /**
  * Storage initializer callback function type
  */
-export type StorageInitializerFunction = (
+export type StorageInitializerFunction<T extends Storage = Storage> = (
   options?: GenericStorageOptions,
-) => StorageInitializer;
+) => StorageInitializer<T>;
