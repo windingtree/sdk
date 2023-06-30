@@ -3,6 +3,7 @@ import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import { z } from 'zod';
 import { Hash } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
+import superjson from 'superjson';
 import { generateMnemonic } from '../src/utils/wallet.js';
 import {
   UserInputType,
@@ -45,7 +46,7 @@ describe('NodeApiServer', () => {
 
   beforeAll(async () => {
     options = {
-      storage: await createInitializer({
+      usersStorage: await createInitializer({
         scope: 'users',
       })(),
       prefix: 'test',
@@ -58,6 +59,7 @@ describe('NodeApiServer', () => {
     server.start(appRouter);
 
     clientUser = createTRPCProxyClient<typeof appRouter>({
+      transformer: superjson,
       links: [
         accessTokenLink(ACCESS_TOKEN_NAME, (token) => {
           accessTokenUser = token;
@@ -72,6 +74,7 @@ describe('NodeApiServer', () => {
     });
 
     clientAdmin = createTRPCProxyClient<typeof appRouter>({
+      transformer: superjson,
       links: [
         accessTokenLink(ACCESS_TOKEN_NAME, (token) => {
           accessTokenAdmin = token;
