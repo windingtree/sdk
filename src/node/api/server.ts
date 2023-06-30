@@ -6,111 +6,35 @@ import {
   CreateHTTPContextOptions,
   createHTTPServer,
 } from '@trpc/server/adapters/standalone';
+import superjson from 'superjson';
 import * as jwt from 'jsonwebtoken';
 import { Address } from 'viem';
 import { Storage } from '../../storage/index.js';
 import { User, UsersDb } from '../db/users.js';
+import { DealsDb } from '../db/deals.js';
+import { ProtocolContracts } from '../../shared/contracts.js';
 import { createLogger } from '../../utils/logger.js';
 
 const logger = createLogger('NodeApiServer');
-
-/**
- * The server API context type.
- * APIContext is the context object passed to each tRPC procedure.
- * This object contains the current HTTP request, HTTP response,
- * an instance of UsersDb for user operations, and a function for updating user access tokens.
- * It may also contain a currently authenticated user.
- */
-export interface APIContext {
-  req: IncomingMessage;
-  res: ServerResponse;
-  server: NodeApiServer;
-  updateAccessToken: (user: User) => Promise<void>;
-  user?: User;
-}
-
-/**
- * Procedures metadata type
- */
-export interface RouteMeta {
-  /** An option that specifies that the route must be authorized */
-  authRequired?: boolean;
-  /** An option that specifies that only users with administrative privileges are allowed */
-  adminOnly?: boolean;
-}
-
-/**
- * Payload for the access token
- */
-export interface AccessTokenPayload {
-  login: string;
-}
-
-/**
- * Name of the access token, used as a key when storing in the server response header
- */
-export const ACCESS_TOKEN_NAME = 'ACCESS_TOKEN';
-
-/**
- * Initialization of tRPC with a context type of APIContext.
- * Also specifies RouteMeta as the type for procedure metadata.
- */
-export const trpc = initTRPC
-  .context<APIContext>()
-  .meta<RouteMeta>()
-  .create({
-    defaultMeta: { authRequired: false },
-  });
-
-/**
- * Shortcut for defining routers with tRPC.
- */
-export const router = trpc.router;
-
-/**
- * Shortcut for defining procedures with tRPC.
- */
-export const procedure = trpc.procedure;
-
-/**
- * Middleware for checking user authorization.
- * If authRequired is true and there is no user in the context, it throws an UNAUTHORIZED error.
- */
-export const isAuthorized = trpc.middleware(async ({ meta, next, ctx }) => {
-  // only check authorization if enabled
-  if (
-    (meta?.authRequired && !ctx.user) ||
-    (meta?.authRequired && ctx.user && meta.adminOnly && !ctx.user.isAdmin)
-  ) {
-    throw new TRPCError({ code: 'UNAUTHORIZED' });
-  }
-
-  return next();
-});
-
-/**
- * Helper for defining procedures that require user authentication.
- */
-export const authProcedure = trpc.procedure
-  .use(isAuthorized)
-  .meta({ authRequired: true });
-
-/**
- * Helper for defining procedures that require authentication of the user with admin rights.
- */
-export const authAdminProcedure = trpc.procedure
-  .use(isAuthorized)
-  .meta({ authRequired: true, adminOnly: true });
 
 /**
  * Type definition for the options to be passed when initializing the NodeApiServer.
  */
 export interface NodeApiServerOptions {
   /**
-   * An instance of the storage system that the API server will use for persisting its state.
-   * This could be a database, file storage, or any other form of data persistence.
+   * An instance of the storage system that the API server will use for persisting users state.
    */
-  storage: Storage;
+  usersStorage: Storage;
+
+  /**
+   * An instance of the storage system that the API server will use for persisting deals state.
+   */
+  dealsStorage?: Storage;
+
+  /**
+   * An instance of the protocol contracts manager.
+   */
+  protocolContracts?: ProtocolContracts;
 
   /**
    * A string that will be prepended to the keys used in the storage system. This is to prevent
@@ -141,6 +65,141 @@ export interface NodeApiServerOptions {
 }
 
 /**
+ * The server API context type.
+ * ApiContext is the context object passed to each tRPC procedure.
+ * This object contains the current HTTP request, HTTP response,
+ * an instance of UsersDb for user operations, and a function for updating user access tokens.
+ * It may also contain a currently authenticated user.
+ */
+export interface ApiContext {
+  req: IncomingMessage;
+  res: ServerResponse;
+  updateAccessToken: (user: User) => Promise<void>;
+  ownerAccount?: Address;
+  users: UsersDb;
+  user?: User;
+  deals?: DealsDb;
+  contracts?: ProtocolContracts;
+}
+
+/**
+ * Procedures metadata type
+ */
+export interface ApiMeta {
+  /** An option that specifies that the route must be authorized */
+  authRequired?: boolean;
+  /** An option that specifies that only users with administrative privileges are allowed */
+  adminOnly?: boolean;
+}
+
+/**
+ * Payload for the access token
+ */
+export interface AccessTokenPayload {
+  login: string;
+}
+
+/**
+ * Name of the access token, used as a key when storing in the server response header
+ */
+export const ACCESS_TOKEN_NAME = 'ACCESS_TOKEN';
+
+/**
+ * Initialization of tRPC with a context type of ApiContext.
+ * Also specifies RouteMeta as the type for procedure metadata.
+ */
+export const trpc = initTRPC
+  .context<ApiContext>()
+  .meta<ApiMeta>()
+  .create({
+    transformer: superjson,
+    defaultMeta: { authRequired: false },
+  });
+
+/**
+ * Shortcut for defining routers with tRPC.
+ */
+export const router = trpc.router;
+
+/**
+ * Shortcut for defining procedures with tRPC.
+ */
+export const procedure = trpc.procedure;
+
+/**
+ * Middleware for checking deals database existence in the context
+ */
+export const withDeals = trpc.middleware(async ({ next, ctx }) => {
+  if (!ctx.deals) {
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+  }
+
+  return next({
+    ctx: {
+      deals: ctx.deals,
+    },
+  });
+});
+
+/**
+ * Middleware for checking the protocol contracts manager existence in the context
+ */
+export const withContracts = trpc.middleware(async ({ next, ctx }) => {
+  if (!ctx.contracts) {
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+  }
+
+  return next({
+    ctx: {
+      contracts: ctx.contracts,
+    },
+  });
+});
+
+/**
+ * Middleware for checking the owner account configuration existence in the context
+ */
+export const withOwnerAccount = trpc.middleware(async ({ next, ctx }) => {
+  if (!ctx.ownerAccount) {
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+  }
+
+  return next({
+    ctx: {
+      ownerAccount: ctx.ownerAccount,
+    },
+  });
+});
+
+/**
+ * Middleware for checking user authorization
+ */
+export const isAuthorized = trpc.middleware(async ({ meta, next, ctx }) => {
+  // only check authorization if enabled
+  if (!ctx.user || (ctx.user && meta?.adminOnly && !ctx.user.isAdmin)) {
+    throw new TRPCError({ code: 'UNAUTHORIZED' });
+  }
+
+  return next({
+    ctx: {
+      user: ctx.user,
+    },
+  });
+});
+
+/**
+ * Helper for defining procedures that require user authentication.
+ */
+export const authProcedure = trpc.procedure.use(isAuthorized);
+
+/**
+ * Helper for defining procedures that require authentication of the user with admin rights.
+ */
+export const authAdminProcedure = trpc.procedure
+  .use(isAuthorized)
+  .meta({ adminOnly: true });
+
+/**
  * The NodeApiServer class, which implements a tRPC API for the protocol Node.
  *
  * @export
@@ -155,6 +214,10 @@ export class NodeApiServer {
   private server?: ReturnType<typeof createHTTPServer>;
   /** An instance of the UsersDb class that manages user data */
   users: UsersDb;
+  /** An instance of the DealsDb class that manages deals data */
+  deals?: DealsDb;
+  /** An instance of the ProtocolContracts that manages deals via the protocol smart contracts */
+  protocolContracts?: ProtocolContracts;
   /** An Ethereum account address of the Node owner */
   ownerAccount?: Address;
   /** The duration (as a string or number) after which the access token will expire */
@@ -163,11 +226,20 @@ export class NodeApiServer {
   /**
    * Creates an instance of NodeApiServerOptions.
    *
-   * @param {NodeApiServerOptions} options
+   * @param {NodeApiServerOptions} options NodeApiServer initialization options
    * @memberof NodeApiServer
    */
   constructor(options: NodeApiServerOptions) {
-    const { storage, prefix, port, secret, ownerAccount, expire } = options;
+    const {
+      usersStorage,
+      dealsStorage,
+      protocolContracts,
+      prefix,
+      port,
+      secret,
+      ownerAccount,
+      expire,
+    } = options;
 
     // TODO Validate NodeApiServerOptions
 
@@ -177,7 +249,16 @@ export class NodeApiServer {
     this.expire = expire ?? '1h';
 
     /** Initialize the UsersDb instance with the provided options */
-    this.users = new UsersDb({ storage, prefix });
+    this.users = new UsersDb({ storage: usersStorage, prefix });
+
+    if (dealsStorage) {
+      /** Initialize the UsersDb instance with the provided options */
+      this.deals = new DealsDb({ storage: dealsStorage, prefix });
+    }
+
+    if (protocolContracts) {
+      this.protocolContracts = protocolContracts;
+    }
   }
 
   /**
@@ -187,13 +268,13 @@ export class NodeApiServer {
    *
    * @private
    * @param {CreateHTTPContextOptions} { req, res } The incoming request and outgoing response
-   * @returns {Promise<APIContext>} A promise that resolves with the created context
+   * @returns {Promise<ApiContext>} A promise that resolves with the created context
    * @memberof NodeApiServer
    */
   private async createContext({
     req,
     res,
-  }: CreateHTTPContextOptions): Promise<APIContext> {
+  }: CreateHTTPContextOptions): Promise<ApiContext> {
     /**
      * An utility function that creates a new JWT, updates the user record in the storage,
      * and sets the ACCESS_TOKEN header in the response.
@@ -218,11 +299,14 @@ export class NodeApiServer {
     };
 
     // Default API server context
-    const ctx: APIContext = {
+    const ctx: ApiContext = {
       req,
       res,
-      server: this,
       updateAccessToken,
+      ownerAccount: this.ownerAccount,
+      users: this.users,
+      deals: this.deals,
+      contracts: this.protocolContracts,
     };
 
     // Trying to verify the JWT if provided by the client
@@ -267,7 +351,7 @@ export class NodeApiServer {
     // Start the HTTP server on the specified port
     this.server.listen(this.port);
     logger.trace(
-      `🚀 API server started on the port: ${this.port} at:`,
+      `🚀 tRPC API server started on the port: ${this.port} at:`,
       new Date().toISOString(),
     );
   }
