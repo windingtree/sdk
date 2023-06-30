@@ -222,7 +222,7 @@ export class LocalStorage extends Storage {
 /**
  * Local storage configuration
  */
-export const createInitializer: StorageInitializerFunction =
+export const createInitializer: StorageInitializerFunction<LocalStorage> =
   (options?: LocalStorageOptions) =>
   // eslint-disable-next-line @typescript-eslint/require-await
   async (): Promise<LocalStorage> => {
