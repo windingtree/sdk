@@ -38,10 +38,16 @@ export class MemoryStorage extends Storage {
 
     // Validate MemoryStorageOptions
 
-    this.db = new Map<string, unknown>(options?.entries);
-
     if (options.scope) {
       this.scopeIdsKey = `memory_storage_scope_${options.scope}_ids`;
+    }
+
+    this.db = new Map<string, unknown>(options?.entries);
+
+    if (options.entries) {
+      options.entries.forEach((e) => {
+        this.addScopeId(e[0]);
+      });
     }
 
     logger.trace('Memory storage initialized');
@@ -86,7 +92,7 @@ export class MemoryStorage extends Storage {
    * @returns
    * @memberof MemoryStorage
    */
-  private addScopeId(id: string) {
+  protected addScopeId(id: string) {
     try {
       if (!this.scopeIdsKey) {
         return;
@@ -220,7 +226,7 @@ export class MemoryStorage extends Storage {
 }
 
 // Storage configuration
-export const createInitializer: StorageInitializerFunction =
+export const createInitializer: StorageInitializerFunction<MemoryStorage> =
   (options?: MemoryStorageOptions) =>
   // eslint-disable-next-line @typescript-eslint/require-await
   async (): Promise<MemoryStorage> => {
