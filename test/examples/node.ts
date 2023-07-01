@@ -18,12 +18,10 @@ import {
   Node,
   NodeOptions,
   NodeRequestManager,
-  Queue,
 } from '../../src/index.js';
 import { OfferData } from '../../src/shared/types.js';
 import { DealStatus, ProtocolContracts } from '../../src/shared/contracts.js';
 import { noncePeriod } from '../../src/constants.js';
-import { memoryStorage } from '../../src/storage/index.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
 import { RequestEvent } from '../../src/node/requestManager.js';
 import { createLogger } from '../../src/utils/logger.js';
@@ -53,8 +51,7 @@ export class NodeExample {
   /**
    * The supplier signer credentials
    */
-  private signerMnemonic =
-    'quality reduce brick eight vicious suggest stock lunar destroy destroy candy news river paddle nephew behind farm indoor swear educate region echo solar segment';
+  private signerMnemonic = process.env.EXAMPLE_ENTITY_SIGNER_MNEMONIC;
   private signerPk = process.env.EXAMPLE_ENTITY_SIGNER_PK as Hex;
 
   /**
