@@ -53,7 +53,8 @@ export class NodeExample {
   /**
    * The supplier signer credentials
    */
-  private signerMnemonic = process.env.EXAMPLE_ENTITY_SIGNER_MNEMONIC;
+  private signerMnemonic =
+    'quality reduce brick eight vicious suggest stock lunar destroy destroy candy news river paddle nephew behind farm indoor swear educate region echo solar segment';
   private signerPk = process.env.EXAMPLE_ENTITY_SIGNER_PK as Hex;
 
   /**
