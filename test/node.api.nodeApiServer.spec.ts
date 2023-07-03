@@ -5,8 +5,8 @@ import { Hash } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import superjson from 'superjson';
 import { generateMnemonic } from '../src/utils/wallet.js';
+import { UserInputType } from '../src/node/db/index.js';
 import {
-  UserInputType,
   NodeApiServer,
   NodeApiServerOptions,
   ACCESS_TOKEN_NAME,

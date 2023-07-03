@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { hash } from 'bcryptjs';
+import { hash } from 'bcrypt-ts';
 import { Storage } from '../../storage/index.js';
 
-export { compare as comparePassword } from 'bcryptjs';
+export { compare as comparePassword } from 'bcrypt-ts';
 
 /**
  * Interface defining the properties of a User object stored in storage.
