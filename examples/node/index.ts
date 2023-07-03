@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { EventHandler } from '@libp2p/interfaces/events';
 import { DateTime } from 'luxon';
-import { Hash, Hex, zeroAddress } from 'viem';
+import { Address, Hash, Hex, zeroAddress } from 'viem';
 import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { randomSalt } from '@windingtree/contracts';
 import {
@@ -25,6 +25,12 @@ import { noncePeriod } from '../../src/constants.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
 import { RequestEvent } from '../../src/node/requestManager.js';
+import {
+  router,
+  userRouter,
+  adminRouter,
+  NodeApiServer,
+} from '../../src/node/index.js';
 import { createLogger } from '../../src/utils/logger.js';
 
 const logger = createLogger('NodeMain');
@@ -55,6 +61,17 @@ const supplierId = process.env.EXAMPLE_ENTITY_ID as Hash;
 
 if (!supplierId) {
   throw new Error('Entity Id must be provided with EXAMPLE_ENTITY_ID env');
+}
+
+/**
+ * The Ethereum account address of the entity owner (supplier)
+ */
+const entityOwnerAddress = process.env.EXAMPLE_ENTITY_OWNER_ADDRESS as Address;
+
+if (!entityOwnerAddress) {
+  throw new Error(
+    'Entity owner address must be provided with EXAMPLE_ENTITY_OWNER_ADDRESS env',
+  );
 }
 
 /** Handles UFOs */
@@ -116,7 +133,7 @@ const dealHandler = createJobHandler<
       },
     );
 
-    return false; // Returning true means that the job must be stopped
+    return false; // Returning false means that the job must be stopped
   }
 
   return true; // Job continuing
@@ -228,10 +245,36 @@ const main = async (): Promise<void> => {
     walletClient: node.walletClient,
   });
 
-  const storage = await memoryStorage.createInitializer()();
+  const queueStorage = await memoryStorage.createInitializer({
+    scope: 'queue',
+  })();
+  const usersStorage = await memoryStorage.createInitializer({
+    scope: 'users',
+  })();
+  const dealsStorage = await memoryStorage.createInitializer({
+    scope: 'deals',
+  })();
+
+  const apiServer = new NodeApiServer({
+    usersStorage,
+    dealsStorage,
+    prefix: 'test',
+    port: 3456,
+    secret: 'secret',
+    ownerAccount: entityOwnerAddress,
+    protocolContracts: contractsManager,
+  });
+
+  apiServer.start(
+    router({
+      user: userRouter,
+      admin: adminRouter,
+      // You can add your own routes here
+    }),
+  );
 
   const queue = new Queue({
-    storage,
+    storage: queueStorage,
     idsKeyName: 'jobsIds',
     concurrencyLimit: 3,
   });
@@ -262,6 +305,7 @@ const main = async (): Promise<void> => {
    */
   const shutdown = () => {
     const stopHandler = async () => {
+      await apiServer.stop();
       await node.stop();
     };
     stopHandler()
