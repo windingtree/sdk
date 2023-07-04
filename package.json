@@ -47,6 +47,18 @@
     "./utils": {
       "types": "./lib/utils/index.d.ts",
       "import": "./lib/utils/index.js"
+    },
+    "./server": {
+      "types": "./lib/server/index.d.ts",
+      "import": "./lib/server/index.js"
+    },
+    "./client": {
+      "types": "./lib/client/index.d.ts",
+      "import": "./lib/client/index.js"
+    },
+    "./node": {
+      "types": "./lib/node/index.d.ts",
+      "import": "./lib/node/index.js"
     }
   },
   "release": {
@@ -75,7 +87,6 @@
     "@types/node": "^18.16.19",
     "@types/debug": "^4.1.8",
     "@types/luxon": "^3.3.0",
-    "@types/jsonwebtoken": "^9.0.2",
     "ts-node": "^10.9.1",
     "typescript": "^5.1.6",
     "semantic-release": "^21.0.6",
@@ -109,7 +120,7 @@
     "@windingtree/contracts": "^1.0.0-beta.12",
     "@trpc/server": "^10.33.0",
     "@trpc/client": "^10.33.0",
-    "jsonwebtoken": "^9.0.0",
+    "jose": "^4.14.4",
     "zod": "^3.21.4",
     "bcrypt-ts": "^4.0.0",
     "superjson": "^1.12.4"
@@ -128,6 +139,7 @@
     "example:server": "node --experimental-specifier-resolution=node --loader ts-node/esm ./examples/server/index.ts",
     "example:client": "yarn --cwd ./examples/client dev",
     "example:node": "node --experimental-specifier-resolution=node --loader ts-node/esm ./examples/node/index.ts",
+    "example:manager": "yarn --cwd ./examples/manager dev",
     "typedoc": "typedoc --options ./typedoc.json"
   }
 }
