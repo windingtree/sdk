@@ -1,18 +1,17 @@
-import { IncomingMessage, ServerResponse } from 'http';
+import { IncomingMessage, ServerResponse, createServer } from 'http';
 import { AnyRouter, TRPCError, initTRPC } from '@trpc/server';
-import { tap } from '@trpc/server/observable';
-import { TRPCLink } from '@trpc/client';
 import {
   CreateHTTPContextOptions,
-  createHTTPServer,
+  createHTTPHandler,
 } from '@trpc/server/adapters/standalone';
 import superjson from 'superjson';
-import * as jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 import { Address } from 'viem';
 import { Storage } from '../../storage/index.js';
 import { User, UsersDb } from '../db/users.js';
 import { DealsDb } from '../db/deals.js';
 import { ProtocolContracts } from '../../shared/contracts.js';
+import { ACCESS_TOKEN_NAME } from './constants.js';
 import { createLogger } from '../../utils/logger.js';
 
 const logger = createLogger('NodeApiServer');
@@ -100,11 +99,6 @@ export interface AccessTokenPayload {
 }
 
 /**
- * Name of the access token, used as a key when storing in the server response header
- */
-export const ACCESS_TOKEN_NAME = 'ACCESS_TOKEN';
-
-/**
  * Initialization of tRPC with a context type of ApiContext.
  * Also specifies RouteMeta as the type for procedure metadata.
  */
@@ -120,6 +114,11 @@ export const trpc = initTRPC
  * Shortcut for defining routers with tRPC.
  */
 export const router = trpc.router;
+
+/**
+ * Shortcut for defining mergeRouters utility.
+ */
+export const mergeRouters = trpc.mergeRouters;
 
 /**
  * Shortcut for defining procedures with tRPC.
@@ -211,7 +210,7 @@ export class NodeApiServer {
   /** The secret string used by the application for signing and verifying tokens */
   private secret: string;
   /** An instance of the HTTP server created by the `createHTTPServer` function */
-  private server?: ReturnType<typeof createHTTPServer>;
+  private server?: ReturnType<typeof createServer>;
   /** An instance of the UsersDb class that manages user data */
   users: UsersDb;
   /** An instance of the DealsDb class that manages deals data */
@@ -284,9 +283,14 @@ export class NodeApiServer {
      * @param {User} user The user for whom the access token is being updated
      */
     const updateAccessToken = async (user: User) => {
-      const accessToken = jwt.sign({ login: user.login }, this.secret, {
-        expiresIn: this.expire,
-      });
+      // TODO Sign JWT with the protocol signer key instead of secret
+      const accessToken = await new SignJWT({ login: user.login })
+        .setProtectedHeader({
+          alg: 'HS256',
+        })
+        .setIssuedAt()
+        .setExpirationTime(this.expire)
+        .sign(new TextEncoder().encode(this.secret));
 
       await this.users.set({
         ...user,
@@ -312,17 +316,22 @@ export class NodeApiServer {
     // Trying to verify the JWT if provided by the client
     if (req.headers.authorization) {
       try {
-        const { login } = jwt.verify(
+        const secret = new TextEncoder().encode(this.secret);
+        let verificationResult = await jwtVerify(
           // Extracting the token from the raw header: `Bearer <access_token>`
           req.headers.authorization.split(' ')[1],
-          this.secret,
-        ) as AccessTokenPayload;
+          secret,
+        );
+
+        const { login } =
+          verificationResult.payload as unknown as AccessTokenPayload;
 
         if (login) {
           const user = await this.users.get(login);
 
           // We must be sure that saved token is valid and not expired
-          if (user && user.jwt && jwt.verify(user.jwt, this.secret)) {
+          if (user?.jwt) {
+            verificationResult = await jwtVerify(user.jwt, secret);
             await updateAccessToken(user);
             ctx.user = user;
           }
@@ -342,10 +351,27 @@ export class NodeApiServer {
    * @memberof NodeApiServer
    */
   start(appRouter: AnyRouter) {
-    // Create a tRPC server with the provided router and context
-    this.server = createHTTPServer<AnyRouter>({
+    // Create tRPC requests handler
+    const handler = createHTTPHandler({
       router: appRouter,
       createContext: this.createContext.bind(this),
+    });
+
+    // Create a http server for handling of HTTP requests
+    // TODO Implement origin configuration via .env
+    this.server = createServer((req, res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Request-Method', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET');
+      res.setHeader('Access-Control-Allow-Headers', '*');
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(200);
+        res.end();
+        return;
+      }
+
+      handler(req, res).catch((error) => logger.error(error));
     });
 
     // Start the HTTP server on the specified port
@@ -365,7 +391,7 @@ export class NodeApiServer {
     await new Promise<void>((resolve, reject) => {
       // Close the HTTP server if it's running
       if (this.server) {
-        this.server.server.close((error) => {
+        this.server.close((error) => {
           if (error) {
             logger.error('stop', error);
             return reject(error);
@@ -379,77 +405,3 @@ export class NodeApiServer {
     logger.trace('👋 API server stopped at:', new Date().toISOString());
   }
 }
-
-/**
- * tRPC link function that extracts an access token from the server response context.
- * This function is designed to operate in a tRPC middleware chain and specifically handle
- * operations related to access token extraction and handling.
- *
- * @param {string} tokenName Access token name
- * @param {(token: string) => void} onAccessToken Callback function to be invoked when an access token is found.
- * @returns {TRPCLink<AnyRouter>} Returns a TRPCLink function compatible with tRPC middleware chains.
- */
-export const accessTokenLink =
-  (
-    tokenName: string,
-    onAccessToken: (token: string) => void,
-  ): TRPCLink<AnyRouter> =>
-  () =>
-  ({ op, next }) => {
-    // Continue to the next link in the chain and apply a tap operator to the result.
-    return next(op).pipe(
-      tap({
-        next: (result) => {
-          // TODO The following code must be somehow refactored and improved
-          // Check if context is available on the result.
-          if (result.context) {
-            // Find the 'headers' symbol on the response object.
-            const headersKey = Object.getOwnPropertySymbols(
-              result.context.response,
-            ).find((s) => s.description === 'headers');
-
-            if (headersKey) {
-              // Extract headers from the response using the 'headers' symbol.
-              const headers = (result.context.response as never)[headersKey];
-
-              // Find the 'headers list' symbol on the headers object.
-              const headersListKey = Object.getOwnPropertySymbols(headers).find(
-                (s) => s.description === 'headers list',
-              );
-
-              if (headersListKey) {
-                // Extract headers list from the headers using the 'headers list' symbol.
-                const headersList = headers[headersListKey];
-
-                // Find the 'headers map' symbol on the headers list object.
-                const headersMapKey = Object.getOwnPropertySymbols(
-                  headersList,
-                ).find((s) => s.description === 'headers map');
-
-                if (headersMapKey) {
-                  // Extract headers map from the headers list using the 'headers map' symbol.
-                  const headersMap = headersList[headersMapKey] as Map<
-                    string,
-                    Record<string, string>
-                  >;
-
-                  if (headersMap instanceof Map) {
-                    // Look for the access token in the headers map.
-                    const record = headersMap.get(
-                      tokenName.toLocaleLowerCase(),
-                    );
-
-                    if (record) {
-                      // If the access token is found, invoke the callback function with the access token.
-                      onAccessToken(record.value);
-                      logger.trace('Access token found in the request headers');
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-      }),
-    );
-  };

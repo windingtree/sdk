@@ -1,46 +1,11 @@
 import { TRPCError } from '@trpc/server';
 import { Address, Hash, verifyTypedData } from 'viem';
-import { TypedDataDomain } from 'abitype';
-import { Account } from '../../../index.js';
+import { adminDomain, adminAuthEip712Types } from '../constants.js';
 import { User, UserInputSchema } from '../../db/users.js';
 import { router, procedure, withOwnerAccount } from '../index.js';
 import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger('AdminRouter');
-
-/**
- * Typed domain for the admin signature
- */
-export const adminDomain: TypedDataDomain = {
-  name: 'Admin',
-  version: '1',
-};
-
-/** EIP-712 JSON schema types for node API server auth operation */
-export const adminAuthEip712Types = {
-  Admin: [
-    {
-      name: 'signer',
-      type: 'address',
-    },
-  ],
-} as const;
-
-/**
- * Create EIP-712 signature for checkIn/Out voucher
- *
- * @param {Account} account Ethereum local account
- * @returns {Promise<Hash>}
- */
-export const createAdminSignature = async (account: Account): Promise<Hash> =>
-  await account.signTypedData({
-    domain: adminDomain,
-    types: adminAuthEip712Types,
-    primaryType: 'Admin',
-    message: {
-      signer: account.address,
-    },
-  });
 
 /**
  * Verification of the admins signature
