@@ -15,22 +15,16 @@ import {
   Node,
   NodeOptions,
   NodeRequestManager,
-  Queue,
-  JobHandler,
   createNode,
-} from '../../src/index.js';
+} from '../../src/node/index.js';
+import { Queue, JobHandler } from '../../src/shared/queue.js';
 import { OfferData } from '../../src/shared/types.js';
 import { DealStatus, ProtocolContracts } from '../../src/shared/contracts.js';
 import { noncePeriod } from '../../src/constants.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
 import { RequestEvent } from '../../src/node/requestManager.js';
-import {
-  router,
-  userRouter,
-  adminRouter,
-  NodeApiServer,
-} from '../../src/node/index.js';
+import { appRouter, NodeApiServer } from '../../src/node/index.js';
 import { createLogger } from '../../src/utils/logger.js';
 
 const logger = createLogger('NodeMain');
@@ -265,13 +259,7 @@ const main = async (): Promise<void> => {
     protocolContracts: contractsManager,
   });
 
-  apiServer.start(
-    router({
-      user: userRouter,
-      admin: adminRouter,
-      // You can add your own routes here
-    }),
-  );
+  apiServer.start(appRouter);
 
   const queue = new Queue({
     storage: queueStorage,
