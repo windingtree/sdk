@@ -9,20 +9,21 @@ import { UserInputType } from '../src/node/db/index.js';
 import {
   NodeApiServer,
   NodeApiServerOptions,
-  ACCESS_TOKEN_NAME,
-  userRouter,
-  adminRouter,
   router,
-  accessTokenLink,
+  adminRouter,
+  userRouter,
+  dealsRouter,
   authProcedure,
   authAdminProcedure,
   createAdminSignature,
 } from '../src/node/api/index.js';
+import { ACCESS_TOKEN_NAME, accessTokenLink } from '../src/node/api/client.js';
 import { createInitializer } from '../src/storage/memory.js';
 
-const appRouter = router({
-  user: userRouter,
+const testRouter = router({
   admin: adminRouter,
+  user: userRouter,
+  deals: dealsRouter,
   testAuth: authProcedure.output(z.boolean()).mutation(() => {
     return true;
   }),
@@ -39,8 +40,8 @@ describe('NodeApiServer', () => {
   const owner = mnemonicToAccount(generateMnemonic());
   let options: NodeApiServerOptions;
   let server: NodeApiServer;
-  let clientUser: ReturnType<typeof createTRPCProxyClient<typeof appRouter>>;
-  let clientAdmin: ReturnType<typeof createTRPCProxyClient<typeof appRouter>>;
+  let clientUser: ReturnType<typeof createTRPCProxyClient<typeof testRouter>>;
+  let clientAdmin: ReturnType<typeof createTRPCProxyClient<typeof testRouter>>;
   let accessTokenUser: string | undefined;
   let accessTokenAdmin: string | undefined;
 
@@ -56,9 +57,9 @@ describe('NodeApiServer', () => {
     };
     server = new NodeApiServer(options);
 
-    server.start(appRouter);
+    server.start(testRouter);
 
-    clientUser = createTRPCProxyClient<typeof appRouter>({
+    clientUser = createTRPCProxyClient<typeof testRouter>({
       transformer: superjson,
       links: [
         accessTokenLink(ACCESS_TOKEN_NAME, (token) => {
@@ -73,7 +74,7 @@ describe('NodeApiServer', () => {
       ],
     });
 
-    clientAdmin = createTRPCProxyClient<typeof appRouter>({
+    clientAdmin = createTRPCProxyClient<typeof testRouter>({
       transformer: superjson,
       links: [
         accessTokenLink(ACCESS_TOKEN_NAME, (token) => {
