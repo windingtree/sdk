@@ -27,6 +27,7 @@ export type StorageInitializer<T extends Storage = Storage> = () => Promise<T>;
 /**
  * Storage initializer callback function type
  */
-export type StorageInitializerFunction<T extends Storage = Storage> = (
-  options?: GenericStorageOptions,
-) => StorageInitializer<T>;
+export type StorageInitializerFunction<
+  T extends Storage = Storage,
+  O extends GenericStorageOptions = GenericStorageOptions,
+> = (options?: O) => StorageInitializer<T>;
