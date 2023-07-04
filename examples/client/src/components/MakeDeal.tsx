@@ -8,9 +8,9 @@ import {
   centerEllipsis,
   formatBalance,
   parseWalletError,
-} from '../utils.js';
-import { useWallet } from '../providers/WalletProvider/WalletProviderContext.js';
-import { ConnectButton } from '../providers/WalletProvider/ConnectButton.js';
+} from '../../../react-libs/src/utils/index.js';
+import { useWallet } from '../../../react-libs/src/providers/WalletProvider/WalletProviderContext.js';
+import { ConnectButton } from '../../../react-libs/src/providers/WalletProvider/ConnectButton.js';
 
 interface MakeDealProps {
   offer?: OfferData<RequestQuery, OfferOptions>;

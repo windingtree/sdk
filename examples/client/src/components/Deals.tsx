@@ -7,8 +7,12 @@ import {
   DealStatus,
 } from '../../../../src/index.js'; // @windingtree/sdk
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
-import { centerEllipsis, formatBalance, parseWalletError } from '../utils.js';
-import { useWallet } from '../providers/WalletProvider/WalletProviderContext.js';
+import {
+  centerEllipsis,
+  formatBalance,
+  parseWalletError,
+} from '../../../react-libs/src/utils/index.js';
+import { useWallet } from '../../../react-libs/src/providers/WalletProvider/WalletProviderContext.js';
 
 export type DealsRegistryRecord = Required<
   DealRecord<RequestQuery, OfferOptions>
