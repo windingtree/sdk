@@ -53,7 +53,8 @@ export const LoginWidget = () => {
       login: name,
       password: sign,
     });
-  }, [node, name, handleSignature]);
+    setAuth(name);
+  }, [node, name, handleSignature, setAuth]);
 
   const handleAdminLogin = useCallback(async () => {
     if (!node) {
@@ -64,7 +65,8 @@ export const LoginWidget = () => {
       login: name,
       password: await handleSignature(),
     });
-  }, [node, name, handleSignature]);
+    setAuth(name);
+  }, [node, name, setAuth, handleSignature]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -83,6 +85,23 @@ export const LoginWidget = () => {
     }
   }, [node, resetAuth]);
 
+  const handleDelete = useCallback(async () => {
+    try {
+      setError(undefined);
+      setMessage(undefined);
+
+      if (!node) {
+        throw new Error('Not connected to the Node');
+      }
+
+      await node.user.delete.mutate();
+      resetAuth();
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || 'Unknown user delete error');
+    }
+  }, [node, resetAuth]);
+
   const handleAdminAction = useCallback(async () => {
     try {
       setError(undefined);
@@ -97,11 +116,9 @@ export const LoginWidget = () => {
           await handleAdminRegister();
           setAdminAction('login');
           setMessage(`Admin "${name}" successfully registered. Please log in.`);
-          setAuth(name);
           break;
         case 'login':
           await handleAdminLogin();
-          setAuth(name);
           break;
         default:
           throw new Error('Unknown admin action');
@@ -110,7 +127,7 @@ export const LoginWidget = () => {
       console.log(error);
       setError((error as Error).message || 'Unknown login error');
     }
-  }, [node, adminAction, name, handleAdminRegister, setAuth, handleAdminLogin]);
+  }, [node, adminAction, name, handleAdminRegister, handleAdminLogin]);
 
   return (
     <>
@@ -170,6 +187,14 @@ export const LoginWidget = () => {
             </form>
           </div>
         )}
+        {isAuth &&
+          <div>
+            <div>Delete user</div>
+            <div>
+              <button onClick={handleDelete}>Delete</button>
+            </div>
+          </div>
+        }
       </TabPanel>
       <TabPanel id={1} activeTab={selectedTab}>
         {!isConnected && <div>Please connect your wallet first</div>}
@@ -210,6 +235,14 @@ export const LoginWidget = () => {
             </div>
           </div>
         )}
+        {isAuth &&
+          <div>
+            <div>Delete user</div>
+            <div>
+              <button onClick={handleDelete}>Delete</button>
+            </div>
+          </div>
+        }
       </TabPanel>
 
       {message && <div style={{ marginTop: 20 }}>✅ {message}</div>}

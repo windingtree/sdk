@@ -100,8 +100,12 @@ export const userRouter = router({
    */
   delete: authProcedure.mutation(async ({ ctx }) => {
     try {
-      const { user, users } = ctx;
+      const { user, users, res } = ctx;
       await users.delete(user.login);
+      res.setHeader(
+        'Set-Cookie',
+        `${ACCESS_TOKEN_NAME}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly`,
+      );
       logger.trace(`User ${user.login} deleted`);
     } catch (error) {
       logger.error('user.delete', error);
