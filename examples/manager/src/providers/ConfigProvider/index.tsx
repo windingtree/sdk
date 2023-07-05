@@ -16,7 +16,7 @@ export const ConfigProvider = ({ children }: PropsWithChildren) => {
   const [config, setConfig] = useState<AppConfig>({});
   const [error, setError] = useState<string | undefined>();
 
-  const isAuth = useMemo(() => Boolean(config.accessToken), [config]);
+  const isAuth = useMemo(() => Boolean(config.login), [config]);
 
   const hydrate = useCallback((config: AppConfig) => {
     try {
@@ -55,22 +55,16 @@ export const ConfigProvider = ({ children }: PropsWithChildren) => {
             ...config,
             ...data,
           }),
-        setAuth: (accessToken: string) =>
+        setAuth: (login: string) =>
           setConfig({
             ...config,
-            accessToken,
+            login,
           }),
         resetAuth: () =>
           setConfig({
             ...config,
-            accessToken: undefined,
             login: undefined,
           }),
-        getAuthHeaders: () => ({
-          authorization: config.accessToken
-            ? `Bearer ${config.accessToken}`
-            : '',
-        }),
         isAuth,
         configError: error,
       }}

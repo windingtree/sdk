@@ -2,15 +2,12 @@ import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
 import { PropsWithChildren, useState, useEffect } from 'react';
 import { NodeContext } from './NodeProviderContext';
-import {
-  ACCESS_TOKEN_NAME,
-  accessTokenLink,
-} from '../../../../../src/node/api/client.js';
+import { unauthorizedLink } from '../../../../../src/node/api/client.js';
 import type { AppRouter } from '../../../../../src/node/api/index.js';
 import { useConfig } from '../ConfigProvider/ConfigProviderContext.js';
 
 export const NodeProvider = ({ children }: PropsWithChildren) => {
-  const { nodeHost, setAuth, getAuthHeaders } = useConfig();
+  const { nodeHost, setAuth, resetAuth } = useConfig();
   const [node, setNode] = useState<
     ReturnType<typeof createTRPCProxyClient<AppRouter>> | undefined
   >();
@@ -38,10 +35,16 @@ export const NodeProvider = ({ children }: PropsWithChildren) => {
         const tRpcNode = createTRPCProxyClient<AppRouter>({
           transformer: superjson,
           links: [
-            accessTokenLink(ACCESS_TOKEN_NAME, setAuth),
+            unauthorizedLink(resetAuth),
             httpBatchLink({
               url: nodeHost,
-              headers: getAuthHeaders,
+              fetch(url, options) {
+                return fetch(url, {
+                  ...options,
+                  // allows to send cookies to the server
+                  credentials: 'include',
+                });
+              },
             }),
           ],
         });
@@ -65,7 +68,7 @@ export const NodeProvider = ({ children }: PropsWithChildren) => {
     return () => {
       stopClient();
     };
-  }, [getAuthHeaders, setAuth, nodeHost]);
+  }, [nodeHost, setAuth, resetAuth]);
 
   return (
     <NodeContext.Provider

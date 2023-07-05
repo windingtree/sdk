@@ -27,7 +27,7 @@ export const App = () => {
         tabs={[
           {
             id: 0,
-            title: 'Authorization',
+            title: 'Access',
             active: true,
           },
           {

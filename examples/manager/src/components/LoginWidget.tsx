@@ -6,7 +6,7 @@ import { createAdminSignature } from '../../../../src/node/api/client.js';
 import { Tabs, TabPanel } from './Tabs.js';
 
 export const LoginWidget = () => {
-  const { isAuth, login, setConfig, resetAuth } = useConfig();
+  const { isAuth, login, setAuth, resetAuth } = useConfig();
   const { node, nodeConnected } = useNode();
   const { isConnected, walletClient } = useWallet();
   const [selectedTab, setSelectedTab] = useState<number>(0);
@@ -66,24 +66,42 @@ export const LoginWidget = () => {
     });
   }, [node, name, handleSignature]);
 
-  const handleAdminAction = useCallback(async () => {
+  const handleLogout = useCallback(async () => {
     try {
+      setError(undefined);
+      setMessage(undefined);
+
       if (!node) {
         throw new Error('Not connected to the Node');
       }
 
+      await node.user.logout.mutate();
+      resetAuth();
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || 'Unknown logout error');
+    }
+  }, [node, resetAuth]);
+
+  const handleAdminAction = useCallback(async () => {
+    try {
       setError(undefined);
       setMessage(undefined);
+
+      if (!node) {
+        throw new Error('Not connected to the Node');
+      }
 
       switch (adminAction) {
         case 'register':
           await handleAdminRegister();
-          setConfig({ login: name });
           setAdminAction('login');
           setMessage(`Admin "${name}" successfully registered. Please log in.`);
+          setAuth(name);
           break;
         case 'login':
           await handleAdminLogin();
+          setAuth(name);
           break;
         default:
           throw new Error('Unknown admin action');
@@ -92,17 +110,18 @@ export const LoginWidget = () => {
       console.log(error);
       setError((error as Error).message || 'Unknown login error');
     }
-  }, [
-    node,
-    adminAction,
-    name,
-    setConfig,
-    handleAdminRegister,
-    handleAdminLogin,
-  ]);
+  }, [node, adminAction, name, handleAdminRegister, setAuth, handleAdminLogin]);
 
   return (
     <>
+      {isAuth &&
+        <div>
+          <div>Welcome {login ?? 'user'}</div>
+          <div>
+            <button onClick={handleLogout}>Log Out</button>
+          </div>
+        </div>
+      }
       <Tabs
         tabs={[
           {
@@ -118,7 +137,6 @@ export const LoginWidget = () => {
         onChange={setSelectedTab}
       />
       <TabPanel id={0} activeTab={selectedTab}>
-        {isAuth && <div>Welcome {login ?? 'user'}</div>}
         {!isAuth && nodeConnected && (
           <div style={{ marginTop: 20 }}>
             <form
@@ -189,14 +207,6 @@ export const LoginWidget = () => {
             </div>
             <div>
               <button onClick={handleAdminAction}>Send with wallet</button>
-            </div>
-          </div>
-        )}
-        {isAuth && (
-          <div>
-            <div>Welcome {login ?? 'user'}</div>
-            <div>
-              <button onClick={() => resetAuth()}>Log Out</button>
             </div>
           </div>
         )}
