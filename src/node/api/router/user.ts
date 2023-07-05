@@ -6,6 +6,7 @@ import {
   authProcedure,
   authAdminProcedure,
 } from '../index.js';
+import { ACCESS_TOKEN_NAME } from '../constants.js';
 import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger('UserRouter');
@@ -74,22 +75,24 @@ export const userRouter = router({
    * Log out the user.
    * Removes a saved JWT from the user record in the storage.
    */
-  logout: authProcedure
-    .input(UserInputSchema.pick({ login: true }))
-    .mutation(async ({ ctx }) => {
-      try {
-        const { user, users } = ctx;
-        delete user.jwt;
-        await users.set(user);
-        logger.trace(`User ${user.login} logged out`);
-      } catch (error) {
-        logger.error('user.logout', error);
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: (error as Error).message,
-        });
-      }
-    }),
+  logout: authProcedure.mutation(async ({ ctx }) => {
+    try {
+      const { user, users, res } = ctx;
+      delete user.jwt;
+      await users.set(user);
+      res.setHeader(
+        'Set-Cookie',
+        `${ACCESS_TOKEN_NAME}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly`,
+      );
+      logger.trace(`User ${user.login} logged out`);
+    } catch (error) {
+      logger.error('user.logout', error);
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: (error as Error).message,
+      });
+    }
+  }),
 
   /**
    * Deletes the user (self deletion).

@@ -42,7 +42,7 @@ export const adminRouter = router({
     .input(UserInputSchema)
     .mutation(async ({ input, ctx }) => {
       const { login, password } = input;
-      const { ownerAccount, users } = ctx;
+      const { ownerAccount, users, updateAccessToken } = ctx;
 
       try {
         if (!(await verifyAdminSignature(ownerAccount, password as Hash))) {
@@ -51,6 +51,9 @@ export const adminRouter = router({
 
         await users.add(login, password, true);
         logger.trace(`Admin registered`);
+
+        // Automatically login the user after the registration
+        await updateAccessToken(await users.get(login));
       } catch (error) {
         logger.error('admin.register', error);
         throw new TRPCError({

@@ -284,13 +284,13 @@ export class NodeApiServer {
      */
     const updateAccessToken = async (user: User) => {
       // TODO Sign JWT with the protocol signer key instead of secret
-      const accessToken = await new SignJWT({ login: user.login })
+      const jwt = new SignJWT({ login: user.login })
         .setProtectedHeader({
           alg: 'HS256',
         })
         .setIssuedAt()
-        .setExpirationTime(this.expire)
-        .sign(new TextEncoder().encode(this.secret));
+        .setExpirationTime(this.expire);
+      const accessToken = await jwt.sign(new TextEncoder().encode(this.secret));
 
       await this.users.set({
         ...user,
@@ -300,6 +300,13 @@ export class NodeApiServer {
 
       // Set a custom ACCESS_TOKEN header
       res.setHeader(ACCESS_TOKEN_NAME, accessToken);
+      res.setHeader(
+        'Set-Cookie',
+        `${ACCESS_TOKEN_NAME}=${accessToken}; expires=${new Date(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          Number(jwt['_payload'].exp!) * 1000,
+        ).toUTCString()}; HttpOnly`,
+      );
     };
 
     // Default API server context
@@ -313,13 +320,36 @@ export class NodeApiServer {
       contracts: this.protocolContracts,
     };
 
-    // Trying to verify the JWT if provided by the client
-    if (req.headers.authorization) {
+    let accessToken: string | undefined;
+
+    // Trying to extract the JWT from cookies
+    // This method in priority
+    if (req.headers.cookie) {
+      const cookies = req.headers.cookie
+        .split(';')
+        .reduce<Record<string, string>>((a, v) => {
+          const pair = v.split('=');
+          return {
+            ...a,
+            [pair[0].toLowerCase()]: pair[1],
+          };
+        }, {});
+      accessToken = cookies[ACCESS_TOKEN_NAME.toLocaleLowerCase()];
+    }
+
+    // Trying to extract the JWT from Authorization header
+    // Using this method only if token not found in cookies
+    if (!accessToken && req.headers.authorization) {
+      accessToken = req.headers.authorization.split(' ')[1];
+    }
+
+    // Trying to verify the JWT if provided
+    if (accessToken) {
       try {
         const secret = new TextEncoder().encode(this.secret);
         let verificationResult = await jwtVerify(
           // Extracting the token from the raw header: `Bearer <access_token>`
-          req.headers.authorization.split(' ')[1],
+          accessToken,
           secret,
         );
 
@@ -360,10 +390,14 @@ export class NodeApiServer {
     // Create a http server for handling of HTTP requests
     // TODO Implement origin configuration via .env
     this.server = createServer((req, res) => {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Request-Method', '*');
+      res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5174');
+      res.setHeader('Access-Control-Request-Method', 'GET');
       res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET');
-      res.setHeader('Access-Control-Allow-Headers', '*');
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization',
+      );
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
 
       if (req.method === 'OPTIONS') {
         res.writeHead(200);
