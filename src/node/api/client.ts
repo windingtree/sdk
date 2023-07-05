@@ -39,6 +39,41 @@ export const createAdminSignature = async (
 };
 
 /**
+ * tRPC link function that watches for UNAUTHORIZED server responses.
+ *
+ * @param {(t) => void} onUnauthorized Callback function to be invoked when an server sends UNAUTHORIZED error.
+ * @returns {TRPCLink<AnyRouter>} Returns a TRPCLink function compatible with tRPC middleware chains.
+ */
+export const unauthorizedLink =
+  (onUnauthorized: () => void): TRPCLink<AnyRouter> =>
+  () =>
+  ({ op, next }) => {
+    logger.trace('request', op);
+
+    return observable((observer) => {
+      const unsubscribe = next(op).subscribe({
+        next(value) {
+          observer.next(value);
+        },
+        error(err) {
+          logger.error('unauthorizedLink', err);
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (err.data.httpStatus === 401) {
+            onUnauthorized();
+          }
+
+          observer.error(err);
+        },
+        complete() {
+          observer.complete();
+        },
+      });
+      return unsubscribe;
+    });
+  };
+
+/**
  * tRPC link function that extracts an access token from the server response context.
  * This function is designed to operate in a tRPC middleware chain and specifically handle
  * operations related to access token extraction and handling.
