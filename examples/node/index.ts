@@ -12,6 +12,7 @@ import {
   serverAddress,
 } from '../shared/index.js';
 import {
+  DealsDb,
   Node,
   NodeOptions,
   NodeRequestManager,
@@ -87,6 +88,7 @@ const createJobHandler =
  */
 interface DealHandlerOptions {
   contracts: ProtocolContracts;
+  dealsDb: DealsDb;
 }
 
 /**
@@ -100,7 +102,7 @@ const dealHandler = createJobHandler<
     throw new Error('Invalid job execution configuration');
   }
 
-  const { contracts } = options;
+  const { contracts, dealsDb } = options;
 
   if (!contracts) {
     throw new Error('Contracts manager must be provided to job handler config');
@@ -109,7 +111,8 @@ const dealHandler = createJobHandler<
   logger.trace(`Checking for a deal. Offer #${offer.id}`);
 
   // Check for a deal
-  const [, , , buyer, , , status] = await contracts.getDeal(offer);
+  const [created, offerPayload, retailerId, buyer, price, asset, status] =
+    await contracts.getDeal(offer);
 
   // Deal must be exists and not cancelled
   if (buyer !== zeroAddress && status === DealStatus.Created) {
@@ -126,6 +129,17 @@ const dealHandler = createJobHandler<
         );
       },
     );
+
+    await dealsDb.set({
+      chainId: Number(offerPayload.chainId),
+      created,
+      offer,
+      retailerId,
+      buyer,
+      price,
+      asset,
+      status: DealStatus.Claimed,
+    });
 
     return false; // Returning false means that the job must be stopped
   }
@@ -286,7 +300,14 @@ const main = async (): Promise<void> => {
     requestManager.add(topic, data);
   });
 
-  queue.registerHandler('deal', dealHandler({ contracts: contractsManager }));
+  queue.registerHandler(
+    'deal',
+    dealHandler({
+      contracts: contractsManager,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      dealsDb: apiServer.deals!,
+    }),
+  );
 
   /**
    * Graceful Shutdown handler
