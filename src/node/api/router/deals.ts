@@ -2,6 +2,13 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, authProcedure, withDeals, withContracts } from '../index.js';
 import { PaginationInputSchema } from './utils.js';
+import {
+  Account,
+  DealRecord,
+  DealStatus,
+  RequestData,
+  createCheckInOutSignature,
+} from '../../../index.js';
 import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger('AdminRouter');
@@ -19,7 +26,7 @@ export const DealsGetInputSchema = z.object({
 
 export const DealsCheckInInputSchema = z.object({
   id: HashSchema,
-  signs: HashSchema.array().nonempty().min(1).max(2),
+  sign: HashSchema.optional(),
 });
 
 export const dealsRouter = router({
@@ -68,20 +75,73 @@ export const dealsRouter = router({
   checkIn: authProcedure
     .use(withDeals.unstable_pipe(withContracts))
     .input(DealsCheckInInputSchema)
-    .query(async ({ input, ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        const { id, signs } = input;
+        const { id, sign } = input;
         const { deals, contracts } = ctx;
-        const deal = await deals.get(id);
+
+        let deal: DealRecord;
+
+        try {
+          deal = await deals.get(id);
+        } catch (error) {
+          logger.error(error);
+
+          const [created, payload, retailerId, buyer, price, asset, status] =
+            await contracts.getDeal(id);
+
+          // Using fake offer details for unsaved offer
+          // This approach should not affect the possibility to checkIn/out etc
+          deal = {
+            chainId: Number(payload.chainId),
+            created,
+            offer: {
+              id,
+              nonce: BigInt(1),
+              expire: payload.expire,
+              request: {} as RequestData,
+              options: {},
+              payment: [],
+              cancel: [],
+              payload,
+              signature: '0xUnknown',
+            },
+            retailerId,
+            buyer,
+            price,
+            asset,
+            status,
+          };
+        }
+
+        if (!contracts.walletClient || !contracts.walletClient.account) {
+          throw new Error('Invalid signer configuration');
+        }
+
+        const systemSign = await createCheckInOutSignature({
+          offerId: deal.offer.id,
+          domain: {
+            chainId: Number(deal.offer.payload.chainId),
+            name: contracts.contracts.market.name,
+            version: contracts.contracts.market.version,
+            verifyingContract: contracts.contracts.market.address,
+          },
+          account: contracts.walletClient.account as Account,
+        });
+
         let hash: string | undefined;
         const receipt = await contracts.checkInDeal(
           deal.offer,
-          signs,
+          [systemSign, ...(sign ? [sign] : [])],
           undefined,
           (txHash) => {
             hash = txHash;
           },
         );
+
+        deal.status = DealStatus.CheckedIn;
+        await deals.set(deal);
+
         return {
           hash,
           receipt,
@@ -101,11 +161,45 @@ export const dealsRouter = router({
   checkOut: authProcedure
     .use(withDeals.unstable_pipe(withContracts))
     .input(DealsGetInputSchema)
-    .query(async ({ input, ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const { id } = input;
         const { deals, contracts } = ctx;
-        const deal = await deals.get(id);
+
+        let deal: DealRecord;
+
+        try {
+          deal = await deals.get(id);
+        } catch (error) {
+          logger.error(error);
+
+          const [created, payload, retailerId, buyer, price, asset, status] =
+            await contracts.getDeal(id);
+
+          // Using fake offer details for unsaved offer
+          // This approach should not affect the possibility to checkIn/out etc
+          deal = {
+            chainId: Number(payload.chainId),
+            created,
+            offer: {
+              id,
+              nonce: BigInt(1),
+              expire: payload.expire,
+              request: {} as RequestData,
+              options: {},
+              payment: [],
+              cancel: [],
+              payload,
+              signature: '0xUnknown',
+            },
+            retailerId,
+            buyer,
+            price,
+            asset,
+            status,
+          };
+        }
+
         let hash: string | undefined;
         const receipt = await contracts.checkOutDeal(
           deal.offer,
@@ -114,10 +208,72 @@ export const dealsRouter = router({
             hash = txHash;
           },
         );
+
+        deal.status = DealStatus.CheckedOut;
+        await deals.set(deal);
+
         return {
           hash,
           receipt,
         };
+      } catch (error) {
+        logger.error('user.register', error);
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: (error as Error).message,
+        });
+      }
+    }),
+
+  /**
+   * Check the deal in the contract and updates the database record
+   */
+  seek: authProcedure
+    .use(withDeals.unstable_pipe(withContracts))
+    .input(DealsGetInputSchema)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const { id } = input;
+        const { deals, contracts } = ctx;
+
+        const [created, payload, retailerId, buyer, price, asset, status] =
+          await contracts.getDeal(id);
+
+        let deal: DealRecord;
+
+        try {
+          deal = await deals.get(id);
+          deal.status = status;
+        } catch (error) {
+          logger.error(error);
+
+          // Using fake offer details for unsaved offer
+          // This approach should not affect the possibility to checkIn/out etc
+          deal = {
+            chainId: Number(payload.chainId),
+            created,
+            offer: {
+              id,
+              nonce: BigInt(1),
+              expire: payload.expire,
+              request: {} as RequestData,
+              options: {},
+              payment: [],
+              cancel: [],
+              payload,
+              signature: '0xUnknown',
+            },
+            retailerId,
+            buyer,
+            price,
+            asset,
+            status,
+          };
+        }
+
+        await deals.set(deal);
+
+        return deal;
       } catch (error) {
         logger.error('user.register', error);
         throw new TRPCError({
