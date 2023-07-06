@@ -1,14 +1,10 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, authProcedure, withDeals, withContracts } from '../index.js';
+import { PaginationInputSchema } from './utils.js';
 import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger('AdminRouter');
-
-export const DealsGetAllInputSchema = z.object({
-  start: z.number().int().positive().optional(),
-  skip: z.number().int().positive().optional(),
-});
 
 /**
  * Hash string validation schema
@@ -32,7 +28,7 @@ export const dealsRouter = router({
    */
   getAll: authProcedure
     .use(withDeals)
-    .input(DealsGetAllInputSchema)
+    .input(PaginationInputSchema)
     .query(async ({ input, ctx }) => {
       try {
         const { deals } = ctx;
