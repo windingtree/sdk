@@ -131,7 +131,7 @@
     "test": "vitest --run test",
     "test:rel": "vitest related --run",
     "semantic-release": "semantic-release",
-    "lint": "eslint . --ext .ts",
+    "lint": "eslint ./src --ext .ts && eslint ./examples/node --ext .ts && eslint ./examples/server --ext .ts && eslint ./examples/shared --ext .ts && yarn --cwd ./examples/react-libs lint && yarn --cwd ./examples/client lint && yarn --cwd ./examples/manager lint",
     "lint:fix": "eslint . --ext .ts --fix && prettier --write .",
     "prepare": "husky install",
     "commit": "git-cz -S",
