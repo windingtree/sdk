@@ -1,9 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useConfig } from '../providers/ConfigProvider/ConfigProviderContext';
 import { useNode } from '../providers/NodeProvider/NodeProviderContext';
 import { useWallet } from '../../../react-libs/src/providers/WalletProvider/WalletProviderContext';
 import { createAdminSignature } from '../../../../src/node/api/client.js';
 import { Tabs, TabPanel } from './Tabs.js';
+import { UserRegister } from './UserRegister';
+import { UserUpdate } from './UserUpdate';
 
 export const LoginWidget = () => {
   const { isAuth, login, setAuth, resetAuth } = useConfig();
@@ -18,6 +20,11 @@ export const LoginWidget = () => {
   const [message, setMessage] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
 
+  const resetForm = useCallback(() => {
+    setName('');
+    setPwd('');
+  }, []);
+
   const handleUserLogin = useCallback(async () => {
     try {
       if (!node) {
@@ -28,11 +35,13 @@ export const LoginWidget = () => {
         login: name,
         password: pwd,
       });
+      setAuth(name);
+      resetForm();
     } catch (error) {
       console.log(error);
       setError((error as Error).message || 'Unknown login error');
     }
-  }, [node, name, pwd]);
+  }, [node, name, pwd, setAuth, resetForm]);
 
   const handleSignature = useCallback(async () => {
     if (!walletClient) {
@@ -54,7 +63,8 @@ export const LoginWidget = () => {
       password: sign,
     });
     setAuth(name);
-  }, [node, name, handleSignature, setAuth]);
+    resetForm();
+  }, [node, name, handleSignature, setAuth, resetForm]);
 
   const handleAdminLogin = useCallback(async () => {
     if (!node) {
@@ -66,7 +76,8 @@ export const LoginWidget = () => {
       password: await handleSignature(),
     });
     setAuth(name);
-  }, [node, name, setAuth, handleSignature]);
+    resetForm();
+  }, [node, name, setAuth, resetForm, handleSignature]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -79,11 +90,12 @@ export const LoginWidget = () => {
 
       await node.user.logout.mutate();
       resetAuth();
+      resetForm();
     } catch (error) {
       console.log(error);
       setError((error as Error).message || 'Unknown logout error');
     }
-  }, [node, resetAuth]);
+  }, [node, resetAuth, resetForm]);
 
   const handleDelete = useCallback(async () => {
     try {
@@ -129,6 +141,10 @@ export const LoginWidget = () => {
     }
   }, [node, adminAction, name, handleAdminRegister, handleAdminLogin]);
 
+  useEffect(() => {
+    resetForm();
+  }, [resetForm]);
+
   return (
     <>
       {isAuth &&
@@ -136,6 +152,9 @@ export const LoginWidget = () => {
           <div>Welcome {login ?? 'user'}</div>
           <div>
             <button onClick={handleLogout}>Log Out</button>
+          </div>
+          <div>
+            <button onClick={handleDelete}>Delete</button>
           </div>
         </div>
       }
@@ -151,7 +170,12 @@ export const LoginWidget = () => {
             title: 'Admin',
           },
         ]}
-        onChange={setSelectedTab}
+        onChange={(id) => {
+          setSelectedTab(id);
+          resetForm();
+          setError(undefined);
+          setMessage(undefined);
+        }}
       />
       <TabPanel id={0} activeTab={selectedTab}>
         {!isAuth && nodeConnected && (
@@ -187,14 +211,7 @@ export const LoginWidget = () => {
             </form>
           </div>
         )}
-        {isAuth &&
-          <div>
-            <div>Delete user</div>
-            <div>
-              <button onClick={handleDelete}>Delete</button>
-            </div>
-          </div>
-        }
+        <UserUpdate />
       </TabPanel>
       <TabPanel id={1} activeTab={selectedTab}>
         {!isConnected && <div>Please connect your wallet first</div>}
@@ -235,14 +252,7 @@ export const LoginWidget = () => {
             </div>
           </div>
         )}
-        {isAuth &&
-          <div>
-            <div>Delete user</div>
-            <div>
-              <button onClick={handleDelete}>Delete</button>
-            </div>
-          </div>
-        }
+        <UserRegister />
       </TabPanel>
 
       {message && <div style={{ marginTop: 20 }}>✅ {message}</div>}
