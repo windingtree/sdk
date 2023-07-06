@@ -48,8 +48,6 @@ export const unauthorizedLink =
   (onUnauthorized: () => void): TRPCLink<AnyRouter> =>
   () =>
   ({ op, next }) => {
-    logger.trace('request', op);
-
     return observable((observer) => {
       const unsubscribe = next(op).subscribe({
         next(value) {
