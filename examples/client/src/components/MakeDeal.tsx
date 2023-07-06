@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Hash, stringify } from 'viem';
-import { ClientDealsManager } from '../../../../src/index.js'; // @windingtree/sdk
+import { ClientDealsManager } from '../../../../src/client/dealsManager.js';
 import { OfferData } from '../../../../src/shared/types.js';
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import {
