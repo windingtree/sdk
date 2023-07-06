@@ -115,4 +115,28 @@ export const userRouter = router({
       });
     }
   }),
+
+  /**
+   * Updates authenticated user
+   */
+  update: authProcedure
+    .input(
+      UserInputSchema.omit({
+        login: true,
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const { password } = input;
+        const { user, users } = ctx;
+        await users.set(user, password);
+        logger.trace(`User ${user.login} updated`);
+      } catch (error) {
+        logger.error('users.get', error);
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: (error as Error).message,
+        });
+      }
+    }),
 });
