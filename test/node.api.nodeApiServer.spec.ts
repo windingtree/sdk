@@ -163,7 +163,7 @@ describe('NodeApiServer', () => {
 
   describe('user.logout', () => {
     it('should logout a logged in user', async () => {
-      const result = await clientUser.user.logout.mutate(user);
+      const result = await clientUser.user.logout.mutate();
       expect(result).to.be.eq(undefined);
       expect(accessTokenUser).toBeDefined();
     });
@@ -243,6 +243,10 @@ describe('NodeApiServer', () => {
     });
 
     describe('admin.login', () => {
+      beforeAll(async () => {
+        await clientAdmin.user.logout.mutate();
+      });
+
       it('should throw if accessed by non authenticated admin', async () => {
         await expect(clientAdmin.testAdminAuth.mutate()).rejects.toThrow(
           'UNAUTHORIZED',
@@ -283,7 +287,7 @@ describe('NodeApiServer', () => {
 
     describe('user.logout (by admin)', () => {
       it('should logout a logged in admin', async () => {
-        const result = await clientAdmin.user.logout.mutate(user);
+        const result = await clientAdmin.user.logout.mutate();
         expect(result).to.be.eq(undefined);
         expect(accessTokenAdmin).toBeDefined();
       });
