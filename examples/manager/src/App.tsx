@@ -4,6 +4,7 @@ import { useNode } from './providers/NodeProvider/NodeProviderContext.js';
 import { Tabs, TabPanel } from './components/Tabs.js';
 import { LoginWidget } from './components/LoginWidget.js';
 import { ConfigForm } from './components/ConfigForm.js';
+import { DealSeek } from './components/DealSeek.js';
 
 /**
  * Main application component
@@ -27,20 +28,27 @@ export const App = () => {
         tabs={[
           {
             id: 0,
-            title: 'Access',
+            title: 'Deals',
             active: true,
           },
           {
             id: 1,
+            title: 'Access',
+          },
+          {
+            id: 2,
             title: 'Configuration',
           },
         ]}
         onChange={setSelectedTab}
       />
       <TabPanel id={0} activeTab={selectedTab}>
-        <LoginWidget />
+        <DealSeek />
       </TabPanel>
       <TabPanel id={1} activeTab={selectedTab}>
+        <LoginWidget />
+      </TabPanel>
+      <TabPanel id={2} activeTab={selectedTab}>
         <ConfigForm />
       </TabPanel>
 
