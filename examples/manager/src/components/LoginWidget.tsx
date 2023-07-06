@@ -223,8 +223,8 @@ export const LoginWidget = () => {
                   onChange={() => setAdminAction('register')}
                   type="radio"
                   id="register"
-                  name="drone"
-                  value="huey"
+                  name="register"
+                  value="register"
                   checked={adminAction === 'register'}
                 />
                 <label htmlFor="register">Register</label>
@@ -234,8 +234,8 @@ export const LoginWidget = () => {
                   onChange={() => setAdminAction('login')}
                   type="radio"
                   id="login"
-                  name="drone"
-                  value="dewey"
+                  name="login"
+                  value="login"
                   checked={adminAction === 'login'}
                 />
                 <label htmlFor="login">Login</label>
