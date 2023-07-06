@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
-import { Address } from 'viem';
+import { Address, Hash } from 'viem';
 import {
-  ClientDealsManager,
   DealRecord,
   DealStatus,
 } from '../../../../src/index.js'; // @windingtree/sdk
+import { ClientDealsManager } from '../../../../src/client/dealsManager.js';
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
 import {
   centerEllipsis,
@@ -223,6 +223,7 @@ export const Cancel = ({ deal, manager, onClose }: CancelProps) => {
  * Created deals table
  */
 export const Deals = ({ deals, manager }: DealsProps) => {
+  const { walletClient } = useWallet();
   const [dealStates, setDealStates] = useState<Record<string, DealStatus>>({});
   const [transferDeal, setTransferDeal] = useState<
     DealsRegistryRecord | undefined
@@ -230,6 +231,23 @@ export const Deals = ({ deals, manager }: DealsProps) => {
   const [cancelDeal, setCancelDeal] = useState<
     DealsRegistryRecord | undefined
   >();
+  const [userSign, setUserSign] = useState<Hash | undefined>();
+  const [error, setError] = useState<string | undefined>();
+
+  const handleCheckInOut = useCallback(async (deal: DealsRegistryRecord) => {
+    try {
+      if (!manager || !walletClient) {
+        throw new Error('Wallet not connected yet');
+      }
+      setUserSign(await manager.checkInOutSignature(
+        deal.offer.id,
+        walletClient,
+      ));
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || 'Unknown check in signature error');
+    }
+  }, [manager, walletClient]);
 
   useEffect(() => {
     if (deals && deals.length > 0) {
@@ -275,8 +293,8 @@ export const Deals = ({ deals, manager }: DealsProps) => {
                 {DealStatus[dealStates[d.offer.id]]}
               </td>
               <td>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ marginBottom: 5 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <div>
                     <button
                       onClick={() => setCancelDeal(d)}
                       disabled={
@@ -306,13 +324,22 @@ export const Deals = ({ deals, manager }: DealsProps) => {
                       Transfer
                     </button>
                   </div>
+                  {d.status === DealStatus.Claimed &&
+                    <div>
+                      <button
+                        onClick={() => handleCheckInOut(d)}
+                      >
+                        Check In
+                      </button>
+                    </div>
+                  }
                 </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div style={{ marginTop: 20 }}>
+      <div>
         <TransferForm
           deal={transferDeal}
           manager={manager}
@@ -323,7 +350,17 @@ export const Deals = ({ deals, manager }: DealsProps) => {
           manager={manager}
           onClose={() => setCancelDeal(undefined)}
         />
+        {userSign &&
+          <div style={{ marginTop: 20 }}>
+            <h2>Provide this signature to the reception manager:</h2>
+            <input style={{ width: '100%' }} onFocus={(event) => {
+              event.target.select();
+            }} value={userSign} onChange={() => {}} />
+          </div>
+        }
       </div>
+
+      {error && <div style={{ marginTop: 20 }}>🚨 {error}</div>}
     </div>
   );
 };
