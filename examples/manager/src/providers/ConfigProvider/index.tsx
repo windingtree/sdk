@@ -4,19 +4,36 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useReducer,
 } from 'react';
 import { stringify, parse } from 'superjson';
 import {
   APP_CONFIG_KEY,
+  ConfigActions,
+  SetConfigAction,
   AppConfig,
   ConfigContext,
 } from './ConfigProviderContext';
 
+export type { AppConfig, ConfigActions } from './ConfigProviderContext';
+
+const configReducer = (state: AppConfig, action: SetConfigAction) => {
+  switch (action.type) {
+    case ConfigActions.SET_CONFIG:
+      return {
+        ...state,
+        ...action.payload,
+      };
+    default:
+      return state;
+  }
+};
+
 export const ConfigProvider = ({ children }: PropsWithChildren) => {
-  const [config, setConfig] = useState<AppConfig>({});
+  const [state, setConfig] = useReducer(configReducer, {});
   const [error, setError] = useState<string | undefined>();
 
-  const isAuth = useMemo(() => Boolean(config.login), [config]);
+  const isAuth = useMemo(() => Boolean(state.login), [state]);
 
   const hydrate = useCallback((config: AppConfig) => {
     try {
@@ -31,11 +48,28 @@ export const ConfigProvider = ({ children }: PropsWithChildren) => {
       const data = window.localStorage.getItem(APP_CONFIG_KEY);
 
       if (data) {
-        setConfig(parse<AppConfig>(data));
+        setConfig({
+          type: ConfigActions.SET_CONFIG,
+          payload: parse<AppConfig>(data),
+        });
       }
     } catch (error) {
       setError((error as Error).message || 'Unknown config error');
     }
+  }, []);
+
+  const setAuth = useCallback((login: string) => {
+    setConfig({
+      type: ConfigActions.SET_CONFIG,
+      payload: { login },
+    })
+  }, []);
+
+  const resetAuth = useCallback(() => {
+    setConfig({
+      type: ConfigActions.SET_CONFIG,
+      payload: { login: undefined, },
+    })
   }, []);
 
   useEffect(() => {
@@ -43,30 +77,18 @@ export const ConfigProvider = ({ children }: PropsWithChildren) => {
   }, [reHydrate]);
 
   useEffect(() => {
-    hydrate(config);
-  }, [hydrate, config]);
+    hydrate(state);
+  }, [hydrate, state]);
 
   return (
     <ConfigContext.Provider
       value={{
-        ...config,
-        setConfig: (data: Partial<AppConfig>) =>
-          setConfig({
-            ...config,
-            ...data,
-          }),
-        setAuth: (login: string) =>
-          setConfig({
-            ...config,
-            login,
-          }),
-        resetAuth: () =>
-          setConfig({
-            ...config,
-            login: undefined,
-          }),
+        ...state,
         isAuth,
         configError: error,
+        setConfig,
+        setAuth,
+        resetAuth,
       }}
     >
       {children}
