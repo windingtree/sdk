@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { hash } from 'bcryptjs';
+import { hash } from 'bcrypt-ts';
 import { Storage } from '../../storage/index.js';
 
-export { compare as comparePassword } from 'bcryptjs';
+export { compare as comparePassword } from 'bcrypt-ts';
 
 /**
  * Interface defining the properties of a User object stored in storage.
@@ -131,10 +131,15 @@ export class UsersDb {
    * Updates the record of the user in the storage
    *
    * @param {User} user The user object
+   * @param {string} [password] The new password of the user
    * @returns {Promise<void>}
    * @memberof UsersDb
    */
-  async set(user: User): Promise<void> {
+  async set(user: User, password?: string): Promise<void> {
+    if (password) {
+      user.hashedPassword = await UsersDb.hashPassword(password);
+    }
+
     await this.storage.set<User>(`${this.prefix}${user.login}`, user);
   }
 

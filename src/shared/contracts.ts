@@ -184,13 +184,13 @@ export class ProtocolContracts<
    * @memberof ProtocolContracts
    */
   async getDeal(
-    offer: OfferData<CustomRequestQuery, CustomOfferOptions>,
+    offer: OfferData<CustomRequestQuery, CustomOfferOptions> | Hash,
   ): Promise<ContractFunctionResult<typeof marketABI, 'deals'>> {
     return await this.publicClient.readContract({
       address: this.contracts['market'].address,
       abi: marketABI,
       functionName: 'deals',
-      args: [offer.payload.id],
+      args: [typeof offer === 'string' ? offer : offer.payload.id],
     });
   }
 

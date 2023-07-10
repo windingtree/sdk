@@ -23,5 +23,6 @@
     "./src/**/*.ts",
     "./examples/**/*.ts",
     "./test/**/*.ts",
+    "examples/manager/src/components/ConfigForm.tsx"
   ]
 }

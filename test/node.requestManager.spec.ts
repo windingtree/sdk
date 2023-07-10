@@ -1,6 +1,6 @@
 import { stringify } from 'viem';
 import { describe, expect, it, beforeEach } from './setup.js';
-import { NodeRequestManager } from '../src/index.js';
+import { NodeRequestManager } from '../src/node/index.js';
 
 describe('Node.NodeRequestManager', () => {
   const defaultNoncePeriod = 1;

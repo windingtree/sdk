@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { WalletProvider } from './providers/WalletProvider';
+import { WalletProvider } from '../../react-libs/src/providers/WalletProvider/index.js';
 import { App } from './App';
 
 window.addEventListener('unhandledrejection', (event) => {
