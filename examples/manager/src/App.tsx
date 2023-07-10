@@ -5,6 +5,7 @@ import { Tabs, TabPanel } from './components/Tabs.js';
 import { LoginWidget } from './components/LoginWidget.js';
 import { ConfigForm } from './components/ConfigForm.js';
 import { DealSeek } from './components/DealSeek.js';
+import { Supplier } from './components/Supplier.js';
 
 /**
  * Main application component
@@ -56,7 +57,7 @@ export const App = () => {
         <ConfigForm />
       </TabPanel>
       <TabPanel id={3} activeTab={selectedTab}>
-        <div>TBD</div>
+        <Supplier />
       </TabPanel>
 
       {nodeError && <div style={{ marginTop: 20 }}>🚨 {nodeError}</div>}
