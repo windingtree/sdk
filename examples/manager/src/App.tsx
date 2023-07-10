@@ -39,6 +39,10 @@ export const App = () => {
             id: 2,
             title: 'Configuration',
           },
+          {
+            id: 3,
+            title: 'Supplier setup',
+          },
         ]}
         onChange={setSelectedTab}
       />
@@ -50,6 +54,9 @@ export const App = () => {
       </TabPanel>
       <TabPanel id={2} activeTab={selectedTab}>
         <ConfigForm />
+      </TabPanel>
+      <TabPanel id={3} activeTab={selectedTab}>
+        <div>TBD</div>
       </TabPanel>
 
       {nodeError && <div style={{ marginTop: 20 }}>🚨 {nodeError}</div>}
