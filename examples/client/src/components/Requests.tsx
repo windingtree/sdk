@@ -1,7 +1,8 @@
-import { ClientRequestRecord, utils } from '../../../../src/index.js'; // @windingtree/sdk
+import { utils } from '../../../../src/index.js'; // @windingtree/sdk
+import { ClientRequestRecord } from '../../../../src/client/requestsManager.js';
 import { OfferData } from '../../../../src/shared/types.js';
 import { RequestQuery, OfferOptions } from '../../../shared/index.js';
-import { centerEllipsis } from '../utils.js';
+import { centerEllipsis } from '../../../react-libs/src/utils/index.js';
 
 export type RequestsRegistryRecord = Required<
   ClientRequestRecord<RequestQuery, OfferOptions>

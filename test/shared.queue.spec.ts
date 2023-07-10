@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/require-await */
-import { expect } from 'chai';
+import { expect, describe, it, beforeEach } from './setup.js';
 import { Storage, memoryStorage } from '../src/storage/index.js';
 import {
   Job,
@@ -59,16 +59,17 @@ describe('Job', function () {
     expect(result).to.be.true;
   });
 
-  it('should correctly handle failed job execution', function (done) {
-    const failingHandler = async () => {
-      throw new Error('Job failed');
-    };
-    const job = new Job(config);
-    job.execute(failingHandler).catch((err) => {
-      expect((err as Error).message).to.equal('Job failed');
-      done();
-    });
-  });
+  it('should correctly handle failed job execution', () =>
+    new Promise((done) => {
+      const failingHandler = async () => {
+        throw new Error('Job failed');
+      };
+      const job = new Job(config);
+      job.execute(failingHandler).catch((err) => {
+        expect((err as Error).message).to.equal('Job failed');
+        done(true);
+      });
+    }));
 });
 
 describe('JobHandlerRegistry', () => {

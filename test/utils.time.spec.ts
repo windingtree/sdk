@@ -1,4 +1,4 @@
-import { expect } from './setup.js';
+import { describe, it, expect } from './setup.js';
 import {
   validateDurationFormat,
   parseSeconds,

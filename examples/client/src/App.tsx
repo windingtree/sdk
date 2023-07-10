@@ -3,14 +3,12 @@ import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { EventHandler } from '@libp2p/interfaces/events';
 import {
   Client,
-  ClientOptions,
   createClient,
-  storage,
   ClientRequestsManager,
-  buildRequest,
   ClientDealsManager,
   ClientRequestRecord,
-} from '../../../src/index.js'; // @windingtree/sdk
+} from '../../../src/client/index.js'; // @windingtree/sdk
+import { storage, buildRequest } from '../../../src/index.js'; // @windingtree/sdk
 import {
   RequestQuery,
   OfferOptions,
@@ -18,8 +16,8 @@ import {
   serverAddress,
 } from '../../shared/index.js';
 import { OfferData, RequestData } from '../../../src/shared/types.js';
-import { useWallet } from './providers/WalletProvider/WalletProviderContext.js';
-import { AccountWidget } from './providers/WalletProvider/AccountWidget.js';
+import { useWallet } from '../../react-libs/src/providers/WalletProvider/WalletProviderContext.js';
+import { AccountWidget } from '../../react-libs/src/providers/WalletProvider/AccountWidget.js';
 import { FormValues, RequestForm } from './components/RequestForm.js';
 import { Tabs, TabPanel } from './components/Tabs.js';
 import { Requests, RequestsRegistryRecord } from './components/Requests.js';

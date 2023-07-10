@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import 'mocha';
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+
 import {
   GenericQuery,
   GenericOfferOptions,
@@ -12,15 +10,32 @@ import {
 import { Hash, HDAccount, TypedDataDomain } from 'viem';
 import { buildRequest, buildOffer } from '../src/shared/messages.js';
 import { randomSalt } from '@windingtree/contracts';
-
-chai.use(chaiAsPromised);
+import { expect } from 'vitest';
 
 process.on('unhandledRejection', (error) => {
   console.log('Unhandled rejection detected:', error);
 });
 
-export { expect };
+export * from 'vitest';
 
+export interface CustomQuery extends GenericQuery {
+  guests: bigint;
+  rooms: bigint;
+}
+
+export interface CustomOfferOptions extends GenericOfferOptions {
+  room: string;
+  checkIn: bigint;
+  checkOut: bigint;
+}
+
+/**
+ * Validates objects equality
+ *
+ * @param {*} obj1
+ * @param {*} obj2
+ * @param {string} [parent]
+ */
 export const expectDeepEqual = (
   obj1: any,
   obj2: any,
@@ -38,18 +53,13 @@ export const expectDeepEqual = (
   }
 };
 
-export interface CustomQuery extends GenericQuery {
-  guests: bigint;
-  rooms: bigint;
-}
-
-export interface CustomOfferOptions extends GenericOfferOptions {
-  room: string;
-  checkIn: bigint;
-  checkOut: bigint;
-}
-
-export const createRequest = (
+/**
+ * Creates a random request
+ *
+ * @param {string} topic
+ * @param {(bigint | string)} [expire=BigInt(1)]
+ */
+export const createRequest = async (
   topic: string,
   expire: bigint | string = BigInt(1),
 ) =>
@@ -63,6 +73,15 @@ export const createRequest = (
     },
   });
 
+/**
+ * Creates a random offer
+ *
+ * @param {RequestData<CustomQuery>} request
+ * @param {(bigint | string)} expire
+ * @param {TypedDataDomain} typedDomain
+ * @param {Hash} supplierId
+ * @param {HDAccount} signer
+ */
 export const createOffer = (
   request: RequestData<CustomQuery>,
   expire: bigint | string,

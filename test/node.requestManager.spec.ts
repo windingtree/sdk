@@ -1,7 +1,6 @@
-import './setup.js';
-import { expect } from 'chai';
 import { stringify } from 'viem';
-import { NodeRequestManager } from '../src/index.js';
+import { describe, expect, it, beforeEach } from './setup.js';
+import { NodeRequestManager } from '../src/node/index.js';
 
 describe('Node.NodeRequestManager', () => {
   const defaultNoncePeriod = 1;
@@ -109,43 +108,44 @@ describe('Node.NodeRequestManager', () => {
       expect(nodeRequestManager['cache'].get('1')?.data.nonce).to.equal(2);
     });
 
-    it('should not add request if data is not valid JSON', (done) => {
-      const requestTopic = 'testTopic';
-      const data = 'invalid JSON';
-      const sizeBefore = nodeRequestManager['cache'].size;
+    it('should not add request if data is not valid JSON', () =>
+      new Promise((done) => {
+        const requestTopic = 'testTopic';
+        const data = 'invalid JSON';
+        const sizeBefore = nodeRequestManager['cache'].size;
+        nodeRequestManager.addEventListener(
+          'error',
+          () => {
+            expect(nodeRequestManager['cache'].size).to.eq(sizeBefore);
+            done(true);
+          },
+          { once: true },
+        );
 
-      nodeRequestManager.addEventListener(
-        'error',
-        () => {
-          expect(nodeRequestManager['cache'].size).to.eq(sizeBefore);
-          done();
-        },
-        { once: true },
-      );
+        nodeRequestManager.add(requestTopic, data);
+      }));
 
-      nodeRequestManager.add(requestTopic, data);
-    });
+    it('should emit request event after nonce period', () =>
+      new Promise((done) => {
+        const requestTopic = 'testTopic';
+        const data = stringify({
+          id: '1',
+          nonce: 1,
+          expire: Math.floor(Date.now() / 1000) + 20,
+        });
 
-    it('should emit request event after nonce period', (done) => {
-      const requestTopic = 'testTopic';
-      const data = stringify({
-        id: '1',
-        nonce: 1,
-        expire: Math.floor(Date.now() / 1000) + 20,
-      });
+        nodeRequestManager.addEventListener(
+          'request',
+          (event) => {
+            expect(event.detail.topic).to.equal(requestTopic);
+            expect(event.detail.data).to.deep.equal(JSON.parse(data));
+            done(true);
+          },
+          { once: true },
+        );
 
-      nodeRequestManager.addEventListener(
-        'request',
-        (event) => {
-          expect(event.detail.topic).to.equal(requestTopic);
-          expect(event.detail.data).to.deep.equal(JSON.parse(data));
-          done();
-        },
-        { once: true },
-      );
-
-      nodeRequestManager.add(requestTopic, data);
-    });
+        nodeRequestManager.add(requestTopic, data);
+      }));
   });
 
   describe('#prune', () => {

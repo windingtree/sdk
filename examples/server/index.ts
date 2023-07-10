@@ -1,4 +1,5 @@
-import { createServer, ServerOptions } from '../../src/index.js';
+import { ServerOptions } from '../../src/index.js';
+import { createServer } from '../../src/server/index.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import peerKey from '../../test/peerKey.json' assert { type: 'json' };
 import { createLogger } from '../../src/utils/logger.js';

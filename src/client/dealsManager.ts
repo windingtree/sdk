@@ -14,6 +14,7 @@ import {
   GenericOfferOptions,
   GenericQuery,
   OfferData,
+  DealRecord,
 } from '../shared/types.js';
 import {
   DealStatus,
@@ -25,31 +26,6 @@ import { createLogger } from '../utils/logger.js';
 import { parseSeconds } from '../utils/time.js';
 
 const logger = createLogger('ClientDealsManager');
-
-/**
- * Deals registry record
- */
-export interface DealRecord<
-  CustomRequestQuery extends GenericQuery = GenericQuery,
-  CustomOfferOptions extends GenericOfferOptions = GenericOfferOptions,
-> {
-  /** Network chain Id */
-  chainId: number;
-  /** Deal creation time in seconds */
-  created: bigint;
-  /** Offer */
-  offer: OfferData<CustomRequestQuery, CustomOfferOptions>;
-  /** Deal retailer Id */
-  retailerId: string;
-  /** Deal owner */
-  buyer: Address;
-  /** Deal price */
-  price: bigint;
-  /** Deal asset */
-  asset: Address;
-  /** Current deal status */
-  status: DealStatus;
-}
 
 export interface DealCurrentStatus {
   offerId: Hash;
@@ -466,6 +442,37 @@ export class ClientDealsManager<
     this.dispatchEvent(new CustomEvent<void>('changed'));
 
     return dealRecord;
+  }
+
+  /**
+   * Creates a check-in signature
+   *
+   * @param {Hash} offerId Offer Id
+   * @param {WalletClient} [walletClient]
+   * @returns {Promise<Hash>}
+   * @memberof ClientDealsManager
+   */
+  async checkInOutSignature(
+    offerId: Hash,
+    walletClient?: WalletClient,
+  ): Promise<Hash> {
+    if (!walletClient) {
+      throw new Error('Invalid walletClient configuration');
+    }
+
+    const [address] = await walletClient.getAddresses();
+
+    return await createCheckInOutSignature({
+      offerId,
+      domain: {
+        chainId: this.chain.id,
+        name: this.contracts.market.name,
+        version: this.contracts.market.version,
+        verifyingContract: this.contracts.market.address,
+      },
+      account: walletClient as unknown as HDAccount,
+      address,
+    });
   }
 
   /**

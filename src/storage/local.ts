@@ -1,5 +1,9 @@
-import { stringify } from 'viem';
-import { Storage, StorageInitializerFunction } from './abstract.js';
+import { stringify, parse } from 'superjson';
+import {
+  GenericStorageOptions,
+  Storage,
+  StorageInitializerFunction,
+} from './abstract.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('LocalStorage');
@@ -18,7 +22,7 @@ export interface WindowStorage {
 /**
  * Local storage options type
  */
-export interface LocalStorageOptions {
+export interface LocalStorageOptions extends GenericStorageOptions {
   session?: boolean;
 }
 
@@ -30,6 +34,7 @@ export interface LocalStorageOptions {
  */
 export class LocalStorage extends Storage {
   db: WindowStorage;
+  scopeIdsKey?: string;
 
   /**
    * Creates an instance of LocalStorage.
@@ -44,6 +49,11 @@ export class LocalStorage extends Storage {
     // @todo Validate LocalStorageOptions
 
     this.db = options.session ? sessionStorage : localStorage;
+
+    if (options.scope) {
+      this.scopeIdsKey = `local_storage_scope_${options.scope}_ids`;
+    }
+
     logger.trace('Local storage initialized');
   }
 
@@ -55,7 +65,7 @@ export class LocalStorage extends Storage {
    * @returns {string}
    * @memberof LocalStorage
    */
-  serialize<ValueType>(value: ValueType): string {
+  private serialize<ValueType>(value: ValueType): string {
     return stringify(value);
   }
   /**
@@ -66,8 +76,54 @@ export class LocalStorage extends Storage {
    * @returns {ValueType}
    * @memberof LocalStorage
    */
-  deserialize<ValueType>(value: string): ValueType {
-    return JSON.parse(value) as ValueType;
+  private deserialize<ValueType>(value: string): ValueType {
+    return parse<ValueType>(value);
+  }
+
+  private getScopeIds(): Set<string> {
+    if (!this.scopeIdsKey) {
+      return new Set();
+    }
+
+    return new Set(
+      this.deserialize<string[]>(this.db.getItem(this.scopeIdsKey) ?? '[]'),
+    );
+  }
+
+  private saveScopeIds(ids: Set<string>) {
+    if (!this.scopeIdsKey) {
+      return;
+    }
+
+    this.db.setItem(this.scopeIdsKey, this.serialize(Array.from(ids)));
+  }
+
+  private addScopeId(id: string) {
+    try {
+      if (!this.scopeIdsKey) {
+        return;
+      }
+
+      const ids = this.getScopeIds();
+      ids.add(id);
+      this.saveScopeIds(ids);
+    } catch (error) {
+      logger.error('addScopeId', error);
+    }
+  }
+
+  private deleteScopeId(id: string) {
+    try {
+      if (!this.scopeIdsKey) {
+        return;
+      }
+
+      const ids = this.getScopeIds();
+      ids.delete(id);
+      this.saveScopeIds(ids);
+    } catch (error) {
+      logger.error('addScopeId', error);
+    }
   }
 
   /**
@@ -81,6 +137,7 @@ export class LocalStorage extends Storage {
   // eslint-disable-next-line @typescript-eslint/require-await
   async set<ValueType>(key: string, value: ValueType) {
     this.db.setItem(key, this.serialize(value));
+    this.addScopeId(key);
   }
 
   /**
@@ -94,9 +151,11 @@ export class LocalStorage extends Storage {
   // eslint-disable-next-line @typescript-eslint/require-await
   async get<ValueType>(key: string): Promise<ValueType | undefined> {
     const value = this.db.getItem(key);
+
     if (value !== null) {
       return this.deserialize<ValueType>(value);
     }
+
     return;
   }
 
@@ -110,7 +169,13 @@ export class LocalStorage extends Storage {
   // eslint-disable-next-line @typescript-eslint/require-await
   async delete(key: string): Promise<boolean> {
     this.db.removeItem(key);
-    return this.db.getItem(key) === null;
+    const isDeleted = this.db.getItem(key) === null;
+
+    if (isDeleted) {
+      this.deleteScopeId(key);
+    }
+
+    return isDeleted;
   }
 
   /**
@@ -123,12 +188,18 @@ export class LocalStorage extends Storage {
   entries<ValueType>(): IterableIterator<[string, ValueType]> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const source = this;
+    const scopeEnabled = Boolean(this.scopeIdsKey);
+    const ids = this.getScopeIds();
 
     function* entriesIterator(): IterableIterator<[string, ValueType]> {
       let index = 0;
 
       while (index < source.db.length) {
         const key = source.db.key(index++);
+
+        if (scopeEnabled && key && !ids.has(key)) {
+          continue;
+        }
 
         if (key === null) {
           return;
@@ -151,8 +222,11 @@ export class LocalStorage extends Storage {
 /**
  * Local storage configuration
  */
-export const createInitializer: StorageInitializerFunction =
-  (options?: LocalStorageOptions) =>
+export const createInitializer: StorageInitializerFunction<
+  LocalStorage,
+  LocalStorageOptions
+> =
+  (options) =>
   // eslint-disable-next-line @typescript-eslint/require-await
   async (): Promise<LocalStorage> => {
     return new LocalStorage(options);

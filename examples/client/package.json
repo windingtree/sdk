@@ -4,15 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "devDependencies": {
-    "@types/react": "^18.2.6",
-    "@types/react-dom": "^18.2.4",
+    "@types/react": "^18.2.14",
+    "@types/react-dom": "^18.2.6",
     "@vitejs/plugin-react": "^4.0.0",
+    "eslint": "^8.44.0",
     "eslint-config-react-app": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "typescript": "^5.0.4",
-    "viem": "^0.3.43",
+    "typescript": "^5.1.6",
+    "viem": "^1.2.9",
     "vite": "^4.3.9"
   },
   "eslintConfig": {
@@ -39,8 +40,9 @@
     ]
   },
   "scripts": {
-    "dev": "vite --force",
+    "dev": "vite --force --port 5173",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts"
   }
 }

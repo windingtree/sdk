@@ -23,6 +23,6 @@
     "./src/**/*.ts",
     "./examples/**/*.ts",
     "./test/**/*.ts",
-    "temp/old/requestsRegistry.ts"
+    "examples/manager/src/components/ConfigForm.tsx"
   ]
 }

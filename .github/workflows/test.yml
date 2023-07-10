@@ -20,7 +20,11 @@ jobs:
         with:
           node-version: "lts/*"
       - name: Install dependencies
-        run: yarn install --frozen-lockfile && yarn --cwd ./examples/client install --frozen-lockfile
+        run: |
+          yarn install --frozen-lockfile && \
+          yarn --cwd ./examples/client install --frozen-lockfile && \
+          yarn --cwd ./examples/manager install --frozen-lockfile && \
+          yarn --cwd ./examples/react-libs install --frozen-lockfile
       - name: Lint
         run: yarn lint
       - name: Test

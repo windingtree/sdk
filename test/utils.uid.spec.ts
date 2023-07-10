@@ -1,4 +1,4 @@
-import { expect } from './setup.js';
+import { describe, it, expect } from './setup.js';
 import { mnemonicToAccount } from 'viem/accounts';
 import { simpleUid, randomSalt } from '@windingtree/contracts';
 import { generateMnemonic } from '../src/utils/wallet.js';
