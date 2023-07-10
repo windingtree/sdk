@@ -198,6 +198,6 @@ export interface DealRecord<
  * Pagination options
  */
 export interface PaginationOptions {
-  start: number;
-  skip: number;
+  start?: number;
+  skip?: number;
 }

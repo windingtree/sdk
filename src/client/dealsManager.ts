@@ -445,6 +445,37 @@ export class ClientDealsManager<
   }
 
   /**
+   * Creates a check-in signature
+   *
+   * @param {Hash} offerId Offer Id
+   * @param {WalletClient} [walletClient]
+   * @returns {Promise<Hash>}
+   * @memberof ClientDealsManager
+   */
+  async checkInOutSignature(
+    offerId: Hash,
+    walletClient?: WalletClient,
+  ): Promise<Hash> {
+    if (!walletClient) {
+      throw new Error('Invalid walletClient configuration');
+    }
+
+    const [address] = await walletClient.getAddresses();
+
+    return await createCheckInOutSignature({
+      offerId,
+      domain: {
+        chainId: this.chain.id,
+        name: this.contracts.market.name,
+        version: this.contracts.market.version,
+        verifyingContract: this.contracts.market.address,
+      },
+      account: walletClient as unknown as HDAccount,
+      address,
+    });
+  }
+
+  /**
    * Makes the deal check-in
    *
    * @param {OfferData<CustomRequestQuery, CustomOfferOptions>} offer Offer data object

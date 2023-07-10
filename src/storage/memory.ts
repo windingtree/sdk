@@ -226,8 +226,11 @@ export class MemoryStorage extends Storage {
 }
 
 // Storage configuration
-export const createInitializer: StorageInitializerFunction<MemoryStorage> =
-  (options?: MemoryStorageOptions) =>
+export const createInitializer: StorageInitializerFunction<
+  MemoryStorage,
+  MemoryStorageOptions
+> =
+  (options) =>
   // eslint-disable-next-line @typescript-eslint/require-await
   async (): Promise<MemoryStorage> => {
     return new MemoryStorage(options);

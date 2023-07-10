@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { EventHandler } from '@libp2p/interfaces/events';
 import { DateTime } from 'luxon';
-import { Hash, Hex, zeroAddress } from 'viem';
+import { Address, Hash, Hex, zeroAddress } from 'viem';
 import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { randomSalt } from '@windingtree/contracts';
 import {
@@ -12,19 +12,20 @@ import {
   serverAddress,
 } from '../shared/index.js';
 import {
+  DealsDb,
   Node,
   NodeOptions,
   NodeRequestManager,
-  Queue,
-  JobHandler,
   createNode,
-} from '../../src/index.js';
+} from '../../src/node/index.js';
+import { Queue, JobHandler } from '../../src/shared/queue.js';
 import { OfferData } from '../../src/shared/types.js';
 import { DealStatus, ProtocolContracts } from '../../src/shared/contracts.js';
 import { noncePeriod } from '../../src/constants.js';
 import { memoryStorage } from '../../src/storage/index.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
 import { RequestEvent } from '../../src/node/requestManager.js';
+import { appRouter, NodeApiServer } from '../../src/node/index.js';
 import { createLogger } from '../../src/utils/logger.js';
 
 const logger = createLogger('NodeMain');
@@ -57,6 +58,17 @@ if (!supplierId) {
   throw new Error('Entity Id must be provided with EXAMPLE_ENTITY_ID env');
 }
 
+/**
+ * The Ethereum account address of the entity owner (supplier)
+ */
+const entityOwnerAddress = process.env.EXAMPLE_ENTITY_OWNER_ADDRESS as Address;
+
+if (!entityOwnerAddress) {
+  throw new Error(
+    'Entity owner address must be provided with EXAMPLE_ENTITY_OWNER_ADDRESS env',
+  );
+}
+
 /** Handles UFOs */
 process.once('unhandledRejection', (error) => {
   logger.trace('🛸 Unhandled rejection', error);
@@ -76,6 +88,7 @@ const createJobHandler =
  */
 interface DealHandlerOptions {
   contracts: ProtocolContracts;
+  dealsDb: DealsDb;
 }
 
 /**
@@ -89,7 +102,7 @@ const dealHandler = createJobHandler<
     throw new Error('Invalid job execution configuration');
   }
 
-  const { contracts } = options;
+  const { contracts, dealsDb } = options;
 
   if (!contracts) {
     throw new Error('Contracts manager must be provided to job handler config');
@@ -98,7 +111,8 @@ const dealHandler = createJobHandler<
   logger.trace(`Checking for a deal. Offer #${offer.id}`);
 
   // Check for a deal
-  const [, , , buyer, , , status] = await contracts.getDeal(offer);
+  const [created, offerPayload, retailerId, buyer, price, asset, status] =
+    await contracts.getDeal(offer);
 
   // Deal must be exists and not cancelled
   if (buyer !== zeroAddress && status === DealStatus.Created) {
@@ -116,7 +130,18 @@ const dealHandler = createJobHandler<
       },
     );
 
-    return false; // Returning true means that the job must be stopped
+    await dealsDb.set({
+      chainId: Number(offerPayload.chainId),
+      created,
+      offer,
+      retailerId,
+      buyer,
+      price,
+      asset,
+      status: DealStatus.Claimed,
+    });
+
+    return false; // Returning false means that the job must be stopped
   }
 
   return true; // Job continuing
@@ -228,10 +253,30 @@ const main = async (): Promise<void> => {
     walletClient: node.walletClient,
   });
 
-  const storage = await memoryStorage.createInitializer()();
+  const queueStorage = await memoryStorage.createInitializer({
+    scope: 'queue',
+  })();
+  const usersStorage = await memoryStorage.createInitializer({
+    scope: 'users',
+  })();
+  const dealsStorage = await memoryStorage.createInitializer({
+    scope: 'deals',
+  })();
+
+  const apiServer = new NodeApiServer({
+    usersStorage,
+    dealsStorage,
+    prefix: 'test',
+    port: 3456,
+    secret: 'secret',
+    ownerAccount: entityOwnerAddress,
+    protocolContracts: contractsManager,
+  });
+
+  apiServer.start(appRouter);
 
   const queue = new Queue({
-    storage,
+    storage: queueStorage,
     idsKeyName: 'jobsIds',
     concurrencyLimit: 3,
   });
@@ -255,13 +300,21 @@ const main = async (): Promise<void> => {
     requestManager.add(topic, data);
   });
 
-  queue.registerHandler('deal', dealHandler({ contracts: contractsManager }));
+  queue.registerHandler(
+    'deal',
+    dealHandler({
+      contracts: contractsManager,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      dealsDb: apiServer.deals!,
+    }),
+  );
 
   /**
    * Graceful Shutdown handler
    */
   const shutdown = () => {
     const stopHandler = async () => {
+      await apiServer.stop();
       await node.stop();
     };
     stopHandler()

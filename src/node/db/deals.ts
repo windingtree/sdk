@@ -87,13 +87,13 @@ export class DealsDb {
   async getAll(pagination?: PaginationOptions): Promise<DealRecord[]> {
     return new Promise((resolve, reject) => {
       try {
-        pagination = pagination ?? {
-          start: 0,
-          skip: 10,
+        const page: Required<PaginationOptions> = {
+          start: pagination?.start ?? 0,
+          skip: pagination?.skip ?? 10,
         };
         let cursor = 0;
-        const from = pagination.start >= 0 ? pagination.start : 0;
-        const to = from + pagination.skip ?? 0;
+        const from = page.start >= 0 ? page.start : 0;
+        const to = from + page.skip ?? 0;
         const records: DealRecord[] = [];
 
         for (const record of this.storage.entries<DealRecord>()) {

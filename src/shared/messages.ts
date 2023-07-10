@@ -106,6 +106,8 @@ export interface CreateCheckInOutSignatureArgs {
   domain: TypedDataDomain;
   /** Ethereum local account */
   account: Account;
+  /** Account address override */
+  address?: Address;
 }
 
 /**
@@ -231,13 +233,15 @@ export const createCheckInOutSignature = async ({
   offerId,
   domain,
   account,
+  address,
 }: CreateCheckInOutSignatureArgs): Promise<Hash> =>
   await account.signTypedData({
+    ...(address ? { account: address } : {}),
     domain,
     types: checkInOutEip712Types,
     primaryType: 'Voucher',
     message: {
       id: offerId,
-      signer: account.address,
+      signer: address ? address : account.address,
     },
   });

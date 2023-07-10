@@ -3,25 +3,27 @@ import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import { z } from 'zod';
 import { Hash } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
+import superjson from 'superjson';
 import { generateMnemonic } from '../src/utils/wallet.js';
+import { UserInputType } from '../src/node/db/index.js';
 import {
-  UserInputType,
   NodeApiServer,
   NodeApiServerOptions,
-  ACCESS_TOKEN_NAME,
-  userRouter,
-  adminRouter,
   router,
-  accessTokenLink,
+  adminRouter,
+  userRouter,
+  dealsRouter,
   authProcedure,
   authAdminProcedure,
   createAdminSignature,
 } from '../src/node/api/index.js';
+import { ACCESS_TOKEN_NAME, accessTokenLink } from '../src/node/api/client.js';
 import { createInitializer } from '../src/storage/memory.js';
 
-const appRouter = router({
-  user: userRouter,
+const testRouter = router({
   admin: adminRouter,
+  user: userRouter,
+  deals: dealsRouter,
   testAuth: authProcedure.output(z.boolean()).mutation(() => {
     return true;
   }),
@@ -38,14 +40,14 @@ describe('NodeApiServer', () => {
   const owner = mnemonicToAccount(generateMnemonic());
   let options: NodeApiServerOptions;
   let server: NodeApiServer;
-  let clientUser: ReturnType<typeof createTRPCProxyClient<typeof appRouter>>;
-  let clientAdmin: ReturnType<typeof createTRPCProxyClient<typeof appRouter>>;
+  let clientUser: ReturnType<typeof createTRPCProxyClient<typeof testRouter>>;
+  let clientAdmin: ReturnType<typeof createTRPCProxyClient<typeof testRouter>>;
   let accessTokenUser: string | undefined;
   let accessTokenAdmin: string | undefined;
 
   beforeAll(async () => {
     options = {
-      storage: await createInitializer({
+      usersStorage: await createInitializer({
         scope: 'users',
       })(),
       prefix: 'test',
@@ -55,9 +57,10 @@ describe('NodeApiServer', () => {
     };
     server = new NodeApiServer(options);
 
-    server.start(appRouter);
+    server.start(testRouter);
 
-    clientUser = createTRPCProxyClient<typeof appRouter>({
+    clientUser = createTRPCProxyClient<typeof testRouter>({
+      transformer: superjson,
       links: [
         accessTokenLink(ACCESS_TOKEN_NAME, (token) => {
           accessTokenUser = token;
@@ -71,7 +74,8 @@ describe('NodeApiServer', () => {
       ],
     });
 
-    clientAdmin = createTRPCProxyClient<typeof appRouter>({
+    clientAdmin = createTRPCProxyClient<typeof testRouter>({
+      transformer: superjson,
       links: [
         accessTokenLink(ACCESS_TOKEN_NAME, (token) => {
           accessTokenAdmin = token;
@@ -159,7 +163,7 @@ describe('NodeApiServer', () => {
 
   describe('user.logout', () => {
     it('should logout a logged in user', async () => {
-      const result = await clientUser.user.logout.mutate(user);
+      const result = await clientUser.user.logout.mutate();
       expect(result).to.be.eq(undefined);
       expect(accessTokenUser).toBeDefined();
     });
@@ -239,6 +243,10 @@ describe('NodeApiServer', () => {
     });
 
     describe('admin.login', () => {
+      beforeAll(async () => {
+        await clientAdmin.user.logout.mutate();
+      });
+
       it('should throw if accessed by non authenticated admin', async () => {
         await expect(clientAdmin.testAdminAuth.mutate()).rejects.toThrow(
           'UNAUTHORIZED',
@@ -279,7 +287,7 @@ describe('NodeApiServer', () => {
 
     describe('user.logout (by admin)', () => {
       it('should logout a logged in admin', async () => {
-        const result = await clientAdmin.user.logout.mutate(user);
+        const result = await clientAdmin.user.logout.mutate();
         expect(result).to.be.eq(undefined);
         expect(accessTokenAdmin).toBeDefined();
       });
