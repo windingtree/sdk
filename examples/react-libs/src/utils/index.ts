@@ -29,3 +29,37 @@ export const parseWalletError = (error: any): string => {
   words[0] = words[0].charAt(0).toUpperCase() + words[0].slice(1);
   return words.join(' ') || 'Unknown error';
 };
+
+/**
+ * Copies a text to clipboard
+ *
+ * @param {string} text
+ * @returns {Promise<void>}
+ */
+export const copyToClipboard = async (text: string): Promise<void> => {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
+  } else if (document.execCommand) {
+    const textArea = document.createElement('textarea');
+    textArea.style.opacity = '0';
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      // @ts-ignore
+      document.execCommand('copy');
+      console.log('Text copied to clipboard');
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    } finally {
+      document.body.removeChild(textArea);
+    }
+  } else {
+    console.error('Copy to clipboard is not supported in this browser');
+  }
+};

@@ -17,7 +17,12 @@ import {
   zeroAddress,
   stringify,
 } from 'viem';
-import { marketABI, erc20_18ABI } from '@windingtree/contracts';
+import {
+  marketABI,
+  erc20_18ABI,
+  entitiesRegistryABI,
+  kinds,
+} from '@windingtree/contracts';
 import {
   Contracts,
   GenericOfferOptions,
@@ -485,5 +490,204 @@ export class ProtocolContracts<
       txCallback,
       'Deal check out',
     );
+  }
+
+  /**
+   * Registers a new entity in the registry
+   *
+   * @param {Hash} salt Unique salt
+   * @param {WalletClient} [walletClient] Wallet client
+   * @param {TxCallback} [txCallback] Optional transaction hash callback
+   * @returns {Promise<TransactionReceipt>}
+   * @memberof ProtocolContracts
+   */
+  async registerEntity(
+    salt: Hash,
+    address: Address,
+    walletClient?: WalletClient,
+    txCallback?: TxCallback,
+  ): Promise<TransactionReceipt> {
+    return await this._sendHelper(
+      this.contracts['entities'].address,
+      entitiesRegistryABI,
+      'register',
+      [kinds.supplier as Hash, salt, address],
+      walletClient,
+      txCallback,
+      'Entity registration',
+    );
+  }
+
+  /**
+   * Toggles the entity status
+   *
+   * @param {Hash} id Entity Id
+   * @param {WalletClient} [walletClient] Wallet client
+   * @param {TxCallback} [txCallback] Optional transaction hash callback
+   * @returns {Promise<TransactionReceipt>}
+   * @memberof ProtocolContracts
+   */
+  async toggleEntity(
+    id: Hash,
+    walletClient?: WalletClient,
+    txCallback?: TxCallback,
+  ): Promise<TransactionReceipt> {
+    return await this._sendHelper(
+      this.contracts['entities'].address,
+      entitiesRegistryABI,
+      'toggleEntity',
+      [id],
+      walletClient,
+      txCallback,
+      'Toggle entity',
+    );
+  }
+
+  /**
+   * Toggles the entity status
+   *
+   * @param {Hash} id Entity Id
+   * @param {Address} signer The signer address
+   * @param {WalletClient} [walletClient] Wallet client
+   * @param {TxCallback} [txCallback] Optional transaction hash callback
+   * @returns {Promise<TransactionReceipt>}
+   * @memberof ProtocolContracts
+   */
+  async changeEntitySigner(
+    id: Hash,
+    signer: Address,
+    walletClient?: WalletClient,
+    txCallback?: TxCallback,
+  ): Promise<TransactionReceipt> {
+    return await this._sendHelper(
+      this.contracts['entities'].address,
+      entitiesRegistryABI,
+      'changeSigner',
+      [id, signer],
+      walletClient,
+      txCallback,
+      'Change entity signer',
+    );
+  }
+
+  /**
+   * Adds tokens deposit to the entity balance
+   *
+   * @param {Hash} id Entity Id
+   * @param {bigint} value A deposit value
+   * @param {WalletClient} [walletClient] Wallet client
+   * @param {TxCallback} [txCallback] Optional transaction hash callback
+   * @returns {Promise<TransactionReceipt>}
+   * @memberof ProtocolContracts
+   */
+  async addEntityDeposit(
+    id: Hash,
+    value: bigint,
+    walletClient?: WalletClient,
+    txCallback?: TxCallback,
+  ): Promise<TransactionReceipt> {
+    walletClient = walletClient ?? this.walletClient;
+
+    if (!walletClient) {
+      throw new Error('Invalid walletClient configuration');
+    }
+
+    const [owner] = await walletClient.getAddresses();
+
+    const allowance = await this.publicClient.readContract({
+      address: this.contracts['token'].address,
+      abi: erc20_18ABI,
+      functionName: 'allowance',
+      args: [owner, this.contracts['market'].address],
+    });
+
+    if (allowance < value) {
+      await this._sendHelper(
+        this.contracts['token'].address,
+        erc20_18ABI,
+        'approve',
+        [this.contracts['market'].address, value - allowance],
+        walletClient,
+        txCallback,
+        'Deposit approval',
+      );
+
+      // TODO: Implement `permit`
+    }
+
+    return await this._sendHelper(
+      this.contracts['entities'].address,
+      entitiesRegistryABI,
+      'addDeposit',
+      [id, value],
+      walletClient,
+      txCallback,
+      'Add deposit',
+    );
+  }
+
+  /**
+   * Adds tokens deposit to the entity balance
+   *
+   * @param {Hash} id Entity Id
+   * @param {bigint} value A deposit value to withdraw
+   * @param {WalletClient} [walletClient] Wallet client
+   * @param {TxCallback} [txCallback] Optional transaction hash callback
+   * @returns {Promise<TransactionReceipt>}
+   * @memberof ProtocolContracts
+   */
+  async withdrawEntityDeposit(
+    id: Hash,
+    value: bigint,
+    walletClient?: WalletClient,
+    txCallback?: TxCallback,
+  ): Promise<TransactionReceipt> {
+    return await this._sendHelper(
+      this.contracts['entities'].address,
+      entitiesRegistryABI,
+      'withdrawDeposit',
+      [id, value],
+      walletClient,
+      txCallback,
+      'Withdraw deposit',
+    );
+  }
+
+  /**
+   * Fetches an entity information from the registry
+   *
+   * @param {Hash} id The entity Id
+   * @returns {Promise<ContractFunctionResult<typeof entitiesRegistryABI, 'getEntity'>>}
+   * @memberof ProtocolContracts
+   */
+  async getEntity(
+    id: Hash,
+  ): Promise<ContractFunctionResult<typeof entitiesRegistryABI, 'getEntity'>> {
+    return await this.publicClient.readContract({
+      address: this.contracts['entities'].address,
+      abi: entitiesRegistryABI,
+      functionName: 'getEntity',
+      args: [id],
+    });
+  }
+
+  /**
+   * Fetches a balance of an entity deposit
+   *
+   * @param {Hash} id The entity Id
+   * @returns {Promise<ContractFunctionResult<typeof entitiesRegistryABI, 'balanceOfEntity'>>}
+   * @memberof ProtocolContracts
+   */
+  async balanceOfEntity(
+    id: Hash,
+  ): Promise<
+    ContractFunctionResult<typeof entitiesRegistryABI, 'balanceOfEntity'>
+  > {
+    return await this.publicClient.readContract({
+      address: this.contracts['entities'].address,
+      abi: entitiesRegistryABI,
+      functionName: 'balanceOfEntity',
+      args: [id],
+    });
   }
 }

@@ -70,7 +70,7 @@ export const DealSeek = () => {
               setOfferId('');
               setDeal(undefined);
             }}
-            disabled={loading}
+            disabled={loading || !offerId}
           >
             Clear
           </button>

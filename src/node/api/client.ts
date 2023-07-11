@@ -57,7 +57,7 @@ export const unauthorizedLink =
           logger.error('unauthorizedLink', err);
 
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          if (err.data.httpStatus === 401) {
+          if (err?.data?.httpStatus === 401) {
             onUnauthorized();
           }
 

@@ -1,5 +1,5 @@
 import {
-  Account,
+  HDAccount,
   generateMnemonic as generateMnemonic_,
   english,
   mnemonicToAccount,
@@ -17,14 +17,26 @@ export const generateMnemonic = (): string => generateMnemonic_(english);
  *
  * @param {string} mnemonic
  * @param {number} addressIndex
- * @returns {Account}
+ * @returns {HDAccount}
  */
 export const deriveAccount = (
   mnemonic: string,
   addressIndex: number,
-): Account =>
+): HDAccount =>
   mnemonicToAccount(mnemonic, {
     accountIndex: 0,
     changeIndex: 0,
     addressIndex,
   });
+
+/**
+ * Retrieves a private key from an account
+ *
+ * @param {HDAccount} account
+ * @returns {string}
+ */
+export const getPk = (account: HDAccount): string =>
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  Array.from(account.getHdKey().privateKey!)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');

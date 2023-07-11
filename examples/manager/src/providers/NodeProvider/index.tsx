@@ -57,8 +57,14 @@ export const NodeProvider = ({ children }: PropsWithChildren) => {
       } catch (error) {
         console.log(error);
         setNode(() => undefined);
+        let errMessage = (error as Error).message;
+
+        if (errMessage === 'Failed to fetch') {
+          errMessage = 'Node connection failed';
+        }
+
         setError(
-          () => (error as Error).message || 'Unknown node provider error',
+          () => errMessage || 'Unknown node provider error',
         );
       }
     };

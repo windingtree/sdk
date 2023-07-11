@@ -1,4 +1,4 @@
-import { useConfig } from '../providers/ConfigProvider/ConfigProviderContext';
+import { useConfig, ConfigActions } from '../providers/ConfigProvider/ConfigProviderContext';
 
 export const ConfigForm = () => {
   const { nodeHost, setConfig } = useConfig();
@@ -18,7 +18,10 @@ export const ConfigForm = () => {
             value={nodeHost ?? ''}
             onChange={(e) =>
               setConfig({
-                nodeHost: e.target.value,
+                type: ConfigActions.SET_CONFIG,
+                payload: {
+                  nodeHost: e.target.value,
+                }
               })
             }
           />
