@@ -1,24 +1,26 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Address, Hash } from 'viem';
+import { Address, ContractFunctionResult, Hash, getAddress } from 'viem';
 import {
   generateMnemonic,
   deriveAccount,
   supplierId as createSupplierId,
   getPk,
 } from '../../../../src/utils';
-import { randomSalt } from '@windingtree/contracts';
+import { entitiesRegistryABI, randomSalt } from '@windingtree/contracts';
 import {
   ConfigActions,
   useConfig,
 } from '../providers/ConfigProvider/ConfigProviderContext';
 import { useWallet } from '../../../react-libs/src/providers/WalletProvider/WalletProviderContext';
+import { useContracts } from '../../../react-libs/src/providers/ContractsProvider/ContractsProviderContext';
 import type { CustomConfig } from '../main';
 import { TabPanel, Tabs } from './Tabs';
 import { ConnectButton } from '../../../react-libs/src/providers/WalletProvider/ConnectButton';
-import { copyToClipboard } from '../../../react-libs/src/utils';
+import { copyToClipboard, formatBalance } from '../../../react-libs/src/utils';
 
 export const Supplier = () => {
-  const { account } = useWallet();
+  const { account, publicClient, walletClient } = useWallet();
+  const { contracts } = useContracts();
   const { supplierId, setConfig } = useConfig<CustomConfig>();
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [ownerMnemonic, setOwnerMnemonic] = useState<string | undefined>();
@@ -28,6 +30,16 @@ export const Supplier = () => {
   const [signerAccount, setSignerAccount] = useState<Address | undefined>();
   const [salt, setSalt] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [tx, setTx] = useState<string | undefined>();
+  const [txMessage, setTxMessage] = useState<string | undefined>();
+  const [entityInfo, setEntityInfo] = useState<
+    ContractFunctionResult<typeof entitiesRegistryABI, 'getEntity'> | undefined
+  >();
+  const [depositBalance, setDepositBalance] = useState<string | undefined>();
+  const [depositValue, setDepositValue] = useState<string | undefined>();
+  const [withdrawValue, setWithdrawValue] = useState<string | undefined>();
+  const [signerAddress, setSignerAddress] = useState<Address | undefined>();
 
   const generateWallet = useCallback((target: 'owner' | 'signer') => {
     try {
@@ -51,6 +63,225 @@ export const Supplier = () => {
     }
   }, []);
 
+  const generateEnv = useCallback(() => {
+    return `
+EXAMPLE_ENTITY_SIGNER_MNEMONIC=${signerMnemonic}
+EXAMPLE_ENTITY_ID=${supplierId}
+EXAMPLE_ENTITY_OWNER_ADDRESS=${ownerAccount}
+`;
+  }, [signerMnemonic, supplierId, ownerAccount]);
+
+  const handleRegister = useCallback(async () => {
+    try {
+      setError(undefined);
+      setTx(undefined);
+      setTxMessage(undefined);
+      setLoading(true);
+
+      if (!contracts || !walletClient) {
+        throw new Error('Contracts not ready');
+      }
+
+      if (!salt) {
+        throw new Error('Salt required');
+      }
+
+      if (!supplierId) {
+        throw new Error('Supplier Id must be calculated');
+      }
+
+      if (!ownerAccount) {
+        throw new Error('Please generate the entity owner account first');
+      }
+
+      const [address] = await walletClient.getAddresses();
+
+      if (address !== getAddress(ownerAccount)) {
+        throw new Error(
+          'You have to switch to the entity owner account in the Metamask',
+        );
+      }
+
+      const balance = await publicClient.getBalance({ address });
+
+      if (Number(balance) === 0) {
+        throw new Error(
+          'You have to top up your account to be able to send transactions',
+        );
+      }
+
+      await contracts.registerEntity(
+        salt as Hash,
+        address,
+        walletClient,
+        setTx,
+      );
+
+      setTxMessage(`Entity ${supplierId} successfully registered`);
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || 'Unknown setup error');
+      setLoading(false);
+    }
+  }, [contracts, publicClient, walletClient, salt, supplierId, ownerAccount]);
+
+  const handleGetEntity = useCallback(async () => {
+    try {
+      setError(undefined);
+
+      if (!contracts) {
+        throw new Error('Contracts not ready');
+      }
+
+      if (!supplierId) {
+        throw new Error(
+          'Supplier Id must be calculated on Registration step or added on View step',
+        );
+      }
+
+      setEntityInfo(await contracts.getEntity(supplierId));
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || 'Unknown setup error');
+      setEntityInfo(undefined);
+    }
+  }, [contracts, supplierId]);
+
+  const handleGetDepositBalance = useCallback(async () => {
+    try {
+      setError(undefined);
+
+      if (!contracts) {
+        throw new Error('Contracts not ready');
+      }
+
+      if (!supplierId) {
+        throw new Error(
+          'Supplier Id must be calculated on Registration step or added on View step',
+        );
+      }
+
+      setDepositBalance(String(await contracts.balanceOfEntity(supplierId)));
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || 'Unknown setup error');
+      setDepositBalance('0');
+    }
+  }, [contracts, supplierId]);
+
+  const handleAddDeposit = useCallback(async (value: bigint) => {
+    try {
+      setError(undefined);
+      setTx(undefined);
+      setTxMessage(undefined);
+      setLoading(true);
+
+      if (!contracts || !walletClient) {
+        throw new Error('Contracts not ready');
+      }
+
+      if (!supplierId) {
+        throw new Error(
+          'Supplier Id must be calculated on Registration step or added on View step',
+        );
+      }
+
+      await contracts.addEntityDeposit(supplierId, value, walletClient, setTx);
+
+      setTxMessage('Deposit successfully added');
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || 'Unknown setup error');
+      setLoading(false);
+    }
+  }, [contracts, supplierId, walletClient]);
+
+  const handleWithdrawDeposit = useCallback(async (value: bigint) => {
+    try {
+      setError(undefined);
+      setTx(undefined);
+      setTxMessage(undefined);
+      setLoading(true);
+
+      if (!contracts || !walletClient) {
+        throw new Error('Contracts not ready');
+      }
+
+      if (!supplierId) {
+        throw new Error(
+          'Supplier Id must be calculated on Registration step or added on View step',
+        );
+      }
+
+      await contracts.withdrawEntityDeposit(supplierId, value, walletClient, setTx);
+
+      setTxMessage('Deposit successfully withdrawn');
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || 'Unknown setup error');
+      setLoading(false);
+    }
+  }, [contracts, supplierId, walletClient]);
+
+  const handleChangeSigner = useCallback(async (signer: Address) => {
+    try {
+      setError(undefined);
+      setTx(undefined);
+      setTxMessage(undefined);
+      setLoading(true);
+
+      if (!contracts || !walletClient) {
+        throw new Error('Contracts not ready');
+      }
+
+      if (!supplierId) {
+        throw new Error(
+          'Supplier Id must be calculated on Registration step or added on View step',
+        );
+      }
+
+      await contracts.changeEntitySigner(supplierId, signer, walletClient, setTx);
+
+      setTxMessage('Signer successfully updated');
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || 'Unknown setup error');
+      setLoading(false);
+    }
+  }, [contracts, supplierId, walletClient]);
+
+  const handleToggleEntity = useCallback(async () => {
+    try {
+      setError(undefined);
+      setTx(undefined);
+      setTxMessage(undefined);
+      setLoading(true);
+
+      if (!contracts || !walletClient) {
+        throw new Error('Contracts not ready');
+      }
+
+      if (!supplierId) {
+        throw new Error(
+          'Supplier Id must be calculated on Registration step or added on View step',
+        );
+      }
+
+      await contracts.toggleEntity(supplierId, walletClient, setTx);
+
+      setTxMessage('Signer successfully updated');
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+      setError((error as Error).message || 'Unknown setup error');
+      setLoading(false);
+    }
+  }, [contracts, supplierId, walletClient]);
+
   useEffect(() => {
     if (!ownerMnemonic) {
       setOwnerAccount(() => undefined);
@@ -71,14 +302,14 @@ export const Supplier = () => {
   }, [signerMnemonic]);
 
   useEffect(() => {
-    if (!ownerAccount || !salt) {
+    if ((!ownerAccount || !salt) && !supplierId) {
       setConfig({
         type: ConfigActions.SET_CONFIG,
         payload: {
           supplierId: undefined,
         },
       });
-    } else {
+    } else if (ownerAccount && salt) {
       const id = createSupplierId(salt as Hash, ownerAccount);
       setConfig({
         type: ConfigActions.SET_CONFIG,
@@ -87,7 +318,17 @@ export const Supplier = () => {
         },
       });
     }
-  }, [setConfig, ownerAccount, salt]);
+  }, [setConfig, ownerAccount, salt, supplierId]);
+
+  useEffect(() => {
+    if (supplierId && account) {
+      handleGetEntity();
+      handleGetDepositBalance();
+    } else {
+      setEntityInfo(undefined);
+      setDepositBalance('0');
+    }
+  }, [handleGetEntity, handleGetDepositBalance, supplierId, account]);
 
   return (
     <>
@@ -128,8 +369,8 @@ export const Supplier = () => {
               </li>
               <li>This UI is dedicated for the SDK testing only.</li>
               <li>
-                It is not recommended to use this UI for the `production` setup of
-                the entity.
+                It is not recommended to use this UI for the `production` setup
+                of the entity.
               </li>
             </ul>
           </div>
@@ -270,14 +511,27 @@ export const Supplier = () => {
                   Unique Id that identifies the supplier entity in the protocol
                 </p>
               </div>
-              <div>
-                {supplierId
-                  ? <p
+              {!supplierId && (
+                <div>Generate the supplier owner and salt first</div>
+              )}
+              {supplierId && (
+                <div>
+                  <ul>
+                    <li
                       style={{ cursor: 'pointer', textDecoration: 'underline' }}
                       onClick={() => copyToClipboard(supplierId)}
-                    >{supplierId} (copy)</p>
-                  : 'Generate the supplier owner and salt first'}
-              </div>
+                    >
+                      {supplierId} (copy)
+                    </li>
+                    <li
+                      style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                      onClick={() => copyToClipboard(generateEnv())}
+                    >
+                      Copy the node `.env` file content to clipboard
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <h3>Registration</h3>
@@ -288,7 +542,9 @@ export const Supplier = () => {
               )}
               {account && (
                 <div>
-                  <button onClick={() => {}}>Register the entity</button>
+                  <button onClick={handleRegister} disabled={loading}>
+                    Register the entity{loading ? '...' : ''}
+                  </button>
                 </div>
               )}
             </div>
@@ -297,8 +553,179 @@ export const Supplier = () => {
       </TabPanel>
 
       <TabPanel id={1} activeTab={selectedTab}>
-        <h2>{supplierId}</h2>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {!account && (
+              <div>
+                You have to connect your wallet to continue: <ConnectButton />
+              </div>
+            )}
+            {account &&
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {!supplierId &&
+                    <>
+                      <div style={{ padding: 2, backgroundColor: 'rgba(0,0,0,0.1)' }}>
+                        <p>
+                          This Id can be automatically generated on the Register step or added bellow
+                        </p>
+                      </div>
+                      <div>
+                        <input
+                          style={{ width: '100%' }}
+                          placeholder="Paste an externally generated salt string here"
+                          value={supplierId || ''}
+                          onChange={(e) => setConfig({
+                            type: ConfigActions.SET_CONFIG,
+                            payload: {
+                              supplierId: e.target.value as Hash,
+                            },
+                          })}
+                        />
+                      </div>
+                    </>
+                  }
+                  {supplierId &&
+                    <h3
+                      style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                      onClick={() => handleGetEntity()}
+                    >
+                      Entity Id: {supplierId} (refresh)
+                    </h3>
+                  }
+                  {entityInfo &&
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {Object.keys(entityInfo).map((k, i) => (
+                        <div key={i}><strong>{k}</strong>: {String((entityInfo as any)[k])}</div>
+                      ))}
+                    </div>
+                  }
+                  {depositBalance &&
+                    <div>
+                      <strong>Deposit balance:</strong> {formatBalance(BigInt(depositBalance), 4)}
+                    </div>
+                  }
+                </div>
+              </>
+            }
+          </div>
+        </form>
       </TabPanel>
+
+      <TabPanel id={2} activeTab={selectedTab}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {!account && (
+            <div>
+              You have to connect your wallet to continue: <ConnectButton />
+            </div>
+          )}
+          {account && entityInfo && getAddress(account) !== entityInfo.owner &&
+            <div style={{ marginTop: 10, color: 'red' }}>
+              You have to switch your Metamask account to {entityInfo.owner}
+            </div>
+          }
+          {account &&
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {supplierId &&
+                  <h3>
+                    Entity Id: {supplierId}
+                  </h3>
+                }
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <h3>Add deposit</h3>
+                <div>
+                  <input
+                    style={{ width: '100%' }}
+                    placeholder="deposit value in WEI"
+                    value={depositValue || ''}
+                    onChange={(e) => setDepositValue(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <button
+                    disabled={loading || !depositValue}
+                    onClick={(e) => handleAddDeposit(BigInt(depositValue ?? 0))}
+                  >
+                    Send add deposit transaction{loading ? '...' : ''}
+                  </button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <h3>Withdraw deposit</h3>
+                {depositBalance &&
+                  <div
+                    style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={() => setWithdrawValue(depositBalance)}
+                  >
+                    <strong>Available to withdraw:</strong> {depositBalance} (click to use)
+                  </div>
+                }
+                <div>
+                  <input
+                    style={{ width: '100%' }}
+                    placeholder="withdraw value in WEI"
+                    value={withdrawValue || ''}
+                    onChange={(e) => setWithdrawValue(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <p>
+                    Point your attention that this action will send two transactions:
+                  </p>
+                  <ul>
+                    <li>Tokens approval transaction</li>
+                    <li>Deposit transaction</li>
+                  </ul>
+                </div>
+                <div>
+                  <button
+                    disabled={loading || !withdrawValue}
+                    onClick={(e) => handleWithdrawDeposit(BigInt(withdrawValue ?? 0))}
+                  >
+                    Send withdraw deposit transaction{loading ? '...' : ''}
+                  </button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <h3>Change signer</h3>
+                <div>
+                  <input
+                    style={{ width: '100%' }}
+                    placeholder="signer account address"
+                    value={signerAddress || ''}
+                    onChange={(e) => setSignerAddress(e.target.value as Address)}
+                  />
+                </div>
+                <div>
+                  <button
+                    disabled={loading || !signerAddress}
+                    onClick={(e) => handleChangeSigner(signerAddress!)}
+                  >
+                    Send change signer transaction{loading ? '...' : ''}
+                  </button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <h3>Toggle entity</h3>
+                <div>
+                  <button
+                    disabled={loading}
+                    onClick={(e) => handleToggleEntity()}
+                  >
+                    Send entity toggle transaction{loading ? '...' : ''}
+                  </button>
+                </div>
+              </div>
+            </>
+          }
+        </div>
+      </TabPanel>
+
+      {tx && <div style={{ marginTop: 20 }}>Tx hash: {tx}</div>}
+
+      {txMessage && <div style={{ marginTop: 20 }}>✅ {txMessage}</div>}
 
       {error && <div style={{ marginTop: 20 }}>🚨 {error}</div>}
     </>
