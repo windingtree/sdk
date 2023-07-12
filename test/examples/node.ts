@@ -13,22 +13,28 @@ import {
 } from '../../examples/shared/index.js';
 import {
   CenterSub,
-  createNode,
   JobHandler,
-  Node,
-  NodeOptions,
-  NodeRequestManager,
+  OfferData,
+  DealStatus,
+  ProtocolContracts,
+  noncePeriod,
 } from '../../src/index.js';
-import { OfferData } from '../../src/shared/types.js';
-import { DealStatus, ProtocolContracts } from '../../src/shared/contracts.js';
-import { noncePeriod } from '../../src/constants.js';
 import { nowSec, parseSeconds } from '../../src/utils/time.js';
-import { RequestEvent } from '../../src/node/requestManager.js';
+import {
+  NodeOptions,
+  RequestEvent,
+  Node,
+  createNode,
+  NodeRequestManager,
+} from '../../src/node/index.js';
 import { createLogger } from '../../src/utils/logger.js';
 import { OPEN } from '@libp2p/interface-connection/status';
 import { multiaddr } from '@multiformats/multiaddr';
 import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
+import { mnemonicToAccount } from 'viem/accounts';
+import { generateMnemonic } from '../../src/utils/wallet.js';
+import { supplierId as spId } from '../../src/utils/uid.js';
 
 const logger = createLogger('NodeMain');
 
@@ -63,13 +69,17 @@ export class NodeExample {
   private serverPeerId: PeerId;
 
   constructor() {
+    const mnemonic = generateMnemonic();
+    const signer = mnemonicToAccount(mnemonic);
+    const supplierId = spId(randomSalt(), signer.address);
+
     const options: NodeOptions = {
       topics: ['hello'],
       chain: this.chain,
       contracts: contractsConfig,
       serverAddress,
-      supplierId: this.supplierId,
-      signerSeedPhrase: this.signerMnemonic,
+      supplierId: supplierId,
+      signerSeedPhrase: mnemonic,
       signerPk: this.signerPk,
     };
 
@@ -194,26 +204,12 @@ export class NodeExample {
 
       handler().catch(logger.error);
     };
-
-  private checkVars = () => {
-    if (!this.signerMnemonic && !this.signerPk) {
-      throw new Error(
-        'Either signerMnemonic or signerPk must be provided with env',
-      );
-    }
-
-    if (!this.supplierId) {
-      throw new Error('Entity Id must be provided with EXAMPLE_ENTITY_ID env');
-    }
-  };
   /**
    * Starts the suppliers node
    *
    * @returns {Promise<void>}
    */
   public start = async (): Promise<Node<RequestQuery, OfferOptions>> => {
-    this.checkVars();
-
     /** Handles UFOs */
     process.once('unhandledRejection', (error) => {
       logger.trace('🛸 Unhandled rejection', error);

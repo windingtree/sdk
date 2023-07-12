@@ -1,13 +1,8 @@
-import {
-  CenterSub,
-  CoordinationServer,
-  createServer,
-  ServerOptions,
-} from '../../src/index.js';
+import { ServerOptions } from '../../src/index.js';
 import peerKey from '../peerKey.json';
 import { memoryStorage } from '../../src/storage/index.js';
-import { createLogger, encodeText } from '../../src/utils/index.js';
-import { stringify } from 'viem';
+import { createLogger } from '../../src/utils/index.js';
+import { CoordinationServer, createServer } from '../../src/server/index.js';
 
 const logger = createLogger('ServerExample');
 

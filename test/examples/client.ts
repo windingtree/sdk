@@ -1,10 +1,4 @@
-import {
-  buildRequest,
-  Client,
-  ClientRequestRecord,
-  ClientRequestsManager,
-  createClient,
-} from '../../src/index.js';
+import { buildRequest } from '../../src/index.js';
 import {
   OfferOptions,
   RequestQuery,
@@ -17,7 +11,13 @@ import {
   GenericQuery,
   OfferData,
   RequestData,
-} from '../../src/shared/types.js';
+} from '../../src/index.js';
+import {
+  Client,
+  ClientRequestRecord,
+  ClientRequestsManager,
+  createClient,
+} from '../../src/client/index.js';
 
 const defaultExpire = '30s';
 
