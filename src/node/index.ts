@@ -166,6 +166,10 @@ export class Node<
   chain: Chain;
   /** The protocol smart contracts configuration */
   contracts: Contracts;
+  /** Server is connected */
+  private serverConnected = false;
+  /** Entity for stop timer after reconnect */
+  private connectionInterval?: NodeJS.Timer;
 
   /**
    * @param {NodeOptions} options Node initialization options
@@ -374,6 +378,10 @@ export class Node<
       'gossipsub:heartbeat',
       () => {
         this.dispatchEvent(new CustomEvent<void>('heartbeat'));
+
+        if (!this.serverConnected) {
+          this.retryConnection();
+        }
       },
     );
 
@@ -385,6 +393,12 @@ export class Node<
             '🔗 Node connected to server at:',
             new Date().toISOString(),
           );
+          this.serverConnected = true;
+
+          if (this.connectionInterval) {
+            clearInterval(this.connectionInterval);
+            this.connectionInterval = undefined;
+          }
         }
       } catch (error) {
         logger.error(error);
@@ -399,6 +413,7 @@ export class Node<
             '🔌 Node disconnected from server at:',
             new Date().toISOString(),
           );
+          this.serverConnected = false;
         }
       } catch (error) {
         logger.error(error);
@@ -451,6 +466,26 @@ export class Node<
     await this.libp2p.stop();
     this.dispatchEvent(new CustomEvent<void>('stop'));
     logger.trace('👋 Node stopped at:', new Date().toISOString());
+  }
+
+  private retryConnection() {
+    const retry = function (this: Node) {
+      const dial = async () => {
+        if (this.libp2p && !this.serverConnected) {
+          try {
+            await this.libp2p.dial(this.serverMultiaddr);
+          } catch (error) {
+            logger.error(error);
+          }
+        }
+      };
+
+      dial().catch((error) => {
+        logger.error(error);
+      });
+    }.bind(this);
+
+    this.connectionInterval = setInterval(retry, 5000);
   }
 }
 

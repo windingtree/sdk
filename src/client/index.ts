@@ -133,6 +133,10 @@ export class Client<
   serverMultiaddr: Multiaddr;
   /** Server peer Id */
   serverPeerId: PeerId;
+  /** Server is connected */
+  private serverConnected = false;
+  /** Entity for stop timer after reconnect */
+  private connectionInterval?: NodeJS.Timer;
 
   /**
    *Creates an instance of Client.
@@ -235,6 +239,12 @@ export class Client<
             '🔗 Client connected to server at:',
             new Date().toISOString(),
           );
+          this.serverConnected = true;
+
+          if (this.connectionInterval) {
+            clearInterval(this.connectionInterval);
+            this.connectionInterval = undefined;
+          }
         }
       } catch (error) {
         logger.error(error);
@@ -249,6 +259,7 @@ export class Client<
             '🔌 Client disconnected from server at:',
             new Date().toISOString(),
           );
+          this.serverConnected = false;
         }
       } catch (error) {
         logger.error(error);
@@ -290,6 +301,8 @@ export class Client<
     await this.libp2p.start();
     this.dispatchEvent(new CustomEvent<void>('start'));
     logger.trace('🚀 Client started at:', new Date().toISOString());
+
+    this.retryConnection();
   }
 
   /**
@@ -357,6 +370,26 @@ export class Client<
     await this.libp2p.stop();
     this.dispatchEvent(new CustomEvent<void>('stop'));
     logger.trace('👋 Client stopped at:', new Date().toISOString());
+  }
+
+  private retryConnection() {
+    const retry = function (this: Client) {
+      const dial = async () => {
+        if (this.libp2p && !this.serverConnected) {
+          try {
+            await this.libp2p.dial(this.serverMultiaddr);
+          } catch (error) {
+            logger.error(error);
+          }
+        }
+      };
+
+      dial().catch((error) => {
+        logger.error(error);
+      });
+    }.bind(this);
+
+    this.connectionInterval = setInterval(retry, 5000);
   }
 }
 
