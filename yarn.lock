@@ -75,10 +75,10 @@
   resolved "https://registry.yarnpkg.com/@chainsafe/is-ip/-/is-ip-2.0.1.tgz#62cb285669d91f88fd9fa285048dde3882f0993b"
   integrity sha512-nqSJ8u2a1Rv9FYbyI8qpDhTYujaKEyLknNrTejLYoSWmdeg+2WB7R6BZqPZYfrJzDxVi3rl6ZQuoaEvpKRZWgQ==
 
-"@chainsafe/libp2p-gossipsub@^8.0.0":
-  version "8.0.1"
-  resolved "https://registry.yarnpkg.com/@chainsafe/libp2p-gossipsub/-/libp2p-gossipsub-8.0.1.tgz#8cb8647b162e23769f8bc349a2a7a908dc300757"
-  integrity sha512-vzRN7F1zLd/DKfK9VLQ7rrc/lYQFvE/RGnXjr+EanD2RoX+BjSdqZkvzcrJcaDzkCMJRCvpsFzgz2iLbV7SgYg==
+"@chainsafe/libp2p-gossipsub@^9.1.0":
+  version "9.1.0"
+  resolved "https://registry.yarnpkg.com/@chainsafe/libp2p-gossipsub/-/libp2p-gossipsub-9.1.0.tgz#0aee7960426e323f1da5774e16742b0ba9a015e6"
+  integrity sha512-zc1Jx0DcVNH0iAncDlyd0/rAN9mWCpIxrmrw8eC6/gvHDmi24y8orDH8Npj2Naydh/ukeDhG9Iqx4Dnoe8V51w==
   dependencies:
     "@libp2p/crypto" "^1.0.3"
     "@libp2p/interface-connection" "^5.0.1"
@@ -790,7 +790,7 @@
     interface-datastore "^8.2.0"
     multiformats "^11.0.2"
 
-"@libp2p/mplex@^8.0.3":
+"@libp2p/mplex@^8.0.4":
   version "8.0.4"
   resolved "https://registry.yarnpkg.com/@libp2p/mplex/-/mplex-8.0.4.tgz#86e86837bf456b2f92ff74ed5d005f0105f0dd1a"
   integrity sha512-or3F5sGl8cw3TbnQgmkJ8z7/c97rwuzoy6f3b9gmkEVN8EzdxG2jOq+TEsgXzLz1GekRUR8nuDhliJ3UPhUnFw==
