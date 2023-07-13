@@ -1,3 +1,4 @@
+.yarn
 .env
 .env*
 !.env.example
