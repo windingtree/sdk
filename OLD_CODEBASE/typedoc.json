@@ -1,0 +1,9 @@
+{
+  "basePath": "./src/",
+  "entryPoints": ["./src/index.ts"],
+  "exclude": ["**/{examples,test,node_modules}/**/*.ts"],
+  "excludeExternals": true,
+  "out": "./typedoc",
+  "cleanOutputDir": true,
+  "tsconfig": "./tsconfig.cjs.json"
+}
