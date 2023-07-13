@@ -1,7 +1,7 @@
 {
-  "name": "@windingtree/sdk-types",
+  "name": "@windingtree/sdk-contracts-manager",
   "version": "0.0.0",
-  "description": "Typescript types for the Windingtree market protocol SDK",
+  "description": "Utility class for interaction with the protocol smart contracts",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
   "license": "MIT",
@@ -28,6 +28,9 @@
     "access": "public"
   },
   "dependencies": {
+    "@windingtree/contracts": "^1.0.0-beta.12",
+    "@windingtree/sdk-types": "*",
+    "@windingtree/sdk-logger": "*",
     "viem": "^1.2.14"
   },
   "scripts": {

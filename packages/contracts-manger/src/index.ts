@@ -28,9 +28,9 @@ import {
   GenericOfferOptions,
   GenericQuery,
   OfferData,
-} from './types.js';
-import { getPaymentOption } from '../utils/offer.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+  DealStatus,
+} from '@windingtree/sdk-types';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('ProtocolContracts');
 
@@ -211,7 +211,11 @@ export class ProtocolContracts<
 
     // Extracting the proper payment method by Id
     // Will throw a error if invalid payment Id provided
-    const paymentOption = getPaymentOption(offer.payment, paymentId);
+    const paymentOption = offer.payment.find((o) => o.id === paymentId);
+
+    if (!paymentOption) {
+      throw new Error(`Payment option ${paymentId} not found`);
+    }
 
     walletClient = walletClient ?? this.walletClient;
 
