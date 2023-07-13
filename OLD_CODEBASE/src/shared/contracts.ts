@@ -39,20 +39,6 @@ const logger = createLogger('ProtocolContracts');
  */
 export type TxCallback = (txHash: string, txSubject?: string) => void;
 
-/**
- * Deal status
- */
-export enum DealStatus {
-  Created, // Just created
-  Claimed, // Claimed by the supplier
-  Rejected, // Rejected by the supplier
-  Refunded, // Refunded by the supplier
-  Cancelled, // Cancelled by the buyer
-  CheckedIn, // Checked In
-  CheckedOut, // Checked Out
-  Disputed, // Dispute started
-}
-
 export interface ProtocolContractsOptions {
   contracts: Contracts;
   publicClient: PublicClient;

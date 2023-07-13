@@ -1,7 +1,7 @@
 {
-  "name": "@windingtree/sdk-logger",
+  "name": "@windingtree/sdk-types",
   "version": "0.0.0",
-  "description": "Logger",
+  "description": "Typescript types for the Windingtree market protocol SDK",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
   "license": "MIT",
@@ -27,17 +27,13 @@
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {
-    "@types/debug": "^4.1.8"
-  },
   "dependencies": {
-    "debug": "^4.3.4"
+    "viem": "^1.2.14"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "tsc",
     "lint": "eslint . --ext .ts --ignore-path ../../.eslintignore",
     "lint:fix": "eslint . --ext .ts --ignore-path ../../.eslintignore --fix && prettier --write .",
-    "test": "vitest --run test",
-    "test:rel": "vitest related --run"
+    "test": "echo \"Error: no test specified\" && exit 0"
   }
 }

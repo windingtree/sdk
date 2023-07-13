@@ -1,5 +1,4 @@
 import { Address, Hash } from 'viem';
-import { DealStatus } from './contracts.js';
 
 /**
  * Generic message data type
@@ -149,6 +148,20 @@ export interface Contracts {
   market: ContractConfig;
   /** The protocol utility token */
   token: ContractConfig;
+}
+
+/**
+ * Deal status
+ */
+export enum DealStatus {
+  Created, // Just created
+  Claimed, // Claimed by the supplier
+  Rejected, // Rejected by the supplier
+  Refunded, // Refunded by the supplier
+  Cancelled, // Cancelled by the buyer
+  CheckedIn, // Checked In
+  CheckedOut, // Checked Out
+  Disputed, // Dispute started
 }
 
 /**
