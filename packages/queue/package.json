@@ -36,8 +36,8 @@
   },
   "scripts": {
     "build": "vite build",
-    "lint": "eslint . --ext .ts --ignore-path ../../.eslintignore",
-    "lint:fix": "eslint . --ext .ts --ignore-path ../../.eslintignore --fix && prettier --write .",
+    "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
+    "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
     "test": "vitest --run test",
     "test:rel": "vitest related --run"
   }

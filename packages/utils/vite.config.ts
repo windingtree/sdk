@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+// import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
   plugins: [
@@ -8,6 +9,14 @@ export default defineConfig({
       insertTypesEntry: true,
       tsconfigPath: './tsconfig-build.json',
     }),
+    // nodePolyfills({
+    //   globals: {
+    //     Buffer: true,
+    //     global: true,
+    //     process: true,
+    //   },
+    //   protocolImports: true,
+    // }),
   ],
   build: {
     lib: {
@@ -25,7 +34,7 @@ export default defineConfig({
       fileName: (format, name) => `${name}.${format}.js`,
     },
     rollupOptions: {
-      external: ['h3-js', 'luxon', 'viem'],
+      external: ['h3-js', 'luxon', 'viem', 'viem/accounts'],
     },
   },
 });

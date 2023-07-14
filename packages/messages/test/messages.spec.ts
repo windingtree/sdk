@@ -9,12 +9,12 @@ import {
   CustomOfferOptions,
   createRequest,
   createOffer,
-} from './setup.js';
-import { generateMnemonic } from '../src/utils/wallet.js';
-import { supplierId as spId } from '../src/utils/uid.js';
+} from '@windingtree/sdk-test-utils';
+import { supplierId as spId } from '@windingtree/sdk-utils/uid';
 import { randomSalt } from '@windingtree/contracts';
-import { RequestData, OfferData } from '../src/shared/types.js';
-import { buildOffer, verifyOffer } from '../src/shared/messages.js';
+import { RequestData, OfferData } from '@windingtree/sdk-types';
+import { generateMnemonic } from '@windingtree/sdk-utils/wallet';
+import { buildOffer, verifyOffer } from '../src/index.js';
 
 describe('Shared.messages', () => {
   const topic = 'test';

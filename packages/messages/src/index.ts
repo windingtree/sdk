@@ -15,7 +15,7 @@ import {
   PaymentOption,
   RequestData,
   UnsignedOfferPayload,
-} from './types.js';
+} from '@windingtree/sdk-types';
 import {
   hashCancelOptionArray,
   hashObject,
@@ -24,7 +24,7 @@ import {
   offerEip712Types,
   checkInOutEip712Types,
 } from '@windingtree/contracts';
-import { parseExpire } from '../utils/time.js';
+import { parseExpire } from '@windingtree/sdk-utils/time';
 
 export type Account = HDAccount | PrivateKeyAccount;
 

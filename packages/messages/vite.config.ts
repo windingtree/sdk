@@ -12,17 +12,17 @@ export default defineConfig({
   build: {
     lib: {
       entry: [resolve(__dirname, 'src/index.ts')],
-      name: 'messages',
+      name: 'queue',
       formats: ['es', 'cjs'],
       fileName: (format, name) => `${name}.${format}.js`,
     },
     rollupOptions: {
       external: [
+        '@libp2p/interfaces',
         '@windingtree/contracts',
-        '@windingtree/sdk-types',
+        '@windingtree/sdk-storage',
         '@windingtree/sdk-utils',
-        'abitype',
-        'viem',
+        '@windingtree/sdk-logger',
       ],
     },
   },
