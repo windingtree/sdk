@@ -1,8 +1,8 @@
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
-import { Storage } from '../../../packages/storage/src/abstract.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+import { Storage } from '@windingtree/sdk-storage';
+import { createLogger } from '@windingtree/sdk-logger';
 
-const logger = createLogger('MessagesCache');
+const logger = createLogger('CenterSub:Cache');
 
 /**
  * Cached message type

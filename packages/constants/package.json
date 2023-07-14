@@ -1,7 +1,7 @@
 {
-  "name": "@windingtree/sdk-test-utils",
+  "name": "@windingtree/sdk-constants",
   "version": "0.0.0",
-  "description": "Testing utilities for the Windingtree market protocol SDK",
+  "description": "libp2p PubSub protocol implementation for the WindingTree market protocol",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
   "license": "MIT",
@@ -26,13 +26,6 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "dependencies": {
-    "vitest": "^0.33.0",
-    "viem": "^1.2.15",
-    "@windingtree/contracts": "^1.0.0-beta.12",
-    "@windingtree/sdk-types": "*",
-    "@windingtree/sdk-messages": "*"
   },
   "scripts": {
     "build": "vite build",

@@ -12,14 +12,14 @@ import type { Direction } from '@libp2p/interface-connection';
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
 import { Multiaddr } from '@multiformats/multiaddr';
 import { sha256 } from 'multiformats/hashes/sha2';
-import { outboundStreamDelay } from '../constants.js';
-import { Storage } from '../../../packages/storage/src/abstract.js';
-import { GenericMessage } from '../shared/types.js';
-import { decodeText } from '../utils/text.js';
+import { outboundStreamDelay } from '@windingtree/sdk-constants';
+import { Storage } from '@windingtree/sdk-storage';
+import { GenericMessage } from '@windingtree/sdk-types';
+import { decodeText } from '@windingtree/sdk-utils/text';
 import { CashedMessageEntry, MessagesCache } from './cache.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+import { createLogger } from '@windingtree/sdk-logger';
 
-const logger = createLogger('PubSub');
+const logger = createLogger('CenterSub');
 
 /**
  * Message transformer function type
