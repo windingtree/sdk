@@ -82,6 +82,24 @@ importers:
         specifier: ^4.1.8
         version: 4.1.8
 
+  packages/queue:
+    dependencies:
+      '@libp2p/interfaces':
+        specifier: ^3.3.2
+        version: 3.3.2
+      '@windingtree/contracts':
+        specifier: ^1.0.0-beta.12
+        version: 1.0.0-beta.12
+      '@windingtree/sdk-logger':
+        specifier: '*'
+        version: link:../logger
+      '@windingtree/sdk-storage':
+        specifier: '*'
+        version: link:../storage
+      '@windingtree/sdk-utils':
+        specifier: '*'
+        version: link:../utils
+
   packages/storage:
     dependencies:
       '@windingtree/sdk-logger':
@@ -670,6 +688,11 @@ packages:
       - bluebird
       - supports-color
     dev: true
+
+  /@libp2p/interfaces@3.3.2:
+    resolution: {integrity: sha512-p/M7plbrxLzuQchvNwww1Was7ZeGE2NaOFulMaZBYIihU8z3fhaV+a033OqnC/0NTX/yhfdNOG7znhYq3XoR/g==}
+    engines: {node: '>=16.0.0', npm: '>=7.0.0'}
+    dev: false
 
   /@microsoft/api-extractor-model@7.27.4(@types/node@20.4.2):
     resolution: {integrity: sha512-HjqQFmuGPOS20rtnu+9Jj0QrqZyR59E+piUWXPMZTTn4jaZI+4UmsHSf3Id8vyueAhOBH2cgwBuRTE5R+MfSMw==}

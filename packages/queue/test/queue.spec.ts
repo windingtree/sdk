@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/require-await */
-import { expect, describe, it, beforeEach } from './setup.js';
-import { Storage, memoryStorage } from '../src/storage/index.js';
+import { expect, describe, it, beforeEach } from 'vitest';
+import { Storage, memoryStorage } from '@windingtree/sdk-storage';
 import {
   Job,
   JobStatus,
@@ -10,7 +10,7 @@ import {
   JobConfig,
   JobData,
   JobHandlerRegistry,
-} from '../src/shared/queue.js';
+} from '../src/index.js';
 
 describe('Job', function () {
   let config: JobConfig;

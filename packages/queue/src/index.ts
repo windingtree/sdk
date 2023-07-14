@@ -1,8 +1,8 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { simpleUid } from '@windingtree/contracts';
-import { Storage } from '../storage/index.js';
-import { backoffWithJitter } from '../utils/time.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+import { Storage } from '@windingtree/sdk-storage';
+import { backoffWithJitter } from '@windingtree/sdk-utils/time';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('Queue');
 
