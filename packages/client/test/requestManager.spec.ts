@@ -6,13 +6,13 @@ import {
   beforeEach,
   createRequest,
   createOffer,
-} from './setup.js';
-import { generateMnemonic } from '../src/utils/wallet.js';
-import { supplierId as spId } from '../src/utils/uid.js';
-import { nowSec } from '../src/utils/time.js';
+} from '@windingtree/sdk-test-utils';
+import { generateMnemonic } from '@windingtree/sdk-utils/wallet';
+import { supplierId as spId } from '@windingtree/sdk-utils/uid';
+import { nowSec } from '@windingtree/sdk-utils/time';
 import { randomSalt } from '@windingtree/contracts';
-import { memoryStorage } from '../src/storage/index.js';
-import { ClientRequestsManager } from '../src/client/requestsManager.js';
+import { memoryStorage } from '@windingtree/sdk-storage';
+import { ClientRequestsManager } from '../src/requestsManager.js';
 
 const expTime = (sec: number): bigint => BigInt(nowSec() + sec);
 

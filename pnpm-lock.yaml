@@ -113,6 +113,13 @@ importers:
       viem:
         specifier: ^1.2.15
         version: 1.2.15(typescript@5.1.6)(zod@3.21.4)
+    devDependencies:
+      '@windingtree/contracts':
+        specifier: ^1.0.0-beta.12
+        version: 1.0.0-beta.12
+      '@windingtree/sdk-test-utils':
+        specifier: '*'
+        version: link:../test-utils
 
   packages/constants: {}
 
