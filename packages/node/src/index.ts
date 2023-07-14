@@ -26,13 +26,18 @@ import {
   GenericOfferOptions,
   GenericQuery,
   OfferData,
-} from '../shared/types.js';
-import { Account, buildOffer, BuildOfferOptions } from '../shared/messages.js';
-import { ServerAddressOption, ChainsConfigOption } from '../shared/options.js';
-import { CenterSub, centerSub } from '../shared/pubsub.js';
+  ServerAddressOption,
+  ChainsConfigOption,
+} from '@windingtree/sdk-types';
+import {
+  Account,
+  buildOffer,
+  BuildOfferOptions,
+} from '@windingtree/sdk-messages';
+import { CenterSub, centerSub } from '@windingtree/sdk-pubsub';
+import { decodeText, encodeText } from '@windingtree/sdk-utils/text';
 import { RequestEvent } from './requestManager.js';
-import { decodeText, encodeText } from '../utils/text.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('Node');
 
@@ -508,13 +513,3 @@ export const createNode = <
  * Request manager exports
  */
 export * from './requestManager.js';
-
-/**
- * API database exports
- */
-export * from './db/index.js';
-
-/**
- * API exports
- */
-export * from './api/index.js';

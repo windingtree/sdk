@@ -1,8 +1,11 @@
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { RequestData, GenericQuery } from '../shared/types.js';
-import { NoncePeriodOption } from '../shared/options.js';
-import { isExpired, nowSec, parseSeconds } from '../utils/time.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+import {
+  RequestData,
+  GenericQuery,
+  NoncePeriodOption,
+} from '@windingtree/sdk-types';
+import { isExpired, nowSec, parseSeconds } from '@windingtree/sdk-utils/time';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('NodeRequestManager');
 

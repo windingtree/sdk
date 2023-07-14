@@ -1,6 +1,6 @@
 import { stringify } from 'viem';
-import { describe, expect, it, beforeEach } from './setup.js';
-import { NodeRequestManager } from '../src/node/index.js';
+import { describe, expect, it, beforeEach } from '@windingtree/sdk-test-utils';
+import { NodeRequestManager } from '../src/index.js';
 
 describe('Node.NodeRequestManager', () => {
   const defaultNoncePeriod = 1;
