@@ -57,6 +57,63 @@ importers:
         specifier: ^0.33.0
         version: 0.33.0
 
+  packages/client:
+    dependencies:
+      '@chainsafe/libp2p-noise':
+        specifier: ^12.0.1
+        version: 12.0.1
+      '@chainsafe/libp2p-yamux':
+        specifier: ^4.0.2
+        version: 4.0.2
+      '@libp2p/interface-connection':
+        specifier: ^5.1.1
+        version: 5.1.1
+      '@libp2p/interface-peer-id':
+        specifier: ^2.0.2
+        version: 2.0.2
+      '@libp2p/interfaces':
+        specifier: ^3.3.2
+        version: 3.3.2
+      '@libp2p/mplex':
+        specifier: ^8.0.4
+        version: 8.0.4
+      '@libp2p/peer-id':
+        specifier: ^2.0.4
+        version: 2.0.4
+      '@libp2p/websockets':
+        specifier: ^6.0.3
+        version: 6.0.3
+      '@multiformats/multiaddr':
+        specifier: ^12.1.3
+        version: 12.1.3
+      '@windingtree/sdk-contracts-manager':
+        specifier: '*'
+        version: link:../contracts-manger
+      '@windingtree/sdk-logger':
+        specifier: '*'
+        version: link:../logger
+      '@windingtree/sdk-messages':
+        specifier: '*'
+        version: link:../messages
+      '@windingtree/sdk-pubsub':
+        specifier: '*'
+        version: link:../pubsub
+      '@windingtree/sdk-storage':
+        specifier: '*'
+        version: link:../storage
+      '@windingtree/sdk-types':
+        specifier: '*'
+        version: link:../types
+      '@windingtree/sdk-utils':
+        specifier: '*'
+        version: link:../utils
+      libp2p:
+        specifier: ^0.45.9
+        version: 0.45.9
+      viem:
+        specifier: ^1.2.15
+        version: 1.2.15(typescript@5.1.6)
+
   packages/constants: {}
 
   packages/contracts-manger:

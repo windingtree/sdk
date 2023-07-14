@@ -8,22 +8,23 @@ import {
   zeroAddress,
   Chain,
 } from 'viem';
-import { ChainsConfigOption, createCheckInOutSignature } from '../index.js';
+import { createCheckInOutSignature } from '@windingtree/sdk-messages';
 import {
+  ChainsConfigOption,
   Contracts,
   GenericOfferOptions,
   GenericQuery,
   OfferData,
   DealRecord,
-} from '../shared/types.js';
-import {
   DealStatus,
+} from '@windingtree/sdk-types';
+import {
   ProtocolContracts,
   TxCallback,
-} from '../shared/contracts.js';
-import { Storage } from '../storage/index.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
-import { parseSeconds } from '../utils/time.js';
+} from '@windingtree/sdk-contracts-manager';
+import { Storage } from '@windingtree/sdk-storage';
+import { createLogger } from '@windingtree/sdk-logger';
+import { parseSeconds } from '@windingtree/sdk-utils/time';
 
 const logger = createLogger('ClientDealsManager');
 

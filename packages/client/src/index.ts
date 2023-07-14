@@ -15,11 +15,11 @@ import {
   GenericOfferOptions,
   GenericQuery,
   RequestData,
-} from '../shared/types.js';
-import { centerSub, CenterSub } from '../shared/pubsub.js';
-import { ServerAddressOption } from '../shared/options.js';
-import { encodeText, decodeText } from '../utils/text.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+  ServerAddressOption,
+} from '@windingtree/sdk-types';
+import { centerSub, CenterSub } from '@windingtree/sdk-pubsub';
+import { encodeText, decodeText } from '@windingtree/sdk-utils/text';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('Client');
 

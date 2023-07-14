@@ -4,10 +4,10 @@ import {
   GenericQuery,
   RequestData,
   OfferData,
-} from '../shared/types.js';
-import { Storage } from '../storage/index.js';
-import { isExpired } from '../utils/time.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+} from '@windingtree/sdk-types';
+import { Storage } from '@windingtree/sdk-storage';
+import { isExpired } from '@windingtree/sdk-utils/time';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('RequestsRegistry');
 
