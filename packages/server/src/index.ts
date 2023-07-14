@@ -6,13 +6,25 @@ import { yamux } from '@chainsafe/libp2p-yamux';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { NodeKeyJson, ServerOptions } from '../shared/options.js';
-import { centerSub, CenterSub } from '../shared/pubsub.js';
-import { decodeText } from '../utils/text.js';
-import { StorageInitializer } from '../../../packages/storage/src/abstract.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+import { NodeKeyJson, PeerOptions } from '@windingtree/sdk-types';
+import { centerSub, CenterSub } from '@windingtree/sdk-pubsub';
+import { decodeText } from '@windingtree/sdk-utils/text';
+import { StorageInitializer } from '@windingtree/sdk-storage';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('Server');
+
+/**
+ * The protocol coordination server options type
+ */
+export interface ServerOptions extends Required<PeerOptions> {
+  /** Optional IP address of the server, defaults to '0.0.0.0' */
+  address?: string;
+  /** Server port */
+  port: number;
+  /** Messages storage initializer */
+  messagesStorageInit: StorageInitializer;
+}
 
 /**
  * Coordination server events interface
@@ -77,7 +89,7 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
    * @readonly
    * @memberof CoordinationServer
    */
-  get multiaddrs() {
+  get multiaddrs(): ReturnType<Libp2p['getMultiaddrs']> {
     if (!this.libp2p) {
       throw new Error('libp2p not initialized yet');
     }

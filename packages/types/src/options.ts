@@ -1,6 +1,5 @@
-import { Chain } from 'viem';
-import { StorageInitializer } from '../../../packages/storage/src/abstract.js';
-import { Contracts } from './types.js';
+import type { Chain } from 'viem';
+import type { Contracts } from './index.js';
 
 export type NoncePeriodOption = {
   /** Period while the node waits and accepting requests with the same Id */
@@ -36,16 +35,4 @@ export interface NodeKeyJson {
 export interface PeerOptions {
   /** Peer key */
   peerKey?: NodeKeyJson;
-}
-
-/**
- * The protocol coordination server options type
- */
-export interface ServerOptions extends Required<PeerOptions> {
-  /** Optional IP address of the server, defaults to '0.0.0.0' */
-  address?: string;
-  /** Server port */
-  port: number;
-  /** Messages storage initializer */
-  messagesStorageInit: StorageInitializer;
 }

@@ -1,4 +1,6 @@
-import { Address, Hash } from 'viem';
+import type { Address, Hash } from 'viem';
+
+export * from './options.js';
 
 /**
  * Generic message data type
