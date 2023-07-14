@@ -1,5 +1,5 @@
-import { describe, it, expect } from './setup.js';
-import { decodeText, encodeText } from '../src/utils/text.js';
+import { describe, it, expect } from 'vitest';
+import { decodeText, encodeText } from '../src/text.js';
 
 describe('Utils.text', () => {
   describe('#decodeText', () => {
