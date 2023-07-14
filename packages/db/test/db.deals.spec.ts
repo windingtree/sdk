@@ -6,17 +6,20 @@ import {
   beforeAll,
   createRequest,
   createOffer,
-} from '../../../OLD_CODEBASE/test/setup.js';
+} from '@windingtree/sdk-test-utils';
 import { HDAccount, Hash } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { randomSalt } from '@windingtree/contracts';
-import { supplierId as spId } from '../src/utils/uid.js';
-import { generateMnemonic } from '../src/utils/wallet.js';
-import { Storage } from '../../storage/src/abstract.js';
-import { MemoryStorage, createInitializer } from '../src/storage/memory.js';
-import { DealRecord } from '../src/shared/types.js';
-import { DealsDb, DealsDbOptions } from '../src/node/db/deals.js';
-import { DealStatus } from '../src/index.js';
+import { supplierId as spId } from '@windingtree/sdk-utils/uid';
+import { generateMnemonic } from '@windingtree/sdk-utils/wallet';
+import { Storage } from '@windingtree/sdk-storage';
+import {
+  MemoryStorage,
+  createInitializer,
+} from '@windingtree/sdk-storage/memory';
+import { DealRecord } from '@windingtree/sdk-types';
+import { DealsDb, DealsDbOptions } from '../src/deals.js';
+import { DealStatus } from '@windingtree/sdk-types';
 
 const buildRandomDeal = async (
   signer: HDAccount,

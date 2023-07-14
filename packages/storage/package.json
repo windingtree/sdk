@@ -22,6 +22,26 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.cjs.js"
       }
+    },
+    "./local": {
+      "import": {
+        "types": "./dist/local.d.ts",
+        "default": "./dist/local.es.js"
+      },
+      "require": {
+        "types": "./dist/local.d.ts",
+        "default": "./dist/local.cjs.js"
+      }
+    },
+    "./memory": {
+      "import": {
+        "types": "./dist/memory.d.ts",
+        "default": "./dist/memory.es.js"
+      },
+      "require": {
+        "types": "./dist/memory.d.ts",
+        "default": "./dist/memory.cjs.js"
+      }
     }
   },
   "publishConfig": {

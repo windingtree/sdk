@@ -1,11 +1,11 @@
-import { describe, beforeAll, it, expect } from './setup.js';
-import { createInitializer } from '../src/storage/memory.js';
+import { describe, beforeAll, it, expect } from 'vitest';
+import { createInitializer } from '@windingtree/sdk-storage/memory';
 import {
   UsersDb,
   UsersDbOptions,
   User,
   comparePassword,
-} from '../src/node/db/users.js';
+} from '../src/users.js';
 
 describe('Node.API.Db', () => {
   const password = 'password';

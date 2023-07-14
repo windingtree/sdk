@@ -47,9 +47,15 @@
   "publishConfig": {
     "access": "public"
   },
+  "devDependencies": {
+    "@windingtree/contracts": "^1.0.0-beta.12",
+    "@windingtree/sdk-utils": "*",
+    "@windingtree/sdk-test-utils": "*"
+  },
   "dependencies": {
     "zod": "^3.21.4",
     "bcrypt-ts": "^4.0.0",
+    "viem": "^1.2.15",
     "@windingtree/sdk-types": "*",
     "@windingtree/sdk-storage": "*",
     "@windingtree/sdk-logger": "*"
