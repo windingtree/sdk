@@ -13,18 +13,13 @@ The WindingTree market protocol SDK
 
 ```bash
 pnpm install
+pnpm build
 ```
 
 ## Testing
 
 ```bash
 pnpm test
-```
-
-## Tests coverage
-
-```bash
-pnpm coverage
 ```
 
 After finishing of tests code coverage script, you can find reports in `./coverage/index.html`
