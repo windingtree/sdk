@@ -13,15 +13,11 @@ export default defineConfig({
     lib: {
       entry: [resolve(__dirname, 'src/index.ts')],
       name: 'logger',
-      formats: ['es', 'umd'],
+      formats: ['es', 'cjs'],
       fileName: (format, name) => `${name}.${format}.js`,
     },
     rollupOptions: {
-      external: ['vite'],
-      input: {
-        index: resolve(__dirname, 'src/index.ts'),
-      },
-      output: {},
+      external: ['debug'],
     },
   },
 });

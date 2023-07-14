@@ -13,15 +13,16 @@ export default defineConfig({
     lib: {
       entry: [resolve(__dirname, 'src/index.ts')],
       name: 'types',
-      formats: ['es', 'umd'],
+      formats: ['es', 'cjs'],
       fileName: (format, name) => `${name}.${format}.js`,
     },
     rollupOptions: {
-      external: ['vite'],
-      input: {
-        index: resolve(__dirname, 'src/index.ts'),
-      },
-      output: {},
+      external: [
+        '@windingtree/contracts',
+        '@windingtree/sdk-types',
+        '@windingtree/sdk-logger',
+        'viem',
+      ],
     },
   },
 });
