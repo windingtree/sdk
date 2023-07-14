@@ -6,13 +6,13 @@ import {
   beforeAll,
   createRequest,
   createOffer,
-} from './setup.js';
+} from '../../../OLD_CODEBASE/test/setup.js';
 import { HDAccount, Hash } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { randomSalt } from '@windingtree/contracts';
 import { supplierId as spId } from '../src/utils/uid.js';
 import { generateMnemonic } from '../src/utils/wallet.js';
-import { Storage } from '../../packages/storage/src/abstract.js';
+import { Storage } from '../../storage/src/abstract.js';
 import { MemoryStorage, createInitializer } from '../src/storage/memory.js';
 import { DealRecord } from '../src/shared/types.js';
 import { DealsDb, DealsDbOptions } from '../src/node/db/deals.js';

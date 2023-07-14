@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { hash } from 'bcrypt-ts';
-import { Storage } from '../../storage/index.js';
+import { Storage } from '@windingtree/sdk-storage';
 
 export { compare as comparePassword } from 'bcrypt-ts';
 

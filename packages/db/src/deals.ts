@@ -1,7 +1,7 @@
 import { Hash } from 'viem';
-import { Storage } from '../../storage/index.js';
-import { DealRecord, PaginationOptions } from '../../shared/types.js';
-import { createLogger } from '../../../../packages/logger/src/index.js';
+import { Storage } from '@windingtree/sdk-storage';
+import { DealRecord, PaginationOptions } from '@windingtree/sdk-types';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('DealsDb');
 
