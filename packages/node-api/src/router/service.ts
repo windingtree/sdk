@@ -1,5 +1,5 @@
 import { router, procedure } from '../index.js';
-import { createLogger } from '../../../../../packages/logger/src/index.js';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('ServiceRouter');
 

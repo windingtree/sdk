@@ -1,11 +1,17 @@
-import { describe, beforeAll, afterAll, it, expect } from './setup.js';
+import {
+  describe,
+  beforeAll,
+  afterAll,
+  it,
+  expect,
+} from '@windingtree/sdk-test-utils';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import { z } from 'zod';
 import { Hash } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import superjson from 'superjson';
-import { generateMnemonic } from '../src/utils/wallet.js';
-import { UserInputType } from '../src/node/db/index.js';
+import { generateMnemonic } from '@windingtree/sdk-utils/wallet';
+import { UserInputType } from '@windingtree/sdk-db/users';
 import {
   NodeApiServer,
   NodeApiServerOptions,
@@ -16,9 +22,9 @@ import {
   authProcedure,
   authAdminProcedure,
   createAdminSignature,
-} from '../src/node/api/index.js';
-import { ACCESS_TOKEN_NAME, accessTokenLink } from '../src/node/api/client.js';
-import { createInitializer } from '../src/storage/memory.js';
+} from '../src/index.js';
+import { createInitializer } from '@windingtree/sdk-storage/memory';
+import { ACCESS_TOKEN_NAME, accessTokenLink } from '../src/client.js';
 
 const testRouter = router({
   admin: adminRouter,

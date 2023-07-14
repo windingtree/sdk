@@ -13,8 +13,8 @@ export default defineConfig({
     lib: {
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
-        users: resolve(__dirname, 'src/users.ts'),
-        deals: resolve(__dirname, 'src/deals.ts'),
+        server: resolve(__dirname, 'src/server.ts'),
+        client: resolve(__dirname, 'src/client.ts'),
       },
       name: 'db',
       formats: ['es', 'cjs'],
@@ -22,11 +22,18 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [
+        '@trpc/server',
+        '@trpc/client',
+        'superjson',
+        'viem',
         'zod',
-        'bcrypt-ts',
         '@windingtree/sdk-types',
         '@windingtree/sdk-storage',
+        '@windingtree/sdk-contracts-manager',
+        '@windingtree/sdk-db',
+        '@windingtree/sdk-messages',
         '@windingtree/sdk-logger',
+        'node:http',
       ],
     },
   },

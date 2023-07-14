@@ -3,8 +3,8 @@ import { observable } from '@trpc/server/observable';
 import { TRPCLink } from '@trpc/client';
 import { Address, Hash, WalletClient } from 'viem';
 import { adminDomain, adminAuthEip712Types } from './constants.js';
-import { Account } from '../../shared/messages.js';
-import { createLogger } from '../../../../packages/logger/src/index.js';
+import { Account } from '@windingtree/sdk-messages';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('NodeApiClient');
 

@@ -1,4 +1,4 @@
-import { IncomingMessage, ServerResponse, createServer } from 'http';
+import { IncomingMessage, ServerResponse, createServer } from 'node:http';
 import { AnyRouter, TRPCError, initTRPC } from '@trpc/server';
 import {
   CreateHTTPContextOptions,
@@ -7,12 +7,12 @@ import {
 import superjson from 'superjson';
 import { SignJWT, jwtVerify } from 'jose';
 import { Address } from 'viem';
-import { Storage } from '../../storage/index.js';
-import { User, UsersDb } from '../db/users.js';
-import { DealsDb } from '../db/deals.js';
-import { ProtocolContracts } from '../../shared/contracts.js';
+import { Storage } from '@windingtree/sdk-storage';
+import { User, UsersDb } from '@windingtree/sdk-db/users';
+import { DealsDb } from '@windingtree/sdk-db/deals';
+import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
 import { ACCESS_TOKEN_NAME } from './constants.js';
-import { createLogger } from '../../../../packages/logger/src/index.js';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('NodeApiServer');
 

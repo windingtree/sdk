@@ -1,0 +1,76 @@
+{
+  "name": "@windingtree/sdk-node-api",
+  "version": "0.0.0",
+  "description": "The WindingTree market protocol node API server and client",
+  "repository": "https://github.com/windingtree/sdk#readme",
+  "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    },
+    "./server": {
+      "import": {
+        "types": "./dist/server.d.ts",
+        "default": "./dist/server.es.js"
+      },
+      "require": {
+        "types": "./dist/server.d.ts",
+        "default": "./dist/server.cjs.js"
+      }
+    },
+    "./client": {
+      "import": {
+        "types": "./dist/client.d.ts",
+        "default": "./dist/client.es.js"
+      },
+      "require": {
+        "types": "./dist/client.d.ts",
+        "default": "./dist/client.cjs.js"
+      }
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@windingtree/sdk-utils": "*",
+    "@windingtree/sdk-test-utils": "*"
+  },
+  "dependencies": {
+    "@trpc/server": "^10.34.0",
+    "@trpc/client": "^10.34.0",
+    "jose": "^4.14.4",
+    "superjson": "^1.12.4",
+    "viem": "^1.2.15",
+    "zod": "^3.21.4",
+    "abitype": "^0.9.2",
+    "@windingtree/sdk-types": "*",
+    "@windingtree/sdk-storage": "*",
+    "@windingtree/sdk-contracts-manager": "*",
+    "@windingtree/sdk-db": "*",
+    "@windingtree/sdk-messages": "*",
+    "@windingtree/sdk-logger": "*"
+  },
+  "scripts": {
+    "build": "vite build",
+    "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
+    "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
+    "test": "vitest --run test",
+    "test:rel": "vitest related --run"
+  }
+}
