@@ -49,7 +49,7 @@
     "commit": "git-cz -S",
     "build": "lerna run build",
     "lint": "lerna run test",
-    "lint:fix": "lerna run lin:fix",
+    "lint:fix": "lerna run lint:fix",
     "test": "vitest run",
     "coverage": "vitest run --coverage"
   }
