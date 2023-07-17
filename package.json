@@ -48,8 +48,8 @@
     "prepare": "husky install",
     "commit": "git-cz -S",
     "build": "lerna run build",
-    "lint": "lerna run lint",
-    "lint:fix": "lerna run lint:fix",
+    "lint": "eslint ./packages --ext .ts --ignore-path ./.lintignore --max-warnings 3",
+    "lint:fix": "eslint ./packages --ext .ts --ignore-path ./.lintignore --fix && prettier --ignore-path ./.lintignore  --write ./packages",
     "test": "vitest run",
     "coverage": "vitest run --coverage"
   }
