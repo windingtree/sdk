@@ -9,20 +9,17 @@ The WindingTree market protocol SDK
 
 ## Setup
 
+> This repository uses [`pnpm` package manager](https://pnpm.io/installation).
+
 ```bash
-yarn
+pnpm install
+pnpm build
 ```
 
 ## Testing
 
 ```bash
-yarn test
-```
-
-## Tests coverage
-
-```bash
-yarn coverage
+pnpm test
 ```
 
 After finishing of tests code coverage script, you can find reports in `./coverage/index.html`

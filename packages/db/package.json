@@ -1,0 +1,70 @@
+{
+  "name": "@windingtree/sdk-db",
+  "version": "0.0.0",
+  "description": "Databases for the WindingTree market protocol",
+  "repository": "https://github.com/windingtree/sdk#readme",
+  "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    },
+    "./users": {
+      "import": {
+        "types": "./dist/users.d.ts",
+        "default": "./dist/users.es.js"
+      },
+      "require": {
+        "types": "./dist/users.d.ts",
+        "default": "./dist/users.cjs.js"
+      }
+    },
+    "./deals": {
+      "import": {
+        "types": "./dist/deals.d.ts",
+        "default": "./dist/deals.es.js"
+      },
+      "require": {
+        "types": "./dist/deals.d.ts",
+        "default": "./dist/deals.cjs.js"
+      }
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@windingtree/contracts": "^1.0.0-beta.12",
+    "@windingtree/sdk-utils": "*",
+    "@windingtree/sdk-test-utils": "*"
+  },
+  "dependencies": {
+    "zod": "^3.21.4",
+    "bcrypt-ts": "^4.0.0",
+    "viem": "^1.2.15",
+    "@windingtree/sdk-types": "*",
+    "@windingtree/sdk-storage": "*",
+    "@windingtree/sdk-logger": "*"
+  },
+  "scripts": {
+    "build": "vite build",
+    "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
+    "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
+    "test": "vitest --run test",
+    "test:rel": "vitest related --run"
+  }
+}
