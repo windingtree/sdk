@@ -1,0 +1,43 @@
+{
+  "name": "@windingtree/sdk-logger",
+  "version": "0.0.0",
+  "description": "Logger",
+  "repository": "https://github.com/windingtree/sdk#readme",
+  "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.8"
+  },
+  "dependencies": {
+    "debug": "^4.3.4"
+  },
+  "scripts": {
+    "build": "vite build",
+    "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
+    "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
+    "test": "vitest --run test",
+    "test:rel": "vitest related --run"
+  }
+}
