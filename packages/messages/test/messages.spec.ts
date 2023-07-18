@@ -5,15 +5,17 @@ import {
   it,
   beforeAll,
   expectDeepEqual,
-  CustomQuery,
-  CustomOfferOptions,
-  createRequest,
-  createOffer,
 } from '@windingtree/sdk-test-utils';
-import { supplierId as spId } from '@windingtree/sdk-utils/uid';
+import { supplierId as spId } from '@windingtree/sdk-utils';
 import { randomSalt } from '@windingtree/contracts';
 import { RequestData, OfferData } from '@windingtree/sdk-types';
-import { generateMnemonic } from '@windingtree/sdk-utils/wallet';
+import { generateMnemonic } from '@windingtree/sdk-utils';
+import {
+  CustomQuery,
+  CustomOfferOptions,
+  createRandomOffer,
+  createRandomRequest,
+} from '../src/testUtils.js';
 import { buildOffer, verifyOffer } from '../src/index.js';
 
 describe('Shared.messages', () => {
@@ -30,28 +32,36 @@ describe('Shared.messages', () => {
   let request: RequestData<CustomQuery>;
 
   beforeAll(async () => {
-    request = await createRequest(topic);
+    request = await createRandomRequest(topic);
   });
 
   describe('#buildRequest', () => {
     it('should build a request', async () => {
-      await expect(createRequest(topic)).resolves.toBeTypeOf('object');
-      await expect(createRequest(topic, '1h')).resolves.toBeTypeOf('object');
+      await expect(createRandomRequest(topic)).resolves.toBeTypeOf('object');
+      await expect(createRandomRequest(topic, '1h')).resolves.toBeTypeOf(
+        'object',
+      );
     });
   });
 
   describe('#buildOffer', () => {
     it('should build an offer', async () => {
       try {
-        await createOffer(request, '30s', typedDomain, supplierId, signer);
+        await createRandomOffer(
+          request,
+          '30s',
+          typedDomain,
+          supplierId,
+          signer,
+        );
       } catch (error) {
         console.log(error);
       }
       await expect(
-        createOffer(request, BigInt(1), typedDomain, supplierId, signer),
+        createRandomOffer(request, BigInt(1), typedDomain, supplierId, signer),
       ).resolves.toBeTypeOf('object');
       await expect(
-        createOffer(request, '30s', typedDomain, supplierId, signer),
+        createRandomOffer(request, '30s', typedDomain, supplierId, signer),
       ).resolves.toBeTypeOf('object');
     });
 
@@ -59,7 +69,7 @@ describe('Shared.messages', () => {
       let offer: OfferData<CustomQuery, CustomOfferOptions>;
 
       beforeAll(async () => {
-        offer = await createOffer(
+        offer = await createRandomOffer(
           request,
           BigInt(1),
           typedDomain,
@@ -113,7 +123,7 @@ describe('Shared.messages', () => {
     let offer: OfferData<CustomQuery, CustomOfferOptions>;
 
     beforeAll(async () => {
-      offer = await createOffer(
+      offer = await createRandomOffer(
         request,
         BigInt(1),
         typedDomain,

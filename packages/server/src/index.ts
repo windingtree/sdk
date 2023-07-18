@@ -8,7 +8,7 @@ import { all } from '@libp2p/websockets/filters';
 import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
 import { NodeKeyJson, PeerOptions } from '@windingtree/sdk-types';
 import { centerSub, CenterSub } from '@windingtree/sdk-pubsub';
-import { decodeText } from '@windingtree/sdk-utils/text';
+import { decodeText } from '@windingtree/sdk-utils';
 import { StorageInitializer } from '@windingtree/sdk-storage';
 import { createLogger } from '@windingtree/sdk-logger';
 

@@ -11,8 +11,10 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      entry: [resolve(__dirname, 'src/index.ts')],
       name: 'types',
+      entry: {
+        index: resolve(__dirname, 'src/index.ts'),
+      },
       formats: ['es', 'cjs'],
       fileName: (format, name) => `${name}.${format}.js`,
     },

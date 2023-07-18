@@ -48,11 +48,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@windingtree/sdk-logger": "*",
+    "@windingtree/sdk-logger": "workspace:*",
     "superjson": "^1.12.4"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "rm -rf dist && vite build",
     "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
     "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
     "test": "vitest --run test",

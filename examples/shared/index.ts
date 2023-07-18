@@ -3,7 +3,7 @@ import {
   GenericQuery,
   GenericOfferOptions,
   Contracts,
-} from '../../src/shared/types.js';
+} from '@windingtree/sdk-types';
 
 export interface RequestQuery extends GenericQuery {
   greeting: string;

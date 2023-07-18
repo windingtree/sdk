@@ -1,5 +1,5 @@
 import { describe, beforeAll, it, expect } from 'vitest';
-import { createInitializer } from '@windingtree/sdk-storage/memory';
+import { memoryStorage } from '@windingtree/sdk-storage';
 import {
   UsersDb,
   UsersDbOptions,
@@ -14,7 +14,7 @@ describe('Node.API.Db', () => {
 
   beforeAll(async () => {
     const options: UsersDbOptions = {
-      storage: await createInitializer({
+      storage: await memoryStorage.createInitializer({
         scope: 'users',
       })(),
       prefix: 'test',

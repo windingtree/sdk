@@ -35,11 +35,11 @@
     "@libp2p/mplex": "^8.0.4",
     "@chainsafe/libp2p-yamux": "^4.0.2",
     "@libp2p/websockets": "^6.0.3",
-    "@windingtree/sdk-types": "*",
-    "@windingtree/sdk-pubsub": "*",
-    "@windingtree/sdk-utils": "*",
-    "@windingtree/sdk-storage": "*",
-    "@windingtree/sdk-logger": "*"
+    "@windingtree/sdk-types": "workspace:*",
+    "@windingtree/sdk-pubsub": "workspace:*",
+    "@windingtree/sdk-utils": "workspace:*",
+    "@windingtree/sdk-storage": "workspace:*",
+    "@windingtree/sdk-logger": "workspace:*"
   },
   "scripts": {
     "build": "vite build",

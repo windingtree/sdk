@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { DealRecord, DealStatus, RequestData } from '@windingtree/sdk-types';
 import { Account, createCheckInOutSignature } from '@windingtree/sdk-messages';
-import { router, authProcedure, withDeals, withContracts } from '../index.js';
+import { router, authProcedure, withDeals, withContracts } from '../server.js';
 import { PaginationInputSchema } from './utils.js';
 import { createLogger } from '@windingtree/sdk-logger';
 

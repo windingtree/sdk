@@ -18,7 +18,7 @@ import {
   ServerAddressOption,
 } from '@windingtree/sdk-types';
 import { centerSub, CenterSub } from '@windingtree/sdk-pubsub';
-import { encodeText, decodeText } from '@windingtree/sdk-utils/text';
+import { encodeText, decodeText } from '@windingtree/sdk-utils';
 import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('Client');

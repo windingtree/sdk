@@ -24,7 +24,12 @@ import {
   offerEip712Types,
   checkInOutEip712Types,
 } from '@windingtree/contracts';
-import { parseExpire } from '@windingtree/sdk-utils/time';
+import { parseExpire } from '@windingtree/sdk-utils';
+
+/**
+ * Re-exports of the test utils
+ */
+export * from './testUtils.js';
 
 export type Account = HDAccount | PrivateKeyAccount;
 

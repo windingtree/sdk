@@ -10,21 +10,22 @@ import { z } from 'zod';
 import { Hash } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import superjson from 'superjson';
-import { generateMnemonic } from '@windingtree/sdk-utils/wallet';
-import { UserInputType } from '@windingtree/sdk-db/users';
+import { generateMnemonic } from '@windingtree/sdk-utils';
+import { UserInputType } from '@windingtree/sdk-db';
 import {
   NodeApiServer,
   NodeApiServerOptions,
   router,
-  adminRouter,
-  userRouter,
-  dealsRouter,
   authProcedure,
   authAdminProcedure,
+} from '../src/server.js';
+import { adminRouter, userRouter, dealsRouter } from '../src/router/index.js';
+import { memoryStorage } from '@windingtree/sdk-storage';
+import {
+  ACCESS_TOKEN_NAME,
+  accessTokenLink,
   createAdminSignature,
-} from '../src/index.js';
-import { createInitializer } from '@windingtree/sdk-storage/memory';
-import { ACCESS_TOKEN_NAME, accessTokenLink } from '../src/client.js';
+} from '../src/client.js';
 
 const testRouter = router({
   admin: adminRouter,
@@ -53,7 +54,7 @@ describe('NodeApiServer', () => {
 
   beforeAll(async () => {
     options = {
-      usersStorage: await createInitializer({
+      usersStorage: await memoryStorage.createInitializer({
         scope: 'users',
       })(),
       prefix: 'test',

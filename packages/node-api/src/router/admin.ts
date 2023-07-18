@@ -1,8 +1,8 @@
 import { TRPCError } from '@trpc/server';
 import { Address, Hash, verifyTypedData } from 'viem';
 import { adminDomain, adminAuthEip712Types } from '../constants.js';
-import { User, UserInputSchema } from '@windingtree/sdk-db/users';
-import { router, procedure, withOwnerAccount } from '../index.js';
+import { User, UserInputSchema } from '@windingtree/sdk-db';
+import { router, procedure, withOwnerAccount } from '../server.js';
 import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('AdminRouter');

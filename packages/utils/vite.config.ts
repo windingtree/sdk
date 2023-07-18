@@ -1,7 +1,6 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
-// import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
   plugins: [
@@ -9,17 +8,10 @@ export default defineConfig({
       insertTypesEntry: true,
       tsconfigPath: './tsconfig-build.json',
     }),
-    // nodePolyfills({
-    //   globals: {
-    //     Buffer: true,
-    //     global: true,
-    //     process: true,
-    //   },
-    //   protocolImports: true,
-    // }),
   ],
   build: {
     lib: {
+      name: 'utils',
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
         h3: resolve(__dirname, 'src/h3.ts'),
@@ -29,7 +21,6 @@ export default defineConfig({
         uid: resolve(__dirname, 'src/uid.ts'),
         wallet: resolve(__dirname, 'src/wallet.ts'),
       },
-      name: 'types',
       formats: ['es', 'cjs'],
       fileName: (format, name) => `${name}.${format}.js`,
     },

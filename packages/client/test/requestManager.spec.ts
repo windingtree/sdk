@@ -1,15 +1,12 @@
 import { mnemonicToAccount } from 'viem/accounts';
+import { expect, describe, it, beforeEach } from '@windingtree/sdk-test-utils';
 import {
-  expect,
-  describe,
-  it,
-  beforeEach,
-  createRequest,
-  createOffer,
-} from '@windingtree/sdk-test-utils';
-import { generateMnemonic } from '@windingtree/sdk-utils/wallet';
-import { supplierId as spId } from '@windingtree/sdk-utils/uid';
-import { nowSec } from '@windingtree/sdk-utils/time';
+  createRandomRequest,
+  createRandomOffer,
+} from '@windingtree/sdk-messages';
+import { generateMnemonic } from '@windingtree/sdk-utils';
+import { supplierId as spId } from '@windingtree/sdk-utils';
+import { nowSec } from '@windingtree/sdk-utils';
 import { randomSalt } from '@windingtree/contracts';
 import { memoryStorage } from '@windingtree/sdk-storage';
 import { ClientRequestsManager } from '../src/requestsManager.js';
@@ -39,7 +36,7 @@ describe('Client.ClientRequestManager', () => {
 
   describe('#add', () => {
     it('should add a request and emit a request event', async () => {
-      const request = await createRequest(topic, expTime(10));
+      const request = await createRandomRequest(topic, expTime(10));
       await new Promise<void>((resolve) => {
         clientRequestManager.addEventListener('request', ({ detail }) => {
           expect(detail.data).to.equal(request);
@@ -52,7 +49,7 @@ describe('Client.ClientRequestManager', () => {
 
   describe('#get', () => {
     it('should get a request by id', async () => {
-      const request = await createRequest(topic, expTime(10));
+      const request = await createRandomRequest(topic, expTime(10));
       clientRequestManager.add(request);
       const result = clientRequestManager.get(request.id);
       expect(result?.data).to.equal(request);
@@ -61,8 +58,8 @@ describe('Client.ClientRequestManager', () => {
 
   describe('#getAll', () => {
     it('should get all requests', async () => {
-      const request1 = await createRequest(topic, expTime(10));
-      const request2 = await createRequest(topic, expTime(10));
+      const request1 = await createRandomRequest(topic, expTime(10));
+      const request2 = await createRandomRequest(topic, expTime(10));
       clientRequestManager.add(request1);
       clientRequestManager.add(request2);
       const result = clientRequestManager.getAll();
@@ -80,7 +77,7 @@ describe('Client.ClientRequestManager', () => {
     });
 
     it('should cancel a request and emit a cancel event', async () => {
-      const request = await createRequest(topic, expTime(10));
+      const request = await createRandomRequest(topic, expTime(10));
       clientRequestManager.add(request);
       await new Promise<void>((resolve) => {
         clientRequestManager.addEventListener('cancel', ({ detail }) => {
@@ -99,7 +96,7 @@ describe('Client.ClientRequestManager', () => {
     });
 
     it('should delete a request and emit a delete event', async () => {
-      const request = await createRequest(topic, expTime(10));
+      const request = await createRandomRequest(topic, expTime(10));
       clientRequestManager.add(request);
       await new Promise<void>((resolve) => {
         clientRequestManager.addEventListener('delete', ({ detail }) => {
@@ -113,8 +110,8 @@ describe('Client.ClientRequestManager', () => {
 
   describe('#clear', () => {
     it('should clear all requests and emit a clear event', async () => {
-      const request1 = await createRequest(topic, expTime(10));
-      const request2 = await createRequest(topic, expTime(10));
+      const request1 = await createRandomRequest(topic, expTime(10));
+      const request2 = await createRandomRequest(topic, expTime(10));
       clientRequestManager.add(request1);
       clientRequestManager.add(request2);
       await new Promise<void>((resolve) => {
@@ -130,7 +127,7 @@ describe('Client.ClientRequestManager', () => {
 
   describe('#prune', () => {
     it('should unsubscribe expired requests and emit an expire event', async () => {
-      const request = await createRequest(topic, expTime(1));
+      const request = await createRandomRequest(topic, expTime(1));
       clientRequestManager.add(request);
       await new Promise((resolve) => setTimeout(resolve, 1100));
       await new Promise<void>((resolve) => {
@@ -145,8 +142,8 @@ describe('Client.ClientRequestManager', () => {
 
   describe('#addOffer', () => {
     it('should throw an error if the request does not exist', async () => {
-      const request = await createRequest(topic, expTime(10));
-      const offer = await createOffer(
+      const request = await createRandomRequest(topic, expTime(10));
+      const offer = await createRandomOffer(
         request,
         '30s',
         typedDomain,
@@ -159,8 +156,8 @@ describe('Client.ClientRequestManager', () => {
     });
 
     it('should add an offer to a request and emit an offer event', async () => {
-      const request = await createRequest(topic, expTime(10));
-      const offer = await createOffer(
+      const request = await createRandomRequest(topic, expTime(10));
+      const offer = await createRandomOffer(
         request,
         '30s',
         typedDomain,

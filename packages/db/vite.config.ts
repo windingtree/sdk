@@ -11,17 +11,18 @@ export default defineConfig({
   ],
   build: {
     lib: {
+      name: 'db',
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
         users: resolve(__dirname, 'src/users.ts'),
         deals: resolve(__dirname, 'src/deals.ts'),
       },
-      name: 'db',
       formats: ['es', 'cjs'],
       fileName: (format, name) => `${name}.${format}.js`,
     },
     rollupOptions: {
       external: [
+        'viem',
         'zod',
         'bcrypt-ts',
         '@windingtree/sdk-types',

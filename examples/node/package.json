@@ -1,0 +1,45 @@
+{
+  "name": "wtmp-protocol-node-example",
+  "version": "0.0.0",
+  "description": "The WindingTree market protocol node example",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "keywords": [
+    "node",
+    "wtmp",
+    "example"
+  ],
+  "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
+  "contributors": [
+    "Kostiantyn Smyrnov <kostysh@gmail.com>"
+  ],
+  "license": "ISC",
+  "scripts": {
+    "build": "tsc -p ./tsconfig.json",
+    "start": "node ./dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.3.0",
+    "vite": "^4.4.4"
+  },
+  "dependencies": {
+    "@libp2p/interfaces": "^3.3.2",
+    "viem": "^1.3.0",
+    "luxon": "^3.3.0",
+    "dotenv": "^16.3.1",
+    "wtmp-protocol-examples-shared-files": "workspace:*",
+    "@windingtree/contracts": "^1.0.0-beta.12",
+    "@windingtree/sdk-types": "workspace:*",
+    "@windingtree/sdk-db": "workspace:*",
+    "@windingtree/sdk-node": "workspace:*",
+    "@windingtree/sdk-node-api": "workspace:*",
+    "@windingtree/sdk-contracts-manager": "workspace:*",
+    "@windingtree/sdk-constants": "workspace:*",
+    "@windingtree/sdk-storage": "workspace:*",
+    "@windingtree/sdk-utils": "workspace:*",
+    "@windingtree/sdk-queue": "workspace:*",
+    "@windingtree/sdk-logger": "workspace:*"
+  }
+}

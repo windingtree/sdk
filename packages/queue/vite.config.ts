@@ -11,8 +11,8 @@ export default defineConfig({
   ],
   build: {
     lib: {
+      name: 'queue',
       entry: [resolve(__dirname, 'src/index.ts')],
-      name: 'messages',
       formats: ['es', 'cjs'],
       fileName: (format, name) => `${name}.${format}.js`,
     },
