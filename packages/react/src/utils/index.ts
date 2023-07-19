@@ -1,9 +1,17 @@
 import { formatUnits, Hash } from 'viem';
 
+// bytes32(0) string
 export const ZeroHash: Hash =
   '0x0000000000000000000000000000000000000000000000000000000000000000';
 
-// Makes shorter text with ellipsis in the center
+/**
+ * Makes shorter text with ellipsis in the center
+ *
+ * @param {string} text String to clip
+ * @param {number} width Maximum string width
+ * @param {number} prefix Symbols at the start to skip
+ * @returns {string} Clipped string with ellipsis
+ */
 export const centerEllipsis = (text: string, width = 4, prefix = 2): string =>
   text
     ? text.length > width * 2 + prefix
@@ -13,7 +21,13 @@ export const centerEllipsis = (text: string, width = 4, prefix = 2): string =>
       : text
     : '';
 
-// Formats balance value
+/**
+ * Formats balance value
+ *
+ * @param {bigint} balance Balance value
+ * @param {number} decimals Decimals number to format to
+ * @returns {string} Formatted balance value string
+ */
 export const formatBalance = (balance: bigint, decimals: number): string => {
   const ether = formatUnits(balance, 18);
   const decimalPart = ether.split('.')[1] || '';
@@ -21,6 +35,12 @@ export const formatBalance = (balance: bigint, decimals: number): string => {
   return `${ether.split('.')[0]}.${paddedDecimalPart.slice(0, decimals)}`;
 };
 
+/**
+ * Parses a error from wallet
+ *
+ * @param {*} error Error instance
+ * @returns {string} Error message
+ */
 export const parseWalletError = (error: any): string => {
   if (!error.code) {
     return error.message;

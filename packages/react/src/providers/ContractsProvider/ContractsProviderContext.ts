@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { ProtocolContracts } from '../../../../../src/shared/contracts.js';
+import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
 
 export interface ContractsContextData {
   contracts?: ProtocolContracts;

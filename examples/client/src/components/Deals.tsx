@@ -1,18 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
 import { Address, Hash } from 'viem';
-import {
-  DealRecord,
-  DealStatus,
-} from '../../../../src/index.js'; // @windingtree/sdk
-import { ClientDealsManager } from '../../../../src/client/dealsManager.js';
-import { RequestQuery, OfferOptions } from '../../../shared/index.js';
+import { DealRecord, DealStatus } from '@windingtree/sdk-types';
+import { ClientDealsManager } from '@windingtree/sdk-client';
+import { RequestQuery, OfferOptions } from 'wtmp-protocol-examples-shared-files';
 import {
   centerEllipsis,
   formatBalance,
   parseWalletError,
-} from '../../../react-libs/src/utils/index.js';
-import { useWallet } from '../../../react-libs/src/providers/WalletProvider/WalletProviderContext.js';
+} from '@windingtree/sdk-react/utils';
+import { useWallet } from '@windingtree/sdk-react/providers';
 
 export type DealsRegistryRecord = Required<
   DealRecord<RequestQuery, OfferOptions>

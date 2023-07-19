@@ -1,16 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Hash, stringify } from 'viem';
-import { ClientDealsManager } from '../../../../src/client/dealsManager.js';
-import { OfferData } from '../../../../src/shared/types.js';
-import { RequestQuery, OfferOptions } from '../../../shared/index.js';
+import { ClientDealsManager } from '@windingtree/sdk-client';
+import { OfferData } from '@windingtree/sdk-types';
+import { RequestQuery, OfferOptions } from 'wtmp-protocol-examples-shared-files';
 import {
   ZeroHash,
   centerEllipsis,
   formatBalance,
   parseWalletError,
-} from '../../../react-libs/src/utils/index.js';
-import { useWallet } from '../../../react-libs/src/providers/WalletProvider/WalletProviderContext.js';
-import { ConnectButton } from '../../../react-libs/src/providers/WalletProvider/ConnectButton.js';
+} from '@windingtree/sdk-react/utils';
+import { useWallet, ConnectButton } from '@windingtree/sdk-react/providers';
 
 interface MakeDealProps {
   offer?: OfferData<RequestQuery, OfferOptions>;

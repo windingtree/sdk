@@ -1,4 +1,4 @@
-import { useWallet } from './WalletProviderContext';
+import { useWallet } from './WalletProviderContext.js';
 
 /**
  * This button allows to connect/disconnect injected wallet

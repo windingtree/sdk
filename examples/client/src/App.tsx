@@ -7,17 +7,17 @@ import {
   ClientRequestsManager,
   ClientDealsManager,
   ClientRequestRecord,
-} from '../../../src/client/index.js'; // @windingtree/sdk
-import { storage, buildRequest } from '../../../src/index.js'; // @windingtree/sdk
+} from '@windingtree/sdk-client';
+import { localStorage } from '@windingtree/sdk-storage';
+import { buildRequest } from '@windingtree/sdk-messages';
 import {
   RequestQuery,
   OfferOptions,
   contractsConfig,
   serverAddress,
-} from '../../shared/index.js';
-import { OfferData, RequestData } from '../../../src/shared/types.js';
-import { useWallet } from '../../react-libs/src/providers/WalletProvider/WalletProviderContext.js';
-import { AccountWidget } from '../../react-libs/src/providers/WalletProvider/AccountWidget.js';
+} from 'wtmp-protocol-examples-shared-files';
+import { OfferData, RequestData } from '@windingtree/sdk-types';
+import { useWallet, AccountWidget } from '@windingtree/sdk-react/providers';
 import { FormValues, RequestForm } from './components/RequestForm.js';
 import { Tabs, TabPanel } from './components/Tabs.js';
 import { Requests, RequestsRegistryRecord } from './components/Requests.js';
@@ -128,7 +128,7 @@ export const App = () => {
       try {
         setError(undefined);
 
-        const storageInitializer = storage.localStorage.createInitializer({
+        const storageInitializer = localStorage.createInitializer({
           session: false, // session or local storage
         });
 

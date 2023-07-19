@@ -1,5 +1,5 @@
-import { useWallet } from './WalletProviderContext';
-import { ConnectButton } from './ConnectButton';
+import { useWallet } from './WalletProviderContext.js';
+import { ConnectButton } from './ConnectButton.js';
 
 export const AccountWidget = () => {
   const { account, balance } = useWallet();

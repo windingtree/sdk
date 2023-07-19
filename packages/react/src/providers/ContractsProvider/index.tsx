@@ -1,10 +1,14 @@
 import { PropsWithChildren, useEffect, useState } from 'react';
-import { ContractsContext } from './ContractsProviderContext';
-import { useWallet } from '../WalletProvider/WalletProviderContext';
-import { ProtocolContracts } from '../../../../../src/shared/contracts';
-import { contractsConfig } from '../../../../shared/index.js'
+import { ContractsContext } from './ContractsProviderContext.js';
+import { useWallet } from '../WalletProvider/WalletProviderContext.js';
+import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
+import { Contracts } from '@windingtree/sdk-types';
 
-export const ContractProvider = ({ children }: PropsWithChildren) => {
+export interface ContractProviderProps extends PropsWithChildren {
+  contractsConfig: Contracts;
+}
+
+export const ContractsProvider = ({ contractsConfig, children }: ContractProviderProps) => {
   const { publicClient, walletClient } = useWallet();
   const [contracts, setContracts] = useState<ProtocolContracts | undefined>();
 
@@ -18,7 +22,7 @@ export const ContractProvider = ({ children }: PropsWithChildren) => {
     );
 
     return () => setContracts(undefined);
-  }, [publicClient, walletClient]);
+  }, [contractsConfig, publicClient, walletClient]);
 
   return (
     <ContractsContext.Provider

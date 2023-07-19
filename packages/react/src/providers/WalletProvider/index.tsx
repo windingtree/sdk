@@ -14,11 +14,15 @@ import {
   createWalletClient,
   http,
 } from 'viem';
-import { polygonZkEvmTestnet, hardhat } from 'viem/chains';
-import { WalletContext } from './WalletProviderContext';
-import { formatBalance } from '../../utils';
+import { Chain } from 'viem/chains';
+import { WalletContext } from './WalletProviderContext.js';
+import { formatBalance } from '../../utils/index.js';
 
-export const WalletProvider = ({ children }: PropsWithChildren) => {
+export interface WalletProviderProps extends PropsWithChildren {
+  targetChain: Chain;
+}
+
+export const WalletProvider = ({ targetChain, children }: WalletProviderProps) => {
   const [walletClient, setWalletClient] = useState<WalletClient | undefined>();
   const [chainId, setChainId] = useState<bigint | undefined>();
   const [account, setAccount] = useState<Address | undefined>();
@@ -26,14 +30,6 @@ export const WalletProvider = ({ children }: PropsWithChildren) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [balance, setBalance] = useState<string>('0.0000');
   const [error, setError] = useState<string | undefined>();
-
-  const targetChain = useMemo(
-    () =>
-      import.meta.env.VITE_LOCAL_NODE === 'hardhat'
-        ? hardhat
-        : polygonZkEvmTestnet,
-    [],
-  );
 
   const publicClient = useMemo(
     () =>
