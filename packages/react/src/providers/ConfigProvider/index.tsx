@@ -13,9 +13,7 @@ import {
   SetConfigAction,
   AppConfig,
   ConfigContext,
-} from './ConfigProviderContext';
-
-export type { AppConfig, ConfigActions } from './ConfigProviderContext';
+} from './ConfigProviderContext.js';
 
 const configReducer = (state: AppConfig, action: SetConfigAction) => {
   switch (action.type) {

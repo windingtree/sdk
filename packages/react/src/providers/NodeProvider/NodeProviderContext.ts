@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import { createTRPCProxyClient } from '@trpc/client';
-import type { AppRouter } from '../../../../../src/node/api/index.js';
+import type { AppRouter } from '@windingtree/sdk-node-api/router';
 
 export interface NodeContextData {
   node?: ReturnType<typeof createTRPCProxyClient<AppRouter>> | undefined;

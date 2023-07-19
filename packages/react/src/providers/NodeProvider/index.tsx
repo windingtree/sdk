@@ -1,9 +1,9 @@
-import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+import { CreateTRPCClientOptions, createTRPCProxyClient, httpBatchLink  } from '@trpc/client';
 import superjson from 'superjson';
 import { PropsWithChildren, useState, useEffect } from 'react';
-import { NodeContext } from './NodeProviderContext';
-import { unauthorizedLink } from '../../../../../src/node/api/client.js';
-import type { AppRouter } from '../../../../../src/node/api/index.js';
+import { NodeContext } from './NodeProviderContext.js';
+import { unauthorizedLink } from '@windingtree/sdk-node-api/client';
+import type { AppRouter } from '@windingtree/sdk-node-api/router';
 import { useConfig } from '../ConfigProvider/ConfigProviderContext.js';
 
 export const NodeProvider = ({ children }: PropsWithChildren) => {
@@ -33,7 +33,7 @@ export const NodeProvider = ({ children }: PropsWithChildren) => {
         setError(undefined);
 
         const tRpcNode = createTRPCProxyClient<AppRouter>({
-          transformer: superjson,
+          transformer: superjson as unknown as CreateTRPCClientOptions<AppRouter>['transformer'],
           links: [
             unauthorizedLink(resetAuth),
             httpBatchLink({
