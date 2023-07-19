@@ -19,11 +19,12 @@ import {
   stableCoins,
   serverAddress,
 } from 'wtmp-protocol-examples-shared-files';
-import { appRouter, NodeApiServer } from '@windingtree/sdk-node-api';
-import { Queue, JobHandler } from '@windingtree/sdk-queue';
 import { OfferData, DealStatus } from '@windingtree/sdk-types';
-import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
 import { noncePeriod } from '@windingtree/sdk-constants';
+import { Queue, JobHandler } from '@windingtree/sdk-queue';
+import { NodeApiServer } from '@windingtree/sdk-node-api/server';
+import { appRouter } from '@windingtree/sdk-node-api/router';
+import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
 import { memoryStorage } from '@windingtree/sdk-storage';
 import { nowSec, parseSeconds } from '@windingtree/sdk-utils';
 import { DealsDb } from '@windingtree/sdk-db';

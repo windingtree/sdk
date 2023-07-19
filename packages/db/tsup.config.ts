@@ -6,8 +6,10 @@ export default defineConfig([
     tsconfig: './tsconfig-build.json',
     entry: {
       index: './src/index.ts',
+      users: './src/users.ts',
+      deals: './src/deals.ts',
     },
-    platform: 'node',
+    platform: 'neutral',
     treeshake: true,
     dts: true,
     sourcemap: true,

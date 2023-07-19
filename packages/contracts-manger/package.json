@@ -9,18 +9,18 @@
   "files": [
     "dist"
   ],
-  "types": "./dist/cjs/index.d.ts",
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/cjs/index.js",
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.js",
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/esm/index.d.ts",
-        "default": "./dist/esm/index.js"
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
       },
       "require": {
-        "types": "./dist/cjs/index.d.ts",
-        "default": "./dist/cjs/index.js"
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
       }
     }
   },
@@ -34,7 +34,7 @@
     "viem": "^1.2.14"
   },
   "scripts": {
-    "build": "rm -rf ./dist && tsc -p ./tsconfig-build.es.json && tsc -p ./tsconfig-build.cjs.json",
+    "build": "tsup",
     "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
     "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
     "test": "echo \"Error: no test specified\" && exit 0"

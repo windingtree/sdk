@@ -11,12 +11,12 @@
   ],
   "types": "./dist/index.d.ts",
   "main": "./dist/index.cjs.js",
-  "module": "./dist/index.es.js",
+  "module": "./dist/index.js",
   "exports": {
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.es.js"
+        "default": "./dist/index.js"
       },
       "require": {
         "types": "./dist/index.d.ts",
@@ -34,7 +34,7 @@
     "@windingtree/sdk-types": "workspace:*"
   },
   "scripts": {
-    "build": "rm -rf dist && vite build",
+    "build": "tsup",
     "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
     "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
     "test": "echo \"No test specified\" && exit 0"

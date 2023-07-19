@@ -1,19 +1,5 @@
 import { defineConfig } from 'tsup';
-
-const external = [
-  '@trpc/server',
-  '@trpc/client',
-  'superjson',
-  'viem',
-  'zod',
-  '@windingtree/sdk-types',
-  '@windingtree/sdk-storage',
-  '@windingtree/sdk-contracts-manager',
-  '@windingtree/sdk-db',
-  '@windingtree/sdk-messages',
-  '@windingtree/sdk-logger',
-  'node:http',
-];
+import { dependencies } from './package.json';
 
 export default defineConfig([
   {
@@ -26,7 +12,8 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
     format: ['esm', 'cjs'],
-    external,
+    external: Object.keys(dependencies),
+    splitting: false,
     clean: true,
   },
   {
@@ -41,7 +28,8 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
     format: ['esm', 'cjs'],
-    external,
+    external: Object.keys(dependencies),
+    splitting: false,
     clean: true,
   },
 ]);

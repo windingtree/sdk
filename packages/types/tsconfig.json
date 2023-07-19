@@ -3,5 +3,9 @@
   "compilerOptions": {
     "outDir": "./dist"
   },
-  "include": ["./src", "./vite.config.ts"]
+  "include": [
+    "./src",
+    "./test",
+    "./tsup.config.ts"
+  ]
 }

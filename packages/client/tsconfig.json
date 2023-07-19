@@ -6,7 +6,6 @@
   "include": [
     "./src",
     "./test",
-    "./vite.config.ts",
-    "../test-utils/src/setup.ts"
+    "./tsup.config.ts"
   ]
 }

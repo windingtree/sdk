@@ -21,6 +21,16 @@ import { centerSub, CenterSub } from '@windingtree/sdk-pubsub';
 import { encodeText, decodeText } from '@windingtree/sdk-utils';
 import { createLogger } from '@windingtree/sdk-logger';
 
+/**
+ * Requests registry exports
+ */
+export * from './requestsManager.js';
+
+/**
+ * Deals registry exports
+ */
+export * from './dealsManager.js';
+
 const logger = createLogger('Client');
 
 export interface ClientEvents<
@@ -407,13 +417,3 @@ export const createClient = <
 ): Client<CustomRequestQuery, CustomOfferOptions> => {
   return new Client(options);
 };
-
-/**
- * Requests registry exports
- */
-export * from './requestsManager.js';
-
-/**
- * Deals registry exports
- */
-export * from './dealsManager.js';

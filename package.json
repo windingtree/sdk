@@ -48,10 +48,11 @@
   "scripts": {
     "prepare": "husky install",
     "commit": "git-cz -S",
-    "build": "lerna run build",
-    "lint": "lerna run test",
-    "lint:fix": "lerna run lint:fix",
+    "build": "pnpm -r --filter \"*\" run build",
+    "lint": "pnpm -r --filter \"*\" run lint",
+    "lint:fix": "pnpm -r --filter \"*\" run lint:fix",
     "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "example:node": "DEBUG=* pnpm -C examples/node run start"
   }
 }

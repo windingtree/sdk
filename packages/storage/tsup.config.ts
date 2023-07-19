@@ -6,8 +6,10 @@ export default defineConfig([
     tsconfig: './tsconfig-build.json',
     entry: {
       index: './src/index.ts',
+      local: './src/local.ts',
+      memory: './src/memory.ts',
     },
-    platform: 'node',
+    platform: 'neutral',
     treeshake: true,
     dts: true,
     sourcemap: true,
