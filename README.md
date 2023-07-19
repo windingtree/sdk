@@ -24,6 +24,17 @@ pnpm test
 
 After finishing of tests code coverage script, you can find reports in `./coverage/index.html`
 
+## Examples
+
+```bash
+pnpm example:server
+pnpm example:node
+pnpm example:client
+# pnpm example:manager
+```
+
+> When started the protocol client web-app example will be available on http://localhost:5173 and the node manager app on http://localhost:5174
+
 ## Contributing
 
 [Contribution guidelines](https://windingtree.github.io/sdk/#/docs/contribution)
