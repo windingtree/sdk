@@ -1,8 +1,7 @@
-import { ServerOptions } from '../../src/index.js';
-import { createServer } from '../../src/server/index.js';
-import { memoryStorage } from '../../src/storage/index.js';
-import peerKey from '../../test/peerKey.json' assert { type: 'json' };
-import { createLogger } from '../../../packages/logger/src/index.js';
+import { ServerOptions, createServer } from '@windingtree/sdk-server';
+import { memoryStorage } from '@windingtree/sdk-storage';
+import { serverPeerKey } from 'wtmp-protocol-examples-shared-files';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('ServerMain');
 
@@ -20,7 +19,7 @@ process.once('unhandledRejection', (error) => {
 const main = async (): Promise<void> => {
   const options: ServerOptions = {
     port: 33333,
-    peerKey,
+    peerKey: serverPeerKey,
     /**
      * This example uses MemoryStorage
      * but in production it is recommended to use Redis

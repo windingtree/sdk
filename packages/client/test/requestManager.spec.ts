@@ -4,9 +4,11 @@ import {
   createRandomRequest,
   createRandomOffer,
 } from '@windingtree/sdk-messages';
-import { generateMnemonic } from '@windingtree/sdk-utils';
-import { supplierId as spId } from '@windingtree/sdk-utils';
-import { nowSec } from '@windingtree/sdk-utils';
+import {
+  generateMnemonic,
+  supplierId as spId,
+  nowSec,
+} from '@windingtree/sdk-utils';
 import { randomSalt } from '@windingtree/contracts';
 import { memoryStorage } from '@windingtree/sdk-storage';
 import { ClientRequestsManager } from '../src/requestsManager.js';
