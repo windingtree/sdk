@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@windingtree/sdk-logger": "workspace:*",
-    "superjson": "^1.12.4"
+    "superjson": "^1.13.1"
   },
   "scripts": {
     "build": "tsup",

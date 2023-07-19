@@ -29,10 +29,10 @@
   },
   "dependencies": {
     "@libp2p/interfaces": "^3.3.2",
-    "@windingtree/contracts": "^1.0.0-beta.12",
+    "@windingtree/contracts": "1.0.0-beta.12",
+    "@windingtree/sdk-logger": "workspace:*",
     "@windingtree/sdk-storage": "workspace:*",
-    "@windingtree/sdk-utils": "workspace:*",
-    "@windingtree/sdk-logger": "workspace:*"
+    "@windingtree/sdk-utils": "workspace:*"
   },
   "scripts": {
     "build": "tsup",

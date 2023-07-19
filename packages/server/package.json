@@ -28,18 +28,18 @@
     "access": "public"
   },
   "dependencies": {
-    "libp2p": "^0.45.9",
-    "@libp2p/interfaces": "^3.3.2",
-    "@libp2p/peer-id-factory": "^2.0.4",
-    "@chainsafe/libp2p-noise": "^12.0.1",
-    "@libp2p/mplex": "^8.0.4",
+    "@chainsafe/libp2p-noise": "^12.0.2",
     "@chainsafe/libp2p-yamux": "^4.0.2",
+    "@libp2p/interfaces": "^3.3.2",
+    "@libp2p/mplex": "^8.0.4",
+    "@libp2p/peer-id-factory": "^2.0.4",
     "@libp2p/websockets": "^6.0.3",
-    "@windingtree/sdk-types": "workspace:*",
+    "@windingtree/sdk-logger": "workspace:*",
     "@windingtree/sdk-pubsub": "workspace:*",
-    "@windingtree/sdk-utils": "workspace:*",
     "@windingtree/sdk-storage": "workspace:*",
-    "@windingtree/sdk-logger": "workspace:*"
+    "@windingtree/sdk-types": "workspace:*",
+    "@windingtree/sdk-utils": "workspace:*",
+    "libp2p": "^0.45.9"
   },
   "scripts": {
     "build": "tsup",

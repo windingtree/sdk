@@ -48,18 +48,18 @@
     "access": "public"
   },
   "devDependencies": {
-    "@windingtree/contracts": "^1.0.0-beta.12",
-    "@windingtree/sdk-utils": "workspace:*",
+    "@windingtree/contracts": "1.0.0-beta.12",
+    "@windingtree/sdk-messages": "workspace:*",
     "@windingtree/sdk-test-utils": "workspace:*",
-    "@windingtree/sdk-messages": "workspace:*"
+    "@windingtree/sdk-utils": "workspace:*"
   },
   "dependencies": {
-    "zod": "^3.21.4",
+    "@windingtree/sdk-logger": "workspace:*",
+    "@windingtree/sdk-storage": "workspace:*",
+    "@windingtree/sdk-types": "workspace:*",
     "bcrypt-ts": "^4.0.0",
     "viem": "^1.3.0",
-    "@windingtree/sdk-types": "workspace:*",
-    "@windingtree/sdk-storage": "workspace:*",
-    "@windingtree/sdk-logger": "workspace:*"
+    "zod": "^3.21.4"
   },
   "scripts": {
     "build": "tsup",
