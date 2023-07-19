@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "strict": true,
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "target": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
@@ -17,9 +17,10 @@
     "forceConsistentCasingInFileNames": true,
     "useUnknownInCatchVariables": true,
     "importsNotUsedAsValues": "remove",
-    "noImplicitReturns": true
+    "noImplicitReturns": true,
   },
   "exclude": [
-    "./OLD_CODEBASE"
+    "./OLD_CODEBASE",
+    "./coverage"
   ]
 }

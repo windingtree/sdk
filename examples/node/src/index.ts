@@ -1,7 +1,15 @@
 import 'dotenv/config';
 import { EventHandler } from '@libp2p/interfaces/events';
 import { DateTime } from 'luxon';
-import { Address, Hash, Hex, zeroAddress } from 'viem';
+import {
+  Address,
+  Hash,
+  Hex,
+  zeroAddress,
+  createPublicClient,
+  createWalletClient,
+  http,
+} from 'viem';
 import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { randomSalt } from '@windingtree/contracts';
 import {
@@ -10,25 +18,26 @@ import {
   contractsConfig,
   stableCoins,
   serverAddress,
-} from '../shared/index.js';
+} from 'wtmp-protocol-examples-shared-files';
+import { OfferData, DealStatus } from '@windingtree/sdk-types';
+import { noncePeriod } from '@windingtree/sdk-constants';
+import { Queue, JobHandler } from '@windingtree/sdk-queue';
+import { NodeApiServer } from '@windingtree/sdk-node-api/server';
+import { appRouter } from '@windingtree/sdk-node-api/router';
+import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
+import { memoryStorage } from '@windingtree/sdk-storage';
+import { nowSec, parseSeconds } from '@windingtree/sdk-utils';
+import { DealsDb } from '@windingtree/sdk-db';
 import {
-  DealsDb,
   Node,
   NodeOptions,
   NodeRequestManager,
+  RequestEvent,
   createNode,
-} from '../../src/node/index.js';
-import { Queue, JobHandler } from '../../src/shared/queue.js';
-import { OfferData } from '../../src/shared/types.js';
-import { DealStatus, ProtocolContracts } from '../../src/shared/contracts.js';
-import { noncePeriod } from '../../src/constants.js';
-import { memoryStorage } from '../../src/storage/index.js';
-import { nowSec, parseSeconds } from '../../src/utils/time.js';
-import { RequestEvent } from '../../src/node/requestManager.js';
-import { appRouter, NodeApiServer } from '../../src/node/index.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+} from '@windingtree/sdk-node';
+import { createLogger } from '@windingtree/sdk-logger';
 
-const logger = createLogger('NodeMain');
+const logger = createLogger('NodeExample');
 
 /**
  * Chain config
@@ -115,7 +124,7 @@ const dealHandler = createJobHandler<
     await contracts.getDeal(offer);
 
   // Deal must be exists and not cancelled
-  if (buyer !== zeroAddress && status === DealStatus.Created) {
+  if (buyer !== zeroAddress && status === Number(DealStatus.Created)) {
     // check for double booking in the availability system
     // If double booking detected - rejects (and refunds) the deal
 
@@ -249,8 +258,15 @@ const main = async (): Promise<void> => {
 
   const contractsManager = new ProtocolContracts({
     contracts: contractsConfig,
-    publicClient: node.publicClient,
-    walletClient: node.walletClient,
+    publicClient: createPublicClient({
+      chain,
+      transport: http(),
+    }),
+    walletClient: createWalletClient({
+      chain,
+      transport: http(),
+      account: node.signer.address,
+    }),
   });
 
   const queueStorage = await memoryStorage.createInitializer({

@@ -6,7 +6,7 @@ import {
   OfferData,
 } from '@windingtree/sdk-types';
 import { Storage } from '@windingtree/sdk-storage';
-import { isExpired } from '@windingtree/sdk-utils/time';
+import { isExpired } from '@windingtree/sdk-utils';
 import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('RequestsRegistry');

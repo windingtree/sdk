@@ -1,22 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { describe, expect, it, beforeAll } from '@windingtree/sdk-test-utils';
 import {
-  describe,
-  expect,
-  it,
-  beforeAll,
-  createRequest,
-  createOffer,
-} from '@windingtree/sdk-test-utils';
+  createRandomRequest,
+  createRandomOffer,
+} from '@windingtree/sdk-messages';
 import { HDAccount, Hash } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { randomSalt } from '@windingtree/contracts';
-import { supplierId as spId } from '@windingtree/sdk-utils/uid';
-import { generateMnemonic } from '@windingtree/sdk-utils/wallet';
+import { supplierId as spId } from '@windingtree/sdk-utils';
+import { generateMnemonic } from '@windingtree/sdk-utils';
 import { Storage } from '@windingtree/sdk-storage';
-import {
-  MemoryStorage,
-  createInitializer,
-} from '@windingtree/sdk-storage/memory';
+import { memoryStorage } from '@windingtree/sdk-storage';
 import { DealRecord } from '@windingtree/sdk-types';
 import { DealsDb, DealsDbOptions } from '../src/deals.js';
 import { DealStatus } from '@windingtree/sdk-types';
@@ -31,8 +25,8 @@ const buildRandomDeal = async (
     version: '1',
     contract: signer.address,
   };
-  const request = await createRequest('test', '100s');
-  const offer = await createOffer(
+  const request = await createRandomRequest('test', '100s');
+  const offer = await createRandomOffer(
     request,
     '200s',
     typedDomain,
@@ -60,7 +54,7 @@ describe('DealsDb', () => {
   let dealsDb: DealsDb;
 
   beforeAll(async () => {
-    storage = await createInitializer({
+    storage = await memoryStorage.createInitializer({
       scope: 'deals',
     })();
     dealsDbOptions = {
@@ -109,7 +103,7 @@ describe('DealsDb', () => {
     let records: DealRecord[];
 
     beforeAll(async () => {
-      await (dealsDb.storage as MemoryStorage).reset();
+      await (dealsDb.storage as memoryStorage.MemoryStorage).reset();
       records = await Promise.all(
         Array(10)
           .fill('')

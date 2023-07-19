@@ -9,17 +9,7 @@ import { OPEN } from '@libp2p/interface-connection/status';
 import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { peerIdFromString } from '@libp2p/peer-id';
-import {
-  Hex,
-  Hash,
-  Chain,
-  PublicClient,
-  WalletClient,
-  createPublicClient,
-  createWalletClient,
-  http,
-  stringify,
-} from 'viem';
+import { Hex, Hash, Chain, stringify } from 'viem';
 import { mnemonicToAccount, privateKeyToAccount } from 'viem/accounts';
 import {
   Contracts,
@@ -35,7 +25,7 @@ import {
   BuildOfferOptions,
 } from '@windingtree/sdk-messages';
 import { CenterSub, centerSub } from '@windingtree/sdk-pubsub';
-import { decodeText, encodeText } from '@windingtree/sdk-utils/text';
+import { decodeText, encodeText } from '@windingtree/sdk-utils';
 import { RequestEvent } from './requestManager.js';
 import { createLogger } from '@windingtree/sdk-logger';
 
@@ -151,10 +141,6 @@ export class Node<
 > extends EventEmitter<NodeEvents> {
   /** libp2p initialization options */
   private libp2pInit: Libp2pOptions;
-  /** Blockchain network public client */
-  publicClient: PublicClient;
-  /** Blockchain network wallet client */
-  walletClient: WalletClient;
   /** libp2p instance */
   libp2p?: Libp2p;
   /** The server multiaddr */
@@ -207,17 +193,6 @@ export class Node<
     } else {
       throw new Error('Invalid signer account configuration');
     }
-
-    this.publicClient = createPublicClient({
-      chain: this.chain,
-      transport: http(),
-    });
-
-    this.walletClient = createWalletClient({
-      chain: this.chain,
-      transport: http(),
-      account: this.signer,
-    });
 
     this.contracts = contracts;
 
@@ -473,7 +448,13 @@ export class Node<
     logger.trace('👋 Node stopped at:', new Date().toISOString());
   }
 
-  private retryConnection() {
+  /**
+   * Retries connection to remote server
+   *
+   * @returns {void}
+   * @memberof Node
+   */
+  private retryConnection(): void {
     const retry = function (this: Node) {
       const dial = async () => {
         if (this.libp2p && !this.serverConnected) {

@@ -1,15 +1,11 @@
 import { TRPCError } from '@trpc/server';
-import {
-  User,
-  UserInputSchema,
-  comparePassword,
-} from '@windingtree/sdk-db/users';
+import { User, UserInputSchema, comparePassword } from '@windingtree/sdk-db';
 import {
   router,
   procedure,
   authProcedure,
   authAdminProcedure,
-} from '../index.js';
+} from '../server.js';
 import { ACCESS_TOKEN_NAME } from '../constants.js';
 import { createLogger } from '@windingtree/sdk-logger';
 

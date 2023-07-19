@@ -39,9 +39,14 @@ const logger = createLogger('ProtocolContracts');
  */
 export type TxCallback = (txHash: string, txSubject?: string) => void;
 
+/**
+ * Options of the ProtocolContracts constructor
+ */
 export interface ProtocolContractsOptions {
   contracts: Contracts;
+  /** Blockchain network public client */
   publicClient: PublicClient;
+  /** Blockchain network wallet client */
   walletClient?: WalletClient;
 }
 
@@ -59,9 +64,9 @@ export class ProtocolContracts<
 > {
   /** Protocol smart contracts */
   contracts: Contracts;
-  /** Public client */
+  /** Blockchain network public client */
   publicClient: PublicClient;
-  /** Wallet client */
+  /** Blockchain network wallet client */
   walletClient?: WalletClient;
 
   /**

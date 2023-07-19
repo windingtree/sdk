@@ -15,7 +15,7 @@ import { sha256 } from 'multiformats/hashes/sha2';
 import { outboundStreamDelay } from '@windingtree/sdk-constants';
 import { Storage } from '@windingtree/sdk-storage';
 import { GenericMessage } from '@windingtree/sdk-types';
-import { decodeText } from '@windingtree/sdk-utils/text';
+import { decodeText } from '@windingtree/sdk-utils';
 import { CashedMessageEntry, MessagesCache } from './cache.js';
 import { createLogger } from '@windingtree/sdk-logger';
 

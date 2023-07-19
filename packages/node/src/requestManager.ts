@@ -4,7 +4,7 @@ import {
   GenericQuery,
   NoncePeriodOption,
 } from '@windingtree/sdk-types';
-import { isExpired, nowSec, parseSeconds } from '@windingtree/sdk-utils/time';
+import { isExpired, nowSec, parseSeconds } from '@windingtree/sdk-utils';
 import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('NodeRequestManager');

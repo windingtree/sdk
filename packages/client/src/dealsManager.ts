@@ -24,7 +24,7 @@ import {
 } from '@windingtree/sdk-contracts-manager';
 import { Storage } from '@windingtree/sdk-storage';
 import { createLogger } from '@windingtree/sdk-logger';
-import { parseSeconds } from '@windingtree/sdk-utils/time';
+import { parseSeconds } from '@windingtree/sdk-utils';
 
 const logger = createLogger('ClientDealsManager');
 
