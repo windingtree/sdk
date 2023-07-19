@@ -48,9 +48,9 @@
   "scripts": {
     "prepare": "husky install",
     "commit": "git-cz -S",
-    "build": "pnpm -r run build",
-    "lint": "pnpm -r --parallel run lint",
-    "lint:fix": "pnpm -r --parallel run lint:fix",
+    "build": "pnpm -r --if-present run build",
+    "lint": "pnpm -r --parallel --if-present run lint",
+    "lint:fix": "pnpm -r --parallel --if-present run lint:fix",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "example:node": "DEBUG=* pnpm -C examples/node run start"
