@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-utils",
-  "version": "0.0.0",
+  "version": "0.0.0-semantic-release",
   "description": "Utility class for interaction with the protocol smart contracts",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",

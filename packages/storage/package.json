@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-storage",
-  "version": "0.0.0",
+  "version": "0.0.0-semantic-release",
   "description": "Key-value database abstraction layer",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",

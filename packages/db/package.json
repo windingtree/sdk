@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-db",
-  "version": "0.0.0",
+  "version": "0.0.0-semantic-release",
   "description": "Databases for the WindingTree market protocol",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
