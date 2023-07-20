@@ -14,7 +14,6 @@ export default defineConfig([
     format: ['esm', 'cjs'],
     external: Object.keys(dependencies),
     splitting: false,
-    clean: true,
   },
   {
     tsconfig: './tsconfig-build.json',
@@ -30,6 +29,5 @@ export default defineConfig([
     format: ['esm', 'cjs'],
     external: Object.keys(dependencies),
     splitting: false,
-    clean: true,
   },
 ]);

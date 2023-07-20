@@ -77,7 +77,7 @@
     "zod": "^3.21.4"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "rm -rf dist && tsup",
     "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
     "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
     "test": "vitest --run test",
