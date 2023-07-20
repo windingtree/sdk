@@ -1,24 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useConfig } from '../providers/ConfigProvider/ConfigProviderContext';
-import { useNode } from '../providers/NodeProvider/NodeProviderContext';
+import { useConfig, useNode } from '@windingtree/sdk-react/providers';
 
 /**
- * Register a new user
+ * Updates users password
  */
-export const UserRegister = () => {
-  const { isAuth } = useConfig();
+export const UserUpdate = () => {
+  const { isAuth, login } = useConfig();
   const { node } = useNode();
-  const [name, setName] = useState<string>('');
   const [pwd, setPwd] = useState<string>('');
   const [message, setMessage] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
 
   const resetForm = useCallback(() => {
-    setName('');
     setPwd('');
   }, []);
 
-  const handleRegister = useCallback(async () => {
+  const handleUpdate = useCallback(async () => {
     setError(undefined);
     setMessage(undefined);
 
@@ -26,13 +23,12 @@ export const UserRegister = () => {
       return;
     }
 
-    await node.user.register.mutate({
-      login: name,
+    await node.user.update.mutate({
       password: pwd,
     });
-    setMessage(`User ${name} successfully registered`);
+    setMessage(`User ${login} successfully updated`);
     resetForm();
-  }, [node, name, pwd, resetForm]);
+  }, [node, login, pwd, resetForm]);
 
   useEffect(() => {
     resetForm();
@@ -46,25 +42,14 @@ export const UserRegister = () => {
 
   return (
     <>
-      <h2>Register manager:</h2>
+      <h2>Update password:</h2>
       <div style={{ marginTop: 20 }}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleRegister();
+            handleUpdate();
           }}
         >
-          <div style={{ marginBottom: 10 }}>
-            <div>
-              <strong>Name:</strong>
-            </div>
-            <div>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-          </div>
           <div style={{ marginBottom: 10 }}>
             <div>
               <strong>Password:</strong>
@@ -74,7 +59,7 @@ export const UserRegister = () => {
             </div>
           </div>
           <div>
-            <button type="submit">Register</button>
+            <button type="submit">Update</button>
           </div>
         </form>
       </div>

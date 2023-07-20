@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useConfig } from '../providers/ConfigProvider/ConfigProviderContext';
-import { useNode } from '../providers/NodeProvider/NodeProviderContext';
-import { useWallet } from '../../../react-libs/src/providers/WalletProvider/WalletProviderContext';
-import { createAdminSignature } from '../../../../src/node/api/client.js';
 import { Tabs, TabPanel } from './Tabs.js';
-import { UserRegister } from './UserRegister';
-import { UserUpdate } from './UserUpdate';
+import { useConfig, useNode, useWallet } from '@windingtree/sdk-react/providers';
+import { UserUpdate } from './UserUpdate.js';
+import { UserRegister } from './UserRegister.js';
+import { createAdminSignature } from '@windingtree/sdk-node-api/client';
 
 export const LoginWidget = () => {
   const { isAuth, login, setAuth, resetAuth } = useConfig();

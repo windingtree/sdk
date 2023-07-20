@@ -1,23 +1,13 @@
-import { buildRequest } from '../../src/index.js';
 import {
   OfferOptions,
   RequestQuery,
   serverAddress,
 } from '../../examples/shared/index.js';
-import { memoryStorage } from '../../src/storage/index.js';
 import { EventHandler } from '@libp2p/interfaces/events';
-import {
-  GenericOfferOptions,
-  GenericQuery,
-  OfferData,
-  RequestData,
-} from '../../src/index.js';
-import {
-  Client,
-  ClientRequestRecord,
-  ClientRequestsManager,
-  createClient,
-} from '../../src/client/index.js';
+import { buildRequest } from '@windingtree/sdk-messages';
+import { memoryStorage } from '@windingtree/sdk-storage';
+import { GenericOfferOptions, GenericQuery, OfferData, RequestData } from '@windingtree/sdk-types';
+import { ClientRequestsManager, Client, createClient, ClientRequestRecord } from '@windingtree/sdk-client';
 
 const defaultExpire = '30s';
 

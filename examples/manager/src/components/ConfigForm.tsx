@@ -1,4 +1,4 @@
-import { useConfig, ConfigActions } from '../providers/ConfigProvider/ConfigProviderContext';
+import { ConfigActions, useConfig } from '@windingtree/sdk-react/providers';
 
 export const ConfigForm = () => {
   const { nodeHost, setConfig } = useConfig();
