@@ -55,6 +55,7 @@
     "coverage": "vitest run --coverage",
     "example:server": "DEBUG=* pnpm -C examples/server run start",
     "example:node": "DEBUG=* pnpm -C examples/node run start",
-    "example:client": "pnpm -C examples/client run start"
+    "example:client": "pnpm -C examples/client run start",
+    "example:manager": "pnpm -C examples/manager run start"
   }
 }

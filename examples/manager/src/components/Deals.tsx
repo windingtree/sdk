@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DateTime } from 'luxon';
 import { stringify } from 'viem';
-import { useConfig } from '../providers/ConfigProvider/ConfigProviderContext';
-import { useNode } from '../providers/NodeProvider/NodeProviderContext';
-import { DealRecord, GenericOfferOptions, GenericQuery } from '../../../../src/shared/types';
-import { centerEllipsis, formatBalance } from '../../../react-libs/src/utils';
-import { DealStatus } from '../../../../src/shared/contracts';
+import { useConfig, useNode } from '@windingtree/sdk-react/providers';
+import { DealRecord, DealStatus, GenericOfferOptions, GenericQuery } from '@windingtree/sdk-types';
+import { centerEllipsis, formatBalance } from '@windingtree/sdk-react/utils';
 
 /**
  * Deals table

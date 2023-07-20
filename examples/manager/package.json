@@ -1,5 +1,5 @@
 {
-  "name": "@windingtree/client-example",
+  "name": "@windingtree/manager-example",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "@windingtree/sdk-types": "workspace:*",
     "@windingtree/sdk-storage": "workspace:*",
     "@windingtree/sdk-messages": "workspace:*",
+    "@windingtree/sdk-node-api": "workspace:*",
     "@windingtree/sdk-utils": "workspace:*",
     "wtmp-protocol-examples-shared-files": "workspace:*",
     "eslint": "^8.45.0",

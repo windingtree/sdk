@@ -1,22 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Address, ContractFunctionResult, Hash, getAddress } from 'viem';
-import {
-  generateMnemonic,
-  deriveAccount,
-  supplierId as createSupplierId,
-  getPk,
-} from '../../../../src/utils';
 import { entitiesRegistryABI, randomSalt } from '@windingtree/contracts';
-import {
-  ConfigActions,
-  useConfig,
-} from '../providers/ConfigProvider/ConfigProviderContext';
-import { useWallet } from '../../../react-libs/src/providers/WalletProvider/WalletProviderContext';
-import { useContracts } from '../../../react-libs/src/providers/ContractsProvider/ContractsProviderContext';
-import type { CustomConfig } from '../main';
-import { TabPanel, Tabs } from './Tabs';
-import { ConnectButton } from '../../../react-libs/src/providers/WalletProvider/ConnectButton';
-import { copyToClipboard, formatBalance } from '../../../react-libs/src/utils';
+import { ConfigActions, ConnectButton, useConfig, useContracts, useWallet } from '@windingtree/sdk-react/providers';
+import { deriveAccount, generateMnemonic, getPk, supplierId as createSupplierId } from '@windingtree/sdk-utils';
+import { CustomConfig } from '../main.js';
+import { TabPanel, Tabs } from './Tabs.js';
+import { copyToClipboard, formatBalance } from '@windingtree/sdk-react/utils';
 
 export const Supplier = () => {
   const { account, publicClient, walletClient } = useWallet();

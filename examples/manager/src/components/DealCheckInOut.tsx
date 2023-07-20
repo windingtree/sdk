@@ -1,9 +1,7 @@
 import { useCallback, useState, useMemo, useEffect } from 'react';
 import { Hash } from 'viem';
-import { DealRecord, GenericOfferOptions, GenericQuery } from '../../../../src/shared/types';
-import { useConfig } from '../providers/ConfigProvider/ConfigProviderContext';
-import { useNode } from '../providers/NodeProvider/NodeProviderContext';
-import { DealStatus } from '../../../../src';
+import { DealRecord, DealStatus, GenericOfferOptions, GenericQuery } from '@windingtree/sdk-types';
+import { useConfig, useNode } from '@windingtree/sdk-react/providers';
 
 export interface DealCheckInProps {
   action?: number;
