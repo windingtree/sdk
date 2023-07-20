@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-logger",
-  "version": "0.0.0-semantic-release",
+  "version": "1.0.0",
   "description": "Logger",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",

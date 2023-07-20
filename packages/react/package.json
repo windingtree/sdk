@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-react",
-  "version": "0.0.0-semantic-release",
+  "version": "1.0.0",
   "type": "module",
   "files": [
     "dist"

@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-messages",
-  "version": "0.0.0-semantic-release",
+  "version": "1.0.0",
   "description": "The WindingTree market protocol messages utilities",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
