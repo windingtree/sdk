@@ -23,6 +23,42 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^0.33.0
         version: 0.33.0(vitest@0.33.0)
+      '@windingtree/sdk-client':
+        specifier: workspace:*
+        version: link:packages/client
+      '@windingtree/sdk-constants':
+        specifier: workspace:*
+        version: link:packages/constants
+      '@windingtree/sdk-contracts-manager':
+        specifier: workspace:*
+        version: link:packages/contracts-manger
+      '@windingtree/sdk-logger':
+        specifier: workspace:*
+        version: link:packages/logger
+      '@windingtree/sdk-messages':
+        specifier: workspace:*
+        version: link:packages/messages
+      '@windingtree/sdk-node':
+        specifier: workspace:*
+        version: link:packages/node
+      '@windingtree/sdk-pubsub':
+        specifier: workspace:*
+        version: link:packages/pubsub
+      '@windingtree/sdk-queue':
+        specifier: workspace:*
+        version: link:packages/queue
+      '@windingtree/sdk-server':
+        specifier: workspace:*
+        version: link:packages/server
+      '@windingtree/sdk-storage':
+        specifier: workspace:*
+        version: link:packages/storage
+      '@windingtree/sdk-types':
+        specifier: workspace:*
+        version: link:packages/types
+      '@windingtree/sdk-utils':
+        specifier: workspace:*
+        version: link:packages/utils
       eslint:
         specifier: ^8.45.0
         version: 8.45.0
@@ -62,6 +98,9 @@ importers:
       vitest:
         specifier: ^0.33.0
         version: 0.33.0
+      wtmp-protocol-examples-shared-files:
+        specifier: workspace:*
+        version: link:examples/shared
 
   examples/client:
     devDependencies:

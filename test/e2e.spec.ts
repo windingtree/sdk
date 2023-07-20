@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from './setup.js';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { NodeExample } from './examples/node.js';
 import { ClientExample } from './examples/client.js';
 import { ServerExample } from './examples/server.js';

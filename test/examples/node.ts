@@ -10,31 +10,20 @@ import {
   RequestQuery,
   serverAddress,
   stableCoins,
-} from '../../examples/shared/index.js';
-import {
-  CenterSub,
-  JobHandler,
-  OfferData,
-  DealStatus,
-  ProtocolContracts,
-  noncePeriod,
-} from '../../src/index.js';
-import { nowSec, parseSeconds } from '../../src/utils/time.js';
-import {
-  NodeOptions,
-  RequestEvent,
-  Node,
-  createNode,
-  NodeRequestManager,
-} from '../../src/node/index.js';
-import { createLogger } from '../../../packages/logger/src/index.js';
+} from 'wtmp-protocol-examples-shared-files';
 import { OPEN } from '@libp2p/interface-connection/status';
 import { multiaddr } from '@multiformats/multiaddr';
 import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { mnemonicToAccount } from 'viem/accounts';
-import { generateMnemonic } from '../../src/utils/wallet.js';
-import { supplierId as spId } from '../../src/utils/uid.js';
+import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
+import { createLogger } from '@windingtree/sdk-logger';
+import { generateMnemonic, nowSec, parseSeconds, supplierId as spId } from '@windingtree/sdk-utils';
+import { NodeOptions, Node, createNode, RequestEvent, NodeRequestManager } from '@windingtree/sdk-node';
+import { JobHandler } from '@windingtree/sdk-queue';
+import { DealStatus, OfferData } from '@windingtree/sdk-types';
+import { noncePeriod } from '@windingtree/sdk-constants';
+import { CenterSub } from '@windingtree/sdk-pubsub';
 
 const logger = createLogger('NodeMain');
 
