@@ -3,15 +3,19 @@
   "npmClient": "pnpm",
   "version": "independent",
   "packages": [
-    "packages/*",
-    "examples/*"
+    "packages/*"
   ],
   "command": {
     "version": {
+      "noPrivate": true,
       "conventionalCommits": true,
       "createRelease": "github",
       "exact": true,
-      "message": "chore(release): %s"
+      "message": "chore(release): %s",
+      "commitHooks": false,
+      "signGitCommit": true,
+      "signGitTag": true,
+      "yes": true
     }
   }
 }

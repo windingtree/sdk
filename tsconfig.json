@@ -20,7 +20,7 @@
     "noImplicitReturns": true,
   },
   "exclude": [
-    "./OLD_CODEBASE",
-    "./coverage"
+    "./coverage",
+    "./**/dist"
   ]
 }

@@ -1,0 +1,49 @@
+name: Release
+on:
+  push:
+    branches:
+      - master
+      - beta
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Lint
+        run: pnpm lint
+      - name: Test
+        run: pnpm test
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode | gpg --import
+          echo "${GITHUB_SHA} (GitHub, ${GITHUB_ACTION}) <${GITHUB_ACTOR}@users.noreply.github.com>" > /tmp/commit_gpgsign
+          echo "${GITHUB_SHA} $(date -u) *timestamp*" >> /tmp/commit_gpgsign
+          gpg --no-tty --armor --output /tmp/commit.asc --detach-sign /tmp/commit_gpgsign
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      - name: Setup Git user and use GPG for commit signing
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git config user.signingKey $(gpg --list-secret-keys --keyid-format LONG --with-colons | grep sec | head -n 1 | cut -d ':' -f 5)
+          git config commit.gpgsign true
+      - name: Version Packages
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo ${{ secrets.GPG_PASSPHRASE }} | GPG_TTY=$(tty) pnpm lerna version --allow-branch master
+          elif [[ "${{ github.ref }}" == "refs/heads/beta" ]]; then
+            echo ${{ secrets.GPG_PASSPHRASE }} | GPG_TTY=$(tty) pnpm lerna version --conventional-prerelease --preid beta --allow-branch beta
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Publish to npm
+        run: pnpm lerna publish from-package --yes
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
