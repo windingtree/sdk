@@ -1,6 +1,4 @@
-import 'dotenv/config';
 import { EventHandler } from '@libp2p/interfaces/events';
-import { DateTime } from 'luxon';
 import { Hash, Hex, zeroAddress } from 'viem';
 import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { randomSalt } from '@windingtree/contracts';
@@ -24,6 +22,7 @@ import { JobHandler } from '@windingtree/sdk-queue';
 import { DealStatus, OfferData } from '@windingtree/sdk-types';
 import { noncePeriod } from '@windingtree/sdk-constants';
 import { CenterSub } from '@windingtree/sdk-pubsub';
+import { DateTime } from 'ts-luxon';
 
 const logger = createLogger('NodeMain');
 
