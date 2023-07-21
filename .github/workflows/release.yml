@@ -24,7 +24,7 @@ jobs:
           gpg --version
           export GPG_TTY=$(tty)
       - name: Import GPG key
-        uses: olxbr/setup-gpg-action@v3
+        uses: olafurpg/setup-gpg@v3
         with:
           private-key: ${{secrets.GPG_PRIVATE_KEY}}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
