@@ -19,6 +19,14 @@ jobs:
         run: pnpm lint
       - name: Test
         run: pnpm test
+      - name: Configure GPG
+        run: |
+          echo "default-cache-ttl 600
+          max-cache-ttl 7200" > ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent
+          gpg-agent --daemon
+          gpg --version
+          export GPG_TTY=$(tty)
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v5
         with:
