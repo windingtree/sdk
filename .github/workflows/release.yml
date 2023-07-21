@@ -19,18 +19,14 @@ jobs:
         run: pnpm lint
       - name: Test
         run: pnpm test
-      - name: Configure GPG
+      - name: GPG Configuration
         run: |
-          echo "default-cache-ttl 600
-          max-cache-ttl 7200" > ~/.gnupg/gpg-agent.conf
-          gpgconf --kill gpg-agent
-          gpg-agent --daemon
           gpg --version
           export GPG_TTY=$(tty)
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v5
+        uses: olxbr/setup-gpg-action@v3
         with:
-          gpg_private_key: ${{secrets.GPG_PRIVATE_KEY}}
+          private-key: ${{secrets.GPG_PRIVATE_KEY}}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Setup Git user and use GPG for commit signing
         run: |
@@ -41,6 +37,7 @@ jobs:
           git config --global user.signingKey $(gpg --list-secret-keys --keyid-format LONG --with-colons | grep sec | head -n 1 | cut -d ':' -f 5)
       - name: Version Packages
         run: |
+          free -h
           if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
             pnpm lerna version --concurrency 1 --allow-branch master
           elif [[ "${{ github.ref }}" == "refs/heads/beta" ]]; then
