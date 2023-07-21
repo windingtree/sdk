@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useConfig } from '../providers/ConfigProvider/ConfigProviderContext';
-import { useNode } from '../providers/NodeProvider/NodeProviderContext';
+import { useConfig, useNode } from '@windingtree/sdk-react/providers';
 
 /**
  * Register a new user

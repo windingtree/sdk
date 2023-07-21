@@ -1,0 +1,9 @@
+cache
+node_modules
+.github
+dist
+lib
+coverage
+typedoc
+temp
+OLD_CODEBASE

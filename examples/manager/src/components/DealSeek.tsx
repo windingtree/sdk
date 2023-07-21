@@ -1,12 +1,10 @@
 import { useCallback, useState } from 'react';
 import { DateTime } from 'luxon';
 import { Hash, stringify } from 'viem';
-import { useConfig } from '../providers/ConfigProvider/ConfigProviderContext';
-import { useNode } from '../providers/NodeProvider/NodeProviderContext';
-import { DealRecord, GenericOfferOptions, GenericQuery } from '../../../../src/shared/types';
-import { formatBalance } from '../../../react-libs/src/utils';
-import { DealStatus } from '../../../../src/shared/contracts';
-import { DealCheckInOut } from './DealCheckInOut';
+import { useConfig, useNode } from '@windingtree/sdk-react/providers';
+import { DealRecord, DealStatus, GenericOfferOptions, GenericQuery } from '@windingtree/sdk-types';
+import { formatBalance } from '@windingtree/sdk-react/utils';
+import { DealCheckInOut } from './DealCheckInOut.js';
 
 /**
  * Deals table
@@ -70,7 +68,7 @@ export const DealSeek = () => {
               setOfferId('');
               setDeal(undefined);
             }}
-            disabled={loading}
+            disabled={loading || !offerId}
           >
             Clear
           </button>

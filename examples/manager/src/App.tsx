@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { AccountWidget } from '../../react-libs/src/providers/WalletProvider/AccountWidget.js';
-import { useNode } from './providers/NodeProvider/NodeProviderContext.js';
 import { Tabs, TabPanel } from './components/Tabs.js';
 import { LoginWidget } from './components/LoginWidget.js';
 import { ConfigForm } from './components/ConfigForm.js';
 import { DealSeek } from './components/DealSeek.js';
+import { Supplier } from './components/Supplier.js';
+import { AccountWidget, useNode } from '@windingtree/sdk-react/providers';
 
 /**
  * Main application component
@@ -39,6 +39,10 @@ export const App = () => {
             id: 2,
             title: 'Configuration',
           },
+          {
+            id: 3,
+            title: 'Supplier setup',
+          },
         ]}
         onChange={setSelectedTab}
       />
@@ -50,6 +54,9 @@ export const App = () => {
       </TabPanel>
       <TabPanel id={2} activeTab={selectedTab}>
         <ConfigForm />
+      </TabPanel>
+      <TabPanel id={3} activeTab={selectedTab}>
+        <Supplier />
       </TabPanel>
 
       {nodeError && <div style={{ marginTop: 20 }}>🚨 {nodeError}</div>}

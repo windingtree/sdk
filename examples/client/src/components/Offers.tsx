@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { stringify } from 'viem';
-import { utils } from '../../../../src/index.js'; // @windingtree/sdk
-import { OfferData } from '../../../../src/shared/types.js';
-import { RequestQuery, OfferOptions } from '../../../shared/index.js';
-import { centerEllipsis } from '../../../react-libs/src/utils/index.js';
+import { isExpired } from '@windingtree/sdk-utils';
+import { OfferData } from '@windingtree/sdk-types';
+import { RequestQuery, OfferOptions } from 'wtmp-protocol-examples-shared-files';
+import { centerEllipsis } from '@windingtree/sdk-react/utils';
 
 interface OffersProps {
   offers?: OfferData<RequestQuery, OfferOptions>[];
@@ -22,7 +22,7 @@ export const Offers = ({ offers, onAccept, onClose }: OffersProps) => {
       const expireHandler = () => {
         const newOfferStates: Record<string, boolean> = {};
         offers.forEach((offer) => {
-          newOfferStates[offer.id] = utils.isExpired(offer.expire);
+          newOfferStates[offer.id] = isExpired(offer.expire);
         });
         setOfferStates(newOfferStates);
       };

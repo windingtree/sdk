@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "strict": true,
-    "esModuleInterop": true,
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "target": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "checkJs": true,
     "allowJs": true,
@@ -17,12 +17,10 @@
     "forceConsistentCasingInFileNames": true,
     "useUnknownInCatchVariables": true,
     "importsNotUsedAsValues": "remove",
-    "noImplicitReturns": true
+    "noImplicitReturns": true,
   },
-  "include": [
-    "./src/**/*.ts",
-    "./examples/**/*.ts",
-    "./test/**/*.ts",
-    "examples/manager/src/components/ConfigForm.tsx"
+  "exclude": [
+    "./coverage",
+    "./**/dist"
   ]
 }

@@ -1,6 +1,11 @@
 import { createRoot } from 'react-dom/client';
-import { WalletProvider } from '../../react-libs/src/providers/WalletProvider/index.js';
-import { App } from './App';
+import { WalletProvider } from '@windingtree/sdk-react/providers';
+import { polygonZkEvmTestnet, hardhat } from 'viem/chains';
+import { App } from './App.js';
+
+const targetChain = import.meta.env.VITE_LOCAL_NODE === 'hardhat'
+  ? hardhat
+  : polygonZkEvmTestnet;
 
 window.addEventListener('unhandledrejection', (event) => {
   event.preventDefault();
@@ -11,7 +16,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
 const root = createRoot(document.getElementById('root') as HTMLElement);
 root.render(
-  <WalletProvider>
+  <WalletProvider targetChain={targetChain}>
     <App />
   </WalletProvider>,
 );
