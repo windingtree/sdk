@@ -34,13 +34,12 @@ jobs:
       - name: Version Packages
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
-            echo ${{ secrets.GPG_PASSPHRASE }} | GPG_TTY=$(tty) pnpm lerna version --allow-branch master
+            pnpm lerna version --allow-branch master
           elif [[ "${{ github.ref }}" == "refs/heads/beta" ]]; then
-            echo ${{ secrets.GPG_PASSPHRASE }} | GPG_TTY=$(tty) pnpm lerna version --conventional-prerelease --preid beta --allow-branch beta
+            pnpm lerna version --conventional-prerelease --preid beta --allow-branch beta
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Publish to npm
         run: pnpm lerna publish from-package --yes
         env:
