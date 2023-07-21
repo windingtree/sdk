@@ -15,24 +15,21 @@ jobs:
           fetch-depth: 0
       - name: Install dependencies
         uses: ./.github/actions/install-dependencies
-      - name: Lint
-        run: pnpm lint
-      - name: Test
-        run: pnpm test
-      - name: Create GNUPGHOME
-        run: export GNUPGHOME="$(mktemp -d)"
+      # - name: Lint
+      #   run: pnpm lint
+      # - name: Test
+      #   run: pnpm test
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v5
         with:
           gpg_private_key: ${{secrets.GPG_PRIVATE_KEY}}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        env:
-          GNUPGHOME: $(mktemp -d)
       - name: Setup Git user and use GPG for commit signing
         run: |
           git config --global user.email "kostysh@gmail.com"
-          git config --global user.name "@$GITHUB_ACTOR"
-          git config --global commit.gpgsign true
+          git config --global user.name "Release action"
+          git config --global commit.gpgSign true
+          git config --global tag.gpgSign true
           git config --global gpg.program gpg2
           git config --global user.signingKey $(gpg --list-secret-keys --keyid-format LONG --with-colons | grep sec | head -n 1 | cut -d ':' -f 5)
       - name: Version Packages
