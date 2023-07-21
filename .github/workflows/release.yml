@@ -21,10 +21,11 @@ jobs:
         run: pnpm test
       - name: Import GPG key
         run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode | gpg --batch --pinentry-mode loopback --import
+          echo "pinentry-mode loopback" > gpg.conf
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode | gpg --batch --options ./gpg.conf --pinentry-mode loopback --import
           echo "${GITHUB_SHA} (GitHub, ${GITHUB_ACTION}) <${GITHUB_ACTOR}@users.noreply.github.com>" > /tmp/commit_gpgsign
           echo "${GITHUB_SHA} $(date -u) *timestamp*" >> /tmp/commit_gpgsign
-          gpg --batch --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}" --armor --output /tmp/commit.asc --detach-sign /tmp/commit_gpgsign
+          gpg --batch --options ./gpg.conf --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}" --armor --output /tmp/commit.asc --detach-sign /tmp/commit_gpgsign
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
       - name: Setup Git user and use GPG for commit signing
