@@ -24,9 +24,9 @@ jobs:
           gpg --version
           export GPG_TTY=$(tty)
       - name: Import GPG key
-        uses: olafurpg/setup-gpg@v3
+        uses: crazy-max/ghaction-import-gpg@v5
         with:
-          private-key: ${{secrets.GPG_PRIVATE_KEY}}
+          gpg_private_key: ${{secrets.GPG_PRIVATE_KEY}}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Setup Git user and use GPG for commit signing
         run: |
