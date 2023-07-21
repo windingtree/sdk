@@ -33,7 +33,6 @@ jobs:
           git config --global user.email "kostysh@gmail.com"
           git config --global user.name "@$GITHUB_ACTOR"
           git config --global commit.gpgSign true
-          git config --global tag.gpgSign true
           git config --global user.signingKey $(gpg --list-secret-keys --keyid-format LONG --with-colons | grep sec | head -n 1 | cut -d ':' -f 5)
       - name: Version Packages
         run: |
