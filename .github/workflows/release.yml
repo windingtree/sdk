@@ -41,7 +41,7 @@ jobs:
           if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
             pnpm lerna version --concurrency 1 --allow-branch master
           elif [[ "${{ github.ref }}" == "refs/heads/beta" ]]; then
-            pnpm lerna version --concurrency 1 --conventional-prerelease --preid beta --allow-branch beta
+            pnpm lerna version --concurrency 1 --conventional-prerelease --preid beta --allow-branch beta --loglevel debug
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
