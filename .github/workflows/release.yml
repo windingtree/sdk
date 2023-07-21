@@ -21,7 +21,7 @@ jobs:
         run: pnpm test
       - name: Import GPG key
         run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode | gpg --import
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode | gpg --batch --pinentry-mode loopback --import
           echo "${GITHUB_SHA} (GitHub, ${GITHUB_ACTION}) <${GITHUB_ACTOR}@users.noreply.github.com>" > /tmp/commit_gpgsign
           echo "${GITHUB_SHA} $(date -u) *timestamp*" >> /tmp/commit_gpgsign
           gpg --no-tty --armor --output /tmp/commit.asc --detach-sign /tmp/commit_gpgsign
