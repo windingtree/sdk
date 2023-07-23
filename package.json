@@ -1,5 +1,4 @@
 {
-  "private": true,
   "name": "@windingtree/sdk",
   "version": "0.0.0",
   "description": "The WindingTree market protocol SDK",
@@ -24,6 +23,10 @@
     "network"
   ],
   "license": "MIT",
+  "private": true,
+  "publishConfig": {
+    "access": "restricted"
+  },
   "type": "module",
   "devDependencies": {
     "@commitlint/cli": "^17.6.7",

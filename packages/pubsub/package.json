@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-pubsub",
-  "version": "1.0.0",
+  "version": "1.1.0-beta.1",
   "description": "libp2p PubSub protocol implementation for the WindingTree market protocol",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
@@ -29,16 +29,16 @@
   },
   "dependencies": {
     "@chainsafe/libp2p-gossipsub": "^9.1.0",
-    "@libp2p/interface-pubsub": "^4.0.1",
-    "@libp2p/interface-peer-id": "^2.0.2",
     "@libp2p/interface-connection": "^5.1.1",
+    "@libp2p/interface-peer-id": "^2.0.2",
+    "@libp2p/interface-pubsub": "^4.0.1",
     "@multiformats/multiaddr": "^12.1.3",
-    "multiformats": "^12.0.1",
     "@windingtree/sdk-constants": "workspace:*",
+    "@windingtree/sdk-logger": "workspace:*",
     "@windingtree/sdk-storage": "workspace:*",
     "@windingtree/sdk-types": "workspace:*",
     "@windingtree/sdk-utils": "workspace:*",
-    "@windingtree/sdk-logger": "workspace:*"
+    "multiformats": "^12.0.1"
   },
   "scripts": {
     "build": "tsup",

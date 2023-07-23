@@ -13,6 +13,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          token: ${{ secrets.PAT }}
       - name: Install dependencies
         uses: ./.github/actions/install-dependencies
       - name: Lint
@@ -20,30 +21,30 @@ jobs:
       - name: Test
         run: pnpm test
       - name: Import GPG key
-        run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode | gpg --import
-          echo "${GITHUB_SHA} (GitHub, ${GITHUB_ACTION}) <${GITHUB_ACTOR}@users.noreply.github.com>" > /tmp/commit_gpgsign
-          echo "${GITHUB_SHA} $(date -u) *timestamp*" >> /tmp/commit_gpgsign
-          gpg --no-tty --armor --output /tmp/commit.asc --detach-sign /tmp/commit_gpgsign
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{secrets.GPG_PRIVATE_KEY}}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Setup Git user and use GPG for commit signing
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git config user.signingKey $(gpg --list-secret-keys --keyid-format LONG --with-colons | grep sec | head -n 1 | cut -d ':' -f 5)
-          git config commit.gpgsign true
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/$GITHUB_REPOSITORY
+          git config --global commit.gpgSign true
+          git config --global user.signingKey $(gpg --list-secret-keys --keyid-format LONG --with-colons | grep sec | head -n 1 | cut -d ':' -f 5)
+          echo "@windingtree:https://registry.npmjs.org/" > .npmrc
+          echo "registry=https://registry.npmjs.org/" >> .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" >> .npmrc
       - name: Version Packages
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
-            echo ${{ secrets.GPG_PASSPHRASE }} | GPG_TTY=$(tty) pnpm lerna version --allow-branch master
+            pnpm lerna version --concurrency 1 --allow-branch master --create-release github
           elif [[ "${{ github.ref }}" == "refs/heads/beta" ]]; then
-            echo ${{ secrets.GPG_PASSPHRASE }} | GPG_TTY=$(tty) pnpm lerna version --conventional-prerelease --preid beta --allow-branch beta
+            pnpm lerna version --concurrency 1 --conventional-prerelease --preid beta --allow-branch beta
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GH_TOKEN: ${{ secrets.PAT }}
       - name: Publish to npm
-        run: pnpm lerna publish from-package --yes
+        run: pnpm lerna publish from-package
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
