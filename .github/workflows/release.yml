@@ -30,13 +30,13 @@ jobs:
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - name: Setup Git user and use GPG for commit signing
         run: |
-          git config --global user.email "kostysh@gmail.com"
-          git config --global user.name "@$GITHUB_ACTOR"
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/$GITHUB_REPOSITORY
           git config --global commit.gpgSign true
           git config --global user.signingKey $(gpg --list-secret-keys --keyid-format LONG --with-colons | grep sec | head -n 1 | cut -d ':' -f 5)
       - name: Version Packages
         run: |
-          free -h
           if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
             pnpm lerna version --concurrency 1 --allow-branch master --create-release github
           elif [[ "${{ github.ref }}" == "refs/heads/beta" ]]; then

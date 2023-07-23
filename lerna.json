@@ -12,7 +12,6 @@
       "exact": true,
       "message": "chore(release): %s",
       "commitHooks": false,
-      "signGitCommit": true,
       "yes": true
     }
   }
