@@ -13,6 +13,10 @@
       "message": "chore(release): %s",
       "commitHooks": false,
       "yes": true
+    },
+    "publish": {
+      "noPrivate": true,
+      "yes": true
     }
   }
 }
