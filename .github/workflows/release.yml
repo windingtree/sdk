@@ -36,6 +36,9 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/$GITHUB_REPOSITORY
           git config --global commit.gpgSign true
           git config --global user.signingKey $(gpg --list-secret-keys --keyid-format LONG --with-colons | grep sec | head -n 1 | cut -d ':' -f 5)
+          echo "@windingtree:https://registry.npmjs.org/" > .npmrc
+          echo "registry=https://registry.npmjs.org/" >> .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" >> .npmrc
       - name: Version Packages
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
