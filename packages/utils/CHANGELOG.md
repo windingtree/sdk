@@ -7,10 +7,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @windingtree/sdk-utils
 
-
-
-
-
 # 1.1.0-beta.0 (2023-07-23)
 
 ### Features

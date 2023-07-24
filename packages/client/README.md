@@ -17,7 +17,8 @@ import { createClient } from '@windingtree/sdk-client';
 
 // Initialize client options
 const clientOptions = {
-  serverAddress: '/ip4/127.0.0.1/tcp/33333/ws/p2p/QmcXbDrzUU5ERqRaronWmAJXwe6c7AEkS7qdcsjgEuWPCf', // Replace with your server address
+  serverAddress:
+    '/ip4/127.0.0.1/tcp/33333/ws/p2p/QmcXbDrzUU5ERqRaronWmAJXwe6c7AEkS7qdcsjgEuWPCf', // Replace with your server address
 };
 
 // Create a new client instance
@@ -28,19 +29,21 @@ client.start().catch(console.error);
 
 // Add event listeners
 client.addEventListener('start', () => {
-   console.log('Client started');
+  console.log('Client started');
 });
 
 client.addEventListener('stop', () => {
-   console.log('Client stopped');
+  console.log('Client stopped');
 });
 
 client.addEventListener('publish', ({ detail }) => {
-   console.log('Request published:', detail);
+  console.log('Request published:', detail);
 });
 
 // Publish a request
-const requestData = { /* Define your request data here */ };
+const requestData = {
+  /* Define your request data here */
+};
 client.publish(requestData);
 
 // Subscribe to a topic
