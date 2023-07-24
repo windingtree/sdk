@@ -1,15 +1,13 @@
 {
-  "name": "wtmp-protocol-examples-shared-files",
+  "name": "e2e-tests",
   "version": "0.0.0",
-  "description": "The WindingTree market protocol examples shared files",
+  "description": "The WindingTree market protocol examples end to end tests",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "keywords": [
-    "node",
-    "wtmp",
-    "example"
+    "test"
   ],
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
   "contributors": [
