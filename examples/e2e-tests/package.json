@@ -22,6 +22,30 @@
   },
   "dependencies": {
     "viem": "^1.3.0",
-    "@windingtree/sdk-types": "workspace:*"
+    "@windingtree/sdk-types": "workspace:*",
+    "@windingtree/sdk-utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@windingtree/contracts": "1.0.0-beta.12",
+    "@windingtree/sdk-client": "workspace:*",
+    "@windingtree/sdk-constants": "workspace:*",
+    "@windingtree/sdk-contracts-manager": "workspace:*",
+    "@windingtree/sdk-logger": "workspace:*",
+    "@windingtree/sdk-messages": "workspace:*",
+    "@windingtree/sdk-node": "workspace:*",
+    "@windingtree/sdk-pubsub": "workspace:*",
+    "@windingtree/sdk-queue": "workspace:*",
+    "@windingtree/sdk-server": "workspace:*",
+    "@windingtree/sdk-storage": "workspace:*",
+    "vitest": "^0.33.0",
+    "wtmp-protocol-examples-shared-files": "workspace:*",
+    "@libp2p/interface-connection": "^5.1.1",
+    "@libp2p/interface-peer-id": "^2.0.2",
+    "@libp2p/interfaces": "^3.3.2",
+    "@libp2p/peer-id": "^2.0.4",
+    "@multiformats/multiaddr": "^12.1.3",
+    "luxon": "^3.3.0",
+    "ts-luxon": "^4.3.2",
+    "viem": "^1.3.0"
   }
 }
