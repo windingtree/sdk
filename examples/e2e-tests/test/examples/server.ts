@@ -1,7 +1,7 @@
-import peerKey from '../peerKey.json';
+import peerKey from './peerKey.json';
 import { createLogger } from '@windingtree/sdk-logger';
-import { CoordinationServer, createServer, ServerOptions } from '@windingtree/sdk-server';
 import { memoryStorage } from '@windingtree/sdk-storage';
+import { CoordinationServer, createServer, ServerOptions } from '@windingtree/sdk-server';
 
 
 const logger = createLogger('ServerExample');

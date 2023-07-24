@@ -2,7 +2,7 @@ import {
   OfferOptions,
   RequestQuery,
   serverAddress,
-} from '../../examples/shared/index.js';
+} from 'wtmp-protocol-examples-shared-files';
 import { EventHandler } from '@libp2p/interfaces/events';
 import { buildRequest } from '@windingtree/sdk-messages';
 import { memoryStorage } from '@windingtree/sdk-storage';
