@@ -19,7 +19,7 @@ import {
   noncePeriod,
   queueConcurrentJobsNumber,
   queueJobAttemptsDelay,
-  queueHeartbeat
+  queueHeartbeat,
 } from '@windingtree/sdk-constants';
 
 console.log('Default Expiration Time:', defaultExpirationTime);
