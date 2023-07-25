@@ -29,7 +29,7 @@ import { Hash } from 'viem';
 import { App } from './App.js';
 import { ConfigProvider, NodeProvider, WalletProvider, ContractsProvider } from '@windingtree/sdk-react/providers';
 import { polygonZkEvmTestnet } from 'viem/chains';
-import { contractsConfig } from 'wtmp-protocol-examples-shared-files/dist/index.js';
+import { contractsConfig } from 'wtmp-examples-shared-files/dist/index.js';
 
 const root = createRoot(document.getElementById('root') as HTMLElement);
 root.render(

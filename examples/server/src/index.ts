@@ -1,6 +1,6 @@
 import { ServerOptions, createServer } from '@windingtree/sdk-server';
 import { memoryStorage } from '@windingtree/sdk-storage';
-import { serverPeerKey } from 'wtmp-protocol-examples-shared-files';
+import { serverPeerKey } from 'wtmp-examples-shared-files';
 import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('ServerMain');

@@ -1,7 +1,7 @@
 import { isExpired } from '@windingtree/sdk-utils';
 import { ClientRequestRecord } from '@windingtree/sdk-client';
 import { OfferData } from '@windingtree/sdk-types';
-import { RequestQuery, OfferOptions } from 'wtmp-protocol-examples-shared-files';
+import { RequestQuery, OfferOptions } from 'wtmp-examples-shared-files';
 import { centerEllipsis } from '@windingtree/sdk-react/utils';
 import { stringify } from 'superjson';
 
