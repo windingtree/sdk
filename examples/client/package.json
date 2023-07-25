@@ -25,6 +25,9 @@
     "@libp2p/interfaces": "^3.3.2",
     "luxon": "^3.3.0"
   },
+  "dependencies": {
+    "superjson": "^1.13.1"
+  },
   "eslintConfig": {
     "extends": [
       "react-app"

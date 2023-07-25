@@ -6,6 +6,7 @@ import {
 } from '@windingtree/sdk-types';
 import { isExpired, nowSec, parseSeconds } from '@windingtree/sdk-utils';
 import { createLogger } from '@windingtree/sdk-logger';
+import { parse } from 'superjson';
 
 const logger = createLogger('NodeRequestManager');
 
@@ -112,7 +113,7 @@ export class NodeRequestManager<
    */
   add(requestTopic: string, data: string) {
     try {
-      const requestData = JSON.parse(data) as RequestData<CustomRequestQuery>;
+      const requestData = parse<RequestData<CustomRequestQuery>>(data);
 
       // TODO: Implement validation of `data` type and `requestTopic`
 

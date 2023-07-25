@@ -1,4 +1,4 @@
-import { stringify } from 'viem';
+import { parse, stringify } from 'superjson';
 import { describe, expect, it, beforeEach } from '@windingtree/sdk-test-utils';
 import { NodeRequestManager } from '../src/index.js';
 
@@ -138,7 +138,7 @@ describe('Node.NodeRequestManager', () => {
           'request',
           (event) => {
             expect(event.detail.topic).to.equal(requestTopic);
-            expect(event.detail.data).to.deep.equal(JSON.parse(data));
+            expect(event.detail.data).to.deep.equal(parse(data));
             done(true);
           },
           { once: true },
@@ -151,12 +151,12 @@ describe('Node.NodeRequestManager', () => {
   describe('#prune', () => {
     it('should remove expired requests from cache', () => {
       const requestTopic = 'testTopic';
-      const data1 = JSON.stringify({
+      const data1 = stringify({
         id: '1',
         nonce: 1,
         expire: Math.floor(Date.now() / 1000) + 20,
       });
-      const data2 = JSON.stringify({
+      const data2 = stringify({
         id: '2',
         nonce: 1,
         expire: Math.floor(Date.now() / 1000) - 20,
@@ -174,7 +174,7 @@ describe('Node.NodeRequestManager', () => {
   describe('#clear', () => {
     it('should clear the cache', () => {
       const requestTopic = 'testTopic';
-      const data = JSON.stringify({
+      const data = stringify({
         id: '1',
         nonce: 1,
         expire: Math.floor(Date.now() / 1000) + 20,

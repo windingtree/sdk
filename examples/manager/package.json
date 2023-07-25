@@ -27,7 +27,8 @@
   "dependencies": {
     "@windingtree/contracts": "1.0.0-beta.12",
     "@windingtree/sdk-types": "workspace:*",
-    "@windingtree/sdk-utils": "workspace:*"
+    "@windingtree/sdk-utils": "workspace:*",
+    "superjson": "^1.13.1"
   },
   "eslintConfig": {
     "extends": [

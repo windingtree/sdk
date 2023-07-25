@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DateTime } from 'luxon';
-import { stringify } from 'viem';
+import { stringify } from 'superjson';
 import { useConfig, useNode } from '@windingtree/sdk-react/providers';
 import { DealRecord, DealStatus, GenericOfferOptions, GenericQuery } from '@windingtree/sdk-types';
 import { centerEllipsis, formatBalance } from '@windingtree/sdk-react/utils';
