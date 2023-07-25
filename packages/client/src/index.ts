@@ -9,7 +9,8 @@ import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { peerIdFromString } from '@libp2p/peer-id';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { OPEN } from '@libp2p/interface-connection/status';
-import { stringify } from 'viem';
+import { stringify, parse } from 'superjson';
+
 import {
   OfferData,
   GenericOfferOptions,
@@ -283,7 +284,7 @@ export class Client<
 
         try {
           /** Check is the message is an offer */
-          const offer = JSON.parse(decodeText(detail.data)) as OfferData<
+          const offer = parse(decodeText(detail.data)) as OfferData<
             CustomRequestQuery,
             CustomOfferOptions
           >;

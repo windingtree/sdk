@@ -9,7 +9,9 @@ import { OPEN } from '@libp2p/interface-connection/status';
 import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
 import { PeerId } from '@libp2p/interface-peer-id';
 import { peerIdFromString } from '@libp2p/peer-id';
-import { Hex, Hash, Chain, stringify } from 'viem';
+import { Hex, Hash, Chain } from 'viem';
+import { stringify } from 'superjson';
+
 import { mnemonicToAccount, privateKeyToAccount } from 'viem/accounts';
 import {
   Contracts,

@@ -38,7 +38,8 @@
     "@windingtree/sdk-storage": "workspace:*",
     "@windingtree/sdk-types": "workspace:*",
     "@windingtree/sdk-utils": "workspace:*",
-    "multiformats": "^12.0.1"
+    "multiformats": "^12.0.1",
+    "superjson": "^1.13.1"
   },
   "scripts": {
     "build": "tsup",

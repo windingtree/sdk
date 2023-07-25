@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Hash, stringify } from 'viem';
+import { Hash } from 'viem';
+import { stringify } from 'superjson';
 import { ClientDealsManager } from '@windingtree/sdk-client';
 import { OfferData } from '@windingtree/sdk-types';
 import { RequestQuery, OfferOptions } from 'wtmp-protocol-examples-shared-files';

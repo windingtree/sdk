@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { stringify } from 'viem';
+import { stringify } from 'superjson';
 import { isExpired } from '@windingtree/sdk-utils';
 import { OfferData } from '@windingtree/sdk-types';
 import { RequestQuery, OfferOptions } from 'wtmp-protocol-examples-shared-files';
