@@ -46,7 +46,9 @@
     "vite": "^4.4.4",
     "vite-plugin-dts": "^3.3.1",
     "vite-plugin-node-polyfills": "^0.9.0",
-    "vitest": "^0.33.0"
+    "vitest": "^0.33.0",
+    "@libp2p/crypto": "^1.0.17",
+    "uint8arrays": "^4.0.4"
   },
   "scripts": {
     "prepare": "husky install",
@@ -56,6 +58,7 @@
     "lint:fix": "pnpm -r --parallel --if-present run lint:fix",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
+    "generate:key": "node ./scripts/peerId.js",
     "example:server": "DEBUG=* pnpm -C examples/server run start",
     "example:node": "DEBUG=* pnpm -C examples/node run start",
     "example:client": "pnpm -C examples/client run start",
