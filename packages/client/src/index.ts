@@ -284,10 +284,9 @@ export class Client<
 
         try {
           /** Check is the message is an offer */
-          const offer = parse(decodeText(detail.data)) as OfferData<
-            CustomRequestQuery,
-            CustomOfferOptions
-          >;
+          const offer = parse<
+            OfferData<CustomRequestQuery, CustomOfferOptions>
+          >(decodeText(detail.data));
 
           // @todo Validate offer
 
