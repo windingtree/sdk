@@ -73,14 +73,14 @@ For setting up a coordination server using the Winding Tree SDK, use this TypeSc
 
 ```typescript
 import { ServerOptions } from '@windingtree/sdk-server';
-import { memoryStorage, ... } from '@windingtree/storage';
+import { memoryStorage, ... } from '@windingtree/sdk-storage';
 import { serverPeerKey } from './path/to/config.js';
 
 const serverOptions: ServerOptions = {
   port: 33333, // Specify the desired port
   peerKey: serverPeerKey, // Use the key generated during 'Peer Key Generation' step
   /**
-   * Choose from the available storage engines in '@windingtree/storage' or implement your own
+   * Choose from the available storage engines in '@windingtree/sdk-storage' or implement your own
    **/
   messagesStorageInit: memoryStorage.createInitializer(),
 };
@@ -99,7 +99,7 @@ import { serverAddress } from './path/to/config.js';
 const nodeOptions: NodeOptions = {
   topics: ['topic'], // List of topics on which the node listens for incoming requests. You can use H3 geohash as a topic, for example.
   chain, // Blockchain network configuration. See the `Chain` type from `viem/chains`.
-  contracts: contractsConfig, // See the `Contracts` type from `@windingtree/type`.
+  contracts: contractsConfig, // See the `Contracts` type from `@windingtree/sdk-types`.
   serverAddress, // Server multiaddr.
   supplierId, // Unique supplier ID that is registered in the protocol smart contract.
   signerSeedPhrase: '<SIGNER_WALLET_SEED_PHRASE>', // Seed phrase for the signer wallet. Used to sign transactions.

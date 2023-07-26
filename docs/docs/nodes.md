@@ -15,7 +15,7 @@ EOA or multisig account in the target network. This account is for:
 
 EOA
 
-### Supplier subject
+### Supplier topics
 
 This is a tag or a set of tags that depend on the use cases of the supplier business. If this use case is the hotel this tag will be the geolocation hash that represents the hotel address. If this use case is an abstract service provided without linkage to geolocation this tag can be the special unique code of service.
 
@@ -26,12 +26,12 @@ The protocol provides with function for converting traditional lat/lng coordinat
 Here is an example:
 
 ```typescript
-import { utils } from '@windingtree/sdk';
+import { h3 } from '@windingtree/sdk-utils';
 
-const h3Index = utils.latLngToCell(37.3615593, -122.0553238);
+const h3Index = h3.latLngToCell(37.3615593, -122.0553238);
 // -> '87283472bffffff'
 
-const hexCenterCoordinates = utils.cellToLatLng(h3Index);
+const hexCenterCoordinates = h3.cellToLatLng(h3Index);
 // -> [37.35171820183272, -122.05032565263946]
 ```
 
@@ -79,31 +79,40 @@ function lifDepositWithdraw(uint256 amount) external;
 
 > These functions can be called by the supplier `owner` only.
 
-## Create the node
+> **Note**: A supplier entity registration flow is implemented in the node manager example application.
 
-More about the node configuration options is [here](./index.md#supplier-node).
+## Creating the node
+
+More about the node configuration options is [here](./index.md#supplier-node-configuration).
 
 ```typescript
-import {
-  GenericQuery,
-  GenericOfferOptions,
-  NodeOptions,
-  createNode,
-} from '@windingtree/sdk';
+import { NodeOptions } from '@windingtree/sdk-node';
+import { serverAddress } from './path/to/config.js';
 
-export interface RequestQuery extends GenericQuery {
-  /** your custom request interface */
-}
-
-export interface OfferOptions extends GenericOfferOptions {
-  /** suppliers' offer options interface */
-}
-
-const options: NodeOptions = {
-  /** ... */
+const nodeOptions: NodeOptions = {
+  topics: ['topic'], // List of topics on which the node listens for incoming requests. You can use H3 geohash as a topic, for example.
+  chain, // Blockchain network configuration. See the `Chain` type from `viem/chains`.
+  contracts: contractsConfig, // See the `Contracts` type from `@windingtree/type`.
+  serverAddress, // Server multiaddr.
+  supplierId, // Unique supplier ID that is registered in the protocol smart contract.
+  signerSeedPhrase: '<SIGNER_WALLET_SEED_PHRASE>', // Seed phrase for the signer wallet. Used to sign transactions.
+  signerPk: signerPk, // Optional. You can provide it instead of signerSeedPhrase.
 };
 
 const node = createNode<RequestQuery, OfferOptions>(options);
+
+node.addEventListener('connected', () => {
+  console.log('Connected!');
+});
+
+node.addEventListener('disconnected', () => {
+  console.log('Disconnected!');
+});
+
+node.addEventListener('start', () => {
+  console.log('Node started');
+});
+
 await node.start(); // Start the client
 await node.stop(); // Stop the client
 ```
@@ -119,19 +128,6 @@ A node allows subscribing to the following event types.
 - `heartbeat`: emitted every second, useful for performing utility functions
 - `request`: emitted on every incoming request
 
-```typescript
-node.addEventListener('connected', () => {
-  console.log('Connected!');
-});
-
-node.addEventListener('disconnected', () => {
-  console.log('Disconnected!');
-});
-
-node.addEventListener('start', () => {
-  console.log('Node started');
-});
-```
 
 ## Subscribing to requests
 
