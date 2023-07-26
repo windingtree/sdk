@@ -1,35 +1,135 @@
-# Client flow
+# The Protocol Clients
 
-## Create the protocol client
+The protocol clients can be implemented as web browsers, React Native applications, or server-side Node.js applications. The SDK repository includes a comprehensive client implementation example within a React application, available under the `./examples/client` directory.
 
-More about the client configuration options is [here](./index.md#client-node).
+This client example application offers support for the following features:
+
+- Requests creation and publishing
+- Accepting offers
+- Deals creation
+- Deals cancellation
+- Tracking deals state
+- Check-in deals
+
+Below, you will find guidelines for essential parts of the application example, which will provide you with a better understanding of the protocol client features and usage principles.
+
+## Configuration and Start
+
+To handle requests and deals, it is recommended to utilize the `ClientRequestsManager` and `ClientDealsManager` classes provided by the SDK. Before configuring either class, we must create storages that will be utilized for the persistence of requests and deals.
 
 ```typescript
-import {
-  GenericQuery,
-  GenericOfferOptions,
-  ClientOptions,
-  createClient,
-} from '@windingtree/sdk';
+import { localStorage } from '@windingtree/sdk-storage';
+
+const storageInitializer = localStorage.createInitializer({
+  session: false, // session or local storage
+});
+
+const store = await storageInitializer();
+```
+
+Next, we need to create industry-specific TypeScript types for the requests data that will be sent by the client and types for offer options (which comes with an offer) that it can expect as well. This is required for a better developer experience and to help avoid type errors during code creation. For type consistency, they must be extended from basic generic types that can be imported from the SDK package.
+
+```typescript
+import { GenericQuery, GenericOfferOptions } from '@windingtree/sdk-types';
 
 export interface RequestQuery extends GenericQuery {
-  /** your custom request interface */
+  greeting: string; // This is a very simple request, just for testing
 }
 
 export interface OfferOptions extends GenericOfferOptions {
-  /** suppliers' offer options interface */
+  date?: string;
+  buongiorno: boolean; // Yes, we expect that a supplier may propose us a good day
+  buonasera: boolean; // or a good evening
 }
-
-const options: ClientOptions = {
-  /*...*/
-};
-
-const client = createClient<RequestQuery, OfferOptions>(options);
-await client.start(); // Start the client
-await client.stop(); // Stop the client
 ```
 
-## Subscription to client's events
+The last missed configuration option we need is `contractsConfig` that contains information about the protocol smart contracts' addresses.
+
+Here is a basic TypeScript type that explains the structure of a `contractsConfig` option.
+
+```typescript
+interface ContractConfig {
+  /** Smart contract name */
+  name: string;
+  /** Internal smart contract version */
+  version: string;
+  /** Smart contract address */
+  address: Address;
+}
+/**
+ * The protocol smart contract set configuration
+ */
+interface Contracts {
+  /** The protocol configuration smart contract */
+  config: ContractConfig;
+  /** The protocol entities registry smart contract */
+  entities: ContractConfig;
+  /** The protocol market smart contract */
+  market: ContractConfig;
+  /** The protocol utility token */
+  token: ContractConfig;
+}
+```
+
+If in your application you are going to use the protocol smart contracts that are already deployed by the SDK team, you have to refer to [this information](./index.md#smart-contract-instances).
+
+Here is how your `contractsConfig` can look like:
+
+```json
+{
+  "config": {
+    "name": "Config",
+    "version": "1",
+    "address": "0x098b1d12cAfE7315C77b6d308A62ce02806260Ee"
+  },
+  "entities": {
+    "name": "EntitiesRegistry",
+    "version": "1",
+    "address": "0x4bB51528C83844b509E1152EEb05260eE1bf60e6"
+  },
+  "market": {
+    "name": "Market",
+    "version": "1",
+    "address": "0xDd5B6ffB3585E109ECddec5293e31cdc1e9DeD57"
+  },
+  "token": {
+    "name": "LifToken",
+    "version": "1",
+    "address": "0x4d60F4483BaA654CdAF1c5734D9E6B16735efCF8"
+  }
+}
+```
+
+Now we are able to instantiate managers.
+
+```typescript
+import { ClientRequestsManager, ClientDealsManager } from '@windingtree/sdk-client';
+import { polygonZkEvmTestnet } from 'viem/chains';
+
+const requestsManager = new ClientRequestsManager<
+  RequestQuery,
+  OfferOptions
+>({
+  storage: store,
+  prefix: 'wt_requests_', // This prefix will be added to the key in localStorage to avoid key collision
+});
+
+const dealsManager = new ClientDealsManager<
+  RequestQuery,
+  OfferOptions
+>({
+  storage: store,
+  prefix: 'wt_deals_',
+  checkInterval: '5s', // Interval for deal state change check
+  chain: polygonZkEvmTestnet, // Target blockchain network we will use
+  contracts: contractsConfig,
+  publicClient, // See https://viem.sh/docs/clients/public.html
+});
+```
+
+Assuming that you already know the `serverAddress` that has been generated during the protocol coordination [server configuration step](./coordinator.md).
+
+Below, we are instantiating the protocol client and subscribing to available system events to implement the behavior of our application.
 
 A client allows subscribing to the following event types.
 
@@ -39,192 +139,257 @@ A client allows subscribing to the following event types.
 - `disconnected`: emitted when the client is disconnected
 - `heartbeat`: emitted every second, useful for performing utility functions
 
-Requests events scope:
+`requestsManager` events scope:
 
-- `request:create`: emitted when a request is created
-- `request:publish`: emitted when a request is published
-- `request:subscribe`: emitted when a request is subscribe to offers
-- `request:unsubscribe`: emitted when a request is unsubscribed
-- `request:expire`: emitted when a request is expired
-- `request:cancel`: emitted when a request is cancelled
-- `request:delete`: emitted when a request is deleted from registry
-- `request:offer`: emitted when offer on a request is received
-- `request:clear`: emitted when the request registry is cleared
+- `create`: emitted when a request is created
+- `publish`: emitted when a request is published
+- `subscribe`: emitted when a request is subscribed to offers
+- `unsubscribe`: emitted when a request is unsubscribed
+- `expire`: emitted when a request expires
+- `cancel`: emitted when a request is canceled
+- `delete`: emitted when a request is deleted from registry
+- `offer`: emitted when offer on a request is received
+- `clear`: emitted when the request registry is cleared
 
 ```typescript
-client.addEventListener('start', () => {
-  console.log('Started!');
+import { createClient } from '@windingtree/sdk-client';
+import { serverAddress } from './path/to/config.js';
+
+const client = createClient<RequestQuery, OfferOptions>({
+  serverAddress,
 });
 
-client.addEventListener('stop', () => {
-  console.log('Stopped!');
-});
+/**
+ * Here we need to create a bunch of event-related handlers
+ * that will implement the behavior of our application:
+ *
+ * - onClientStart
+ * - onClientStop
+ * - onClientConnected
+ * - onClientDisconnected
+ * - onRequestPublish
+ * - onOffer
+ * - updateRequests
+ * - onRequestSubscribe
+ * - onRequestUnsubscribe
+ * - updateDeals
+ */
+
+const onRequestPublish = ({ detail }) => {
+  requestsManager.add(detail);
+};
+
+const onOffer = ({ detail }) => {
+  requestsManager.addOffer(detail);
+};
+
+// ... other handlers
+
+client.addEventListener('start', onClientStart);
+client.addEventListener('stop', onClientStop);
+client.addEventListener('connected', onClientConnected);
+client.addEventListener('disconnected', onClientDisconnected);
+client.addEventListener('publish', onRequestPublish);
+client.addEventListener('offer', onOffer);
+
+requestsManager.addEventListener('request', updateRequests);
+requestsManager.addEventListener('expire', updateRequests);
+requestsManager.addEventListener('cancel', updateRequests);
+requestsManager.addEventListener('delete', updateRequests);
+requestsManager.addEventListener('clear', updateRequests);
+requestsManager.addEventListener('offer', updateRequests);
+requestsManager.addEventListener('subscribe', onRequestSubscribe);
+requestsManager.addEventListener('unsubscribe', onRequestUnsubscribe);
+
+dealsManager.addEventListener('changed', updateDeals);
+
+await client.start();
 ```
 
-## Building of request
+Please note that the event handlers (`onClientStart`, `onClientStop`, etc.) need to be defined and implemented according to your specific application's requirements. They will dictate the behavior of your application when certain events occur.
 
-Every request structure must follow the generic message data structure proposed by the protocol.
+Remember to customize the event handlers and implement the behavior that suits your application's needs for a seamless and user-friendly experience.
 
-```typescript
-import { GenericQuery, GenericOfferOptions } from '@windingtree/sdk';
+Once the client is started and connected to the coordination server, we will be ready to send requests.
 
-type GenericQuery = Record<string, unknown>;
+### Building a Request
 
-/**
- * Common message structure
- */
-interface GenericMessage {
-  /** Unique message Id */
-  id: string;
-  /** Expiration time in seconds */
-  expire: number;
-  /** A number that reflects the version of the message */
-  nonce: number;
-}
-
-/**
- * Request data structure
- */
-interface RequestData<RequestQuery extends GenericQuery>
-  extends GenericMessage {
-  /** Industry specific query type */
-  query: RequestQuery;
-}
-```
-
-To build a request you can use the `requests.create` method of the client instance.
+To build a request, you can utilize the `buildRequest` utility function provided by the `@windingtree/sdk-messages` package. Before using this function, ensure that you have already created the `RequestQuery` data type, as it will be used as an option for the function. Here's an example of how to build a request:
 
 ```typescript
-const request = await client.requests.create({
-  topic: 'hello',
-  expire: '1m', // 1 minute
-  nonce: 1,
+import { buildRequest } from '@windingtree/sdk-messages';
+
+const request = await buildRequest<RequestQuery>({
+  topic: '<TOPIC_THAT_NODE_LISTENS_FOR>',
+  /**
+   * The expiration time of the request.
+   * You can use `s`, `m`, `h` for seconds, minutes, and hours respectively.
+   * Alternatively, you can provide a number representing the expiration time in seconds.
+   */
+  expire: '1d',
+  /**
+   * It is possible to create and send different versions of the same request.
+   * A node will automatically choose the version with a higher `nonce` value as the source for the offer.
+   */
+  nonce: BigInt(1),
   query: {
-    howMuch: 10,
+    greeting: 'Hello',
   },
 });
+
 console.log(request);
+// Example output:
 // {
-//   id: '27ef525f-2521-43c6-9e70-d9a12a37d532',
+//   id: '0x22a66237b67b7b6a6e0f78844aa958c25f3205951a0701dca97454a6a80d1ee2',
 //   expire: 1680258961,
 //   nonce: 1,
 //   topic: 'hello',
 //   query: {
-//     howMuch: 10
-//   };
+//     greeting: 'Hello',
+//   },
 // }
 ```
 
-## Subscribing to offers
+### Publishing the Request
 
-The protocol client automatically publishes the request when it is added to the requests management registry. You should use `requests.publish` method of the client instance to publish your request.
-
-```typescript
-client.addEventListener('request.publish', ({ detail: id }) => {
-  console.log(`Request #${id} is published`);
-});
-
-client.requests.publish(request);
-
-// Request #27ef525f-2521-43c6-9e70-d9a12a37d532 is published
-```
-
-## Requests API
-
-Here are the available methods of the clients' requests AP
-
-- `create`: Creates a new request
+Once you have successfully built the request, the next step is to publish it to the network. The `client` object, which is an instance of the protocol client, is responsible for handling the publishing process. Here's an example of how to publish the request:
 
 ```typescript
-const request = await client.request.create({
-  /** RequestData<RequestQuery> */
-});
+// Assuming you have already created the `client` object
+// and it is an instance of the protocol client.
+
+// Publish the request to the network
+client.publish(request);
 ```
 
-- `publish`: Publishes the request
+By publishing the request, it will be broadcasted to the coordination server, and suppliers will be able to catch and respond to this request based on contextual subscriptions. This process facilitates the seamless interaction between buyers and suppliers within the WindingTree Market Protocol.
+
+Please note that this example assumes you have already instantiated the `client` object and configured it to connect to the coordination server. If not, please refer to the appropriate steps in the documentation to set up the client properly before proceeding with request building and publishing.
+
+## Processing Offers and Making Deals
+
+After initializing the client and subscribing to relevant events, the client will handle the processing of offers received in response to the published requests. When an offer is received, it will be added to the `ClientRequestsManager` storage record, associated with the corresponding request. This allows the client to keep track of the offers available for each request.
+
+### Viewing Request Records
+
+To review the request records managed by the `ClientRequestsManager` instance, you can call the `getAll()` function. This function will return an array of request records, each containing information about the raw request data, associated offers, and the subscription status of the request. Alternatively, you can use the `get(<requestId>)` function to review a specific request record.
+
+Here's an example of how to view request records:
 
 ```typescript
-client.request.publish(request);
+// Assuming you have already created the `requestsManager` instance.
+
+// Get all request records
+const allRequests = requestsManager.getAll();
+
+// Get a specific request record by requestId
+const requestId = '0xbed4a2a446f885983ba82be3b15ecbf10d7e2a7d0f943f02f538d8d1069169fa';
+const specificRequest = requestsManager.get(requestId);
 ```
 
-- `get`: Returns request registry record:
+### Making Deals
+
+When a user wants to make a deal based on an offer, they need to choose a payment option from the available payment options provided in the offer's `payment` array.
+
+To make a deal, you can utilize the `dealsManager.create()` function. This function requires the following parameters:
+
+- `offer`: The offer object received in response to the request.
+- `paymentId`: The chosen payment option's ID from the available payment options.
+- `retailerId`: The retailer's ID if applicable. If not providing a retailer ID, you can pass `ZeroHash`, which is a zero-filled bytes32 hash.
+- `walletClient`: An instance of the wallet client. For more details on how to create `walletClient`, refer to the [documentation](https://viem.sh/docs/clients/wallet.html).
+- A callback function that will be triggered when a transaction is initiated. The callback function provides information about the transaction hash and its context (e.g., "Asset approval" or "Deal creation").
+
+Here's an example of how to make a deal:
 
 ```typescript
-type RequestRecord<RequestQuery, OfferOptions> = {
-  /** Request data */
-  data: RequestData<RequestQuery>;
-  /** Received offers */
-  offers: OfferData<RequestQuery, OfferOptions>[];
-};
+// Assuming you have already created the `dealsManager` instance.
+
+await dealsManager.create(
+  offer, // Offer object as received in response to the request
+  paymentId, // Chosen payment option's ID
+  ZeroHash, // Retailer's ID (use ZeroHash for no retailer ID)
+  walletClient, // An instance of the wallet client
+  (txHash, txContext) => {
+    console.log(`Transaction: ${txHash} for ${txContext}`);
+  }
+);
 ```
+
+The `create` function will initiate one or two transactions:
+
+1. Payment asset approval: This transaction will call the `approve` function of the ERC20 asset. This step is optional if the asset has already been approved for the protocol smart contract.
+2. Deal creation: This transaction will call the `deal` function of the protocol market contract to finalize the deal.
+
+By following these steps, users can efficiently process offers, view request records, and proceed with making deals within the WindingTree Market Protocol.
+
+## Deals Management
+
+### Cancellation
+
+To cancel a deal, users can utilize the `dealsManager.cancel()` function. This function requires the following parameters:
+
+- `offer`: The raw offer object for the deal that needs to be canceled.
+- `walletClient`: An instance of the wallet client. For more details on how to create `walletClient`, refer to the [documentation](https://viem.sh/docs/clients/wallet.html).
+- A callback function that will be triggered when the cancellation transaction is initiated. The callback function provides information about the transaction hash.
+
+Here's an example of how to cancel a deal:
 
 ```typescript
-const requestRecord = await client.request.get(request.id);
+await dealsManager.cancel(
+  offer, // Raw offer object
+  walletClient,
+  (txHash) => {
+    console.log(`Transaction: ${txHash}`);
+  }
+);
 ```
 
-- `create`: Creates the request
-- `publish`: Publishes the request
-- `get`: Returns a request from the client registry
-- `getAll`: Returns an array of all registered request records from the client registry
-- `cancel`: Cancels the request subscription. Offers for this request will not be accepted.
-- `delete`: Removes the request from the client registry
-- `clear`: Removes all requests from the registry
-- `subscribed`: Checks if request is currently subscribed by its Id
+### Transfer
 
-## Processing offers
+To transfer ownership of a deal to another address, users can use the `dealsManager.transfer()` function. This function requires the following parameters:
 
-An offer data type is describe [here](/docs/nodes.md#building-and-publishing-of-offer).
+- `offer`: The raw offer object for the deal that needs to be transferred.
+- `to`: The address of the next owner to whom the deal will be transferred.
+- `walletClient`: An instance of the wallet client. For more details on how to create `walletClient`, refer to the [documentation](https://viem.sh/docs/clients/wallet.html).
+- A callback function that will be triggered when the transfer transaction is initiated. The callback function provides information about the transaction hash.
 
-All received offers are automatically added to the registry and accessible via the `offers` property of the associated request record.
-
-To get all offers from registry you need to fetch a request record using `get` method.
+Here's an example of how to transfer a deal:
 
 ```typescript
-const { offers } = client.requests.get(request.id);
+await dealsManager.transfer(
+  offer, // Raw offer object
+  to, // Address of the next owner
+  walletClient,
+  (txHash) => {
+    console.log(`Transaction: ${txHash}`);
+  }
+);
 ```
 
-Every time a new offer is received the client emits a `request:offer` event. You can use this event to support your local environment up to date.
+### Check-In
+
+To check-in for a deal and finalize the transaction, users can use the `dealsManager.checkIn()` function. This function requires the following parameters:
+
+- `offer`: The raw offer object for the deal that is being checked-in.
+- `supplierSignature`: The signature provided by the offer's supplier.
+- `walletClient`: An instance of the wallet client. For more details on how to create `walletClient`, refer to the [documentation](https://viem.sh/docs/clients/wallet.html).
+- A callback function that will be triggered when the check-in transaction is initiated. The callback function provides information about the transaction hash.
+
+Here's an example of how to perform the check-in:
 
 ```typescript
-import { useEffect, useRef } from 'react';
-
-const OffersList = ({
-  client,
-}: {
-  client: Client<RequestQuery, OfferOptions>;
-}) => {
-  const offers = useRef();
-
-  useEffect(() => {
-    /** Initialization of the component */
-    offers.current = new Map<string, OfferData<RequestQuery, OfferOptions>>(
-      client.requests
-        .getAll()
-        .reduce((a, v) => [...a, [v.data.id, v.offers]], []),
-    );
-
-    /** Manage up-to-date state */
-    client.addEventListener('request:offer', ({ details: id }) => {
-      console.log(`Received an offer to request #${id}`);
-      const { offers } = client.requests.get(request.id);
-      offers.current.set(id, offers ?? []);
-    });
-  });
-
-  return (
-    <table>
-      {[...(offers?.current.entries() ?? [])].map(
-        ((record, i) = (
-          <tr key={i}>
-            <td>{record[0]}</td>
-            <td>{record[1].length}</td>
-          </tr>
-        )),
-      )}
-    </table>
-  );
-};
+await dealsManager.checkIn(
+  offer, // Raw offer object
+  supplierSignature, // Signature provided by the offer's supplier
+  walletClient,
+  (txHash) => {
+    console.log(`Transaction: ${txHash}`);
+  }
+);
 ```
+
+By utilizing these functions, users can effectively manage their deals within the WindingTree Market Protocol, including canceling deals, transferring ownership, and finalizing the check-in process.
+
 
 <!-- ## Managing funds
 
