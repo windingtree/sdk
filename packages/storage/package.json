@@ -1,0 +1,61 @@
+{
+  "name": "@windingtree/sdk-storage",
+  "version": "1.1.0-beta.2",
+  "description": "Key-value database abstraction layer",
+  "repository": "https://github.com/windingtree/sdk#readme",
+  "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    },
+    "./local": {
+      "import": {
+        "types": "./dist/local.d.ts",
+        "default": "./dist/local.js"
+      },
+      "require": {
+        "types": "./dist/local.d.ts",
+        "default": "./dist/local.cjs.js"
+      }
+    },
+    "./memory": {
+      "import": {
+        "types": "./dist/memory.d.ts",
+        "default": "./dist/memory.js"
+      },
+      "require": {
+        "types": "./dist/memory.d.ts",
+        "default": "./dist/memory.cjs.js"
+      }
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@windingtree/sdk-logger": "workspace:*",
+    "superjson": "^1.13.1"
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
+    "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
+    "test": "vitest --run test",
+    "test:rel": "vitest related --run"
+  }
+}

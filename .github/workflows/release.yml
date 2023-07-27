@@ -1,0 +1,50 @@
+name: Release
+on:
+  push:
+    branches:
+      - master
+      - beta
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Lint
+        run: pnpm lint
+      - name: Test
+        run: pnpm test
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{secrets.GPG_PRIVATE_KEY}}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Setup Git user and use GPG for commit signing
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/$GITHUB_REPOSITORY
+          git config --global commit.gpgSign true
+          git config --global user.signingKey $(gpg --list-secret-keys --keyid-format LONG --with-colons | grep sec | head -n 1 | cut -d ':' -f 5)
+          echo "@windingtree:https://registry.npmjs.org/" > .npmrc
+          echo "registry=https://registry.npmjs.org/" >> .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}" >> .npmrc
+      - name: Version Packages
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            pnpm lerna version --concurrency 1 --allow-branch master --create-release github
+          elif [[ "${{ github.ref }}" == "refs/heads/beta" ]]; then
+            pnpm lerna version --concurrency 1 --conventional-prerelease --preid beta --allow-branch beta
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+      - name: Publish to npm
+        run: pnpm lerna publish from-package
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

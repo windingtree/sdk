@@ -1,0 +1,32 @@
+{
+  "name": "wtmp-server-example",
+  "version": "0.0.0",
+  "description": "The WindingTree market protocol server example",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "keywords": [
+    "server",
+    "wtmp",
+    "example"
+  ],
+  "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
+  "contributors": [
+    "Kostiantyn Smyrnov <kostysh@gmail.com>"
+  ],
+  "license": "ISC",
+  "scripts": {
+    "build": "tsc -p ./tsconfig.json",
+    "start": "node ./dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
+    "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write ."
+  },
+  "devDependencies": {},
+  "dependencies": {
+    "wtmp-examples-shared-files": "workspace:*",
+    "@windingtree/sdk-server": "workspace:*",
+    "@windingtree/sdk-storage": "workspace:*",
+    "@windingtree/sdk-logger": "workspace:*"
+  }
+}

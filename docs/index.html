@@ -4,25 +4,23 @@
     <meta charset="UTF-8" />
     <title>WindingTree Market Protocol SDK</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-    <link rel="icon" href="build/favicon.png" />
-    <meta name="description" content="WindingTree Market Protocol SDK Documentation Site" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0" />
-    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css" />
-    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.css" />
-    <!-- Google Tag Manager -->
-    <script>
-      (function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
-        var f = d.getElementsByTagName(s)[0],
-          j = d.createElement(s),
-          dl = l != 'dataLayer' ? '&l=' + l : '';
-        j.async = true;
-        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
-        f.parentNode.insertBefore(j, f);
-      })(window, document, 'script', 'dataLayer', 'TBD');
-    </script>
-    <!-- End Google Tag Manager -->
+    <link rel="icon" href="/assets/favicon.png" />
+    <meta
+      name="description"
+      content="WindingTree Market Protocol SDK Documentation Site"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0"
+    />
+    <link
+      rel="stylesheet"
+      href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css"
+    />
+    <link
+      rel="stylesheet"
+      href="//cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.css"
+    />
     <style>
       .app-name-link img {
         max-width: 90%;
@@ -41,47 +39,37 @@
         el: '#main',
         name: 'WindingTree Market Protocol SDK',
         repo: 'https://github.com/windingtree/sdk.git',
-        homepage: 'docs/index.md',
-        loadSidebar: 'docs/sidebar.md',
+        homepage: 'index.md',
+        loadSidebar: 'sidebar.md',
         maxLevel: 4,
         subMaxLevel: 3,
         relativePath: true,
         auto2top: true,
         logo: 'assets/wt-logo-wide.png',
         noEmoji: true,
-        markdown: {
-          renderer: {
-            code: function (code, lang) {
-              if (lang === 'mermaid') {
-                return (
-                  '<div class="mermaid">' + mermaid.render('mermaid-svg-' + num++, code) + '</div>'
-                );
-              }
-              return this.origin.code.apply(this, arguments);
-            },
+        plugins: [
+          function (hook) {
+            hook.doneEach(function () {
+              let mermaidConfig = {
+                querySelector: ".mermaid",
+                suppressErrors: true,
+              };
+              mermaid.run(mermaidConfig);
+            });
           },
-        },
+        ],
       };
+    </script>
+    <script type="module">
+      import mermaid from "//cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true });
+      window.mermaid = mermaid;
     </script>
     <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
     <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
-    <script src="//cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="//unpkg.com/docsify-mermaid@2.0.0/dist/docsify-mermaid.js"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-typescript.min.js"></script>
-    <script>
-      var num = 0;
-      mermaid.initialize({ startOnLoad: false });
-    </script>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript
-      ><iframe
-        src="https://www.googletagmanager.com/ns.html?id=TBD"
-        height="0"
-        width="0"
-        style="display: none; visibility: hidden"
-      ></iframe
-    ></noscript>
-    <!-- End Google Tag Manager (noscript) -->
   </body>
 </html>

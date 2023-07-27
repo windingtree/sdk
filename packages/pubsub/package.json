@@ -1,0 +1,50 @@
+{
+  "name": "@windingtree/sdk-pubsub",
+  "version": "1.1.0-beta.2",
+  "description": "libp2p PubSub protocol implementation for the WindingTree market protocol",
+  "repository": "https://github.com/windingtree/sdk#readme",
+  "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@chainsafe/libp2p-gossipsub": "^9.1.0",
+    "@libp2p/interface-connection": "^5.1.1",
+    "@libp2p/interface-peer-id": "^2.0.2",
+    "@libp2p/interface-pubsub": "^4.0.1",
+    "@multiformats/multiaddr": "^12.1.3",
+    "@windingtree/sdk-constants": "workspace:*",
+    "@windingtree/sdk-logger": "workspace:*",
+    "@windingtree/sdk-storage": "workspace:*",
+    "@windingtree/sdk-types": "workspace:*",
+    "@windingtree/sdk-utils": "workspace:*",
+    "multiformats": "^12.0.1",
+    "superjson": "^1.13.1"
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
+    "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
+    "test": "echo \"No test specified\" && exit 0"
+  }
+}

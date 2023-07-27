@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
     "strict": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "checkJs": true,
     "allowJs": true,
@@ -11,10 +14,14 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "noErrorTruncation": true,
-    "lib": ["ES2022", "DOM"],
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "NodeNext"
+    "forceConsistentCasingInFileNames": true,
+    "useUnknownInCatchVariables": true,
+    "importsNotUsedAsValues": "remove",
+    "noImplicitReturns": true,
   },
-  "include": ["./src/**/*.ts", "./examples/**/*.ts", "./test/**/*.ts"]
+  "exclude": [
+    "./coverage",
+    "./**/dist",
+    "./scripts"
+  ]
 }
