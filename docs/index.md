@@ -150,7 +150,7 @@ This setup provides the basic configuration for a protocol client. Depending on 
 
 - [WindingTree protocol discussions](https://github.com/windingtree/sdk/discussions)
 - Bug tracker: [https://github.com/windingtree/sdk/issues](https://github.com/windingtree/sdk/issues)
-- [Contribution](/docs/contribution.md)
+- [Contribution](contribution.md)
 
 Please keep in mind that the SDK is currently in beta, and libraries may be unstable with APIs subject to change. As you explore the functionalities and contribute to the development, we encourage you to participate in the discussions and provide valuable feedback to help improve the SDK's stability and performance. If you encounter any issues or have questions during your development journey, do not hesitate to reach out to our support team, who are available to assist you at every step.
 
