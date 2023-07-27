@@ -4,7 +4,6 @@
   "description": "WindingTree market protocol docs",
   "scripts": {
     "lint:local": "npx markdownlint src/**/*.md",
-    "build": "./scripts/build.sh",
     "serve": "npx docsify serve ./"
   },
   "repository": "git@github.com:kostysh/wtmp-sdk.git",
@@ -26,6 +25,6 @@
   "homepage": "https://github.com/kostysh/wtmp-sdk#readme",
   "devDependencies": {
     "docsify-cli": "4.4.4",
-    "markdownlint-cli": "0.33.0"
+    "markdownlint-cli": "0.35.0"
   }
 }

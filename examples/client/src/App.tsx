@@ -15,7 +15,7 @@ import {
   OfferOptions,
   contractsConfig,
   serverAddress,
-} from 'wtmp-protocol-examples-shared-files';
+} from 'wtmp-examples-shared-files';
 import { OfferData, RequestData } from '@windingtree/sdk-types';
 import { useWallet, AccountWidget } from '@windingtree/sdk-react/providers';
 import { FormValues, RequestForm } from './components/RequestForm.js';

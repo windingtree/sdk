@@ -15,8 +15,8 @@ import {
   stringToHex,
   getAddress,
   zeroAddress,
-  stringify,
 } from 'viem';
+import { stringify } from 'superjson';
 import {
   marketABI,
   erc20_18ABI,

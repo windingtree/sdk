@@ -18,6 +18,7 @@ import { GenericMessage } from '@windingtree/sdk-types';
 import { decodeText } from '@windingtree/sdk-utils';
 import { CashedMessageEntry, MessagesCache } from './cache.js';
 import { createLogger } from '@windingtree/sdk-logger';
+import { parse } from 'superjson';
 
 const logger = createLogger('CenterSub');
 
@@ -102,7 +103,7 @@ export class CenterSub extends GossipSub {
     this.isClient = !!isClient;
     this.messageTransformer = messageTransformer
       ? messageTransformer
-      : (message) => JSON.parse(decodeText(message)) as GenericMessage;
+      : (message) => parse(decodeText(message));
     this.addEventListener(
       'gossipsub:heartbeat',
       this.handleHeartbeat.bind(this),

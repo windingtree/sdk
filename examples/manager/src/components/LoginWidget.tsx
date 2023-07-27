@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Tabs, TabPanel } from './Tabs.js';
-import { useConfig, useNode, useWallet } from '@windingtree/sdk-react/providers';
+import {
+  useConfig,
+  useNode,
+  useWallet,
+} from '@windingtree/sdk-react/providers';
 import { UserUpdate } from './UserUpdate.js';
 import { UserRegister } from './UserRegister.js';
 import { createAdminSignature } from '@windingtree/sdk-node-api/client';
@@ -145,7 +149,7 @@ export const LoginWidget = () => {
 
   return (
     <>
-      {isAuth &&
+      {isAuth && (
         <div>
           <div>Welcome {login ?? 'user'}</div>
           <div>
@@ -155,7 +159,7 @@ export const LoginWidget = () => {
             <button onClick={handleDelete}>Delete</button>
           </div>
         </div>
-      }
+      )}
       <Tabs
         tabs={[
           {

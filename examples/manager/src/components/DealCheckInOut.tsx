@@ -1,6 +1,11 @@
 import { useCallback, useState, useMemo, useEffect } from 'react';
 import { Hash } from 'viem';
-import { DealRecord, DealStatus, GenericOfferOptions, GenericQuery } from '@windingtree/sdk-types';
+import {
+  DealRecord,
+  DealStatus,
+  GenericOfferOptions,
+  GenericQuery,
+} from '@windingtree/sdk-types';
 import { useConfig, useNode } from '@windingtree/sdk-react/providers';
 
 export interface DealCheckInProps {
@@ -23,7 +28,11 @@ export const DealCheckInOut = ({ action, deal }: DealCheckInProps) => {
   }, [action]);
 
   const actionAllowed = useMemo(() => {
-    return deal && ((action === 0 && deal.status !== DealStatus.CheckedIn) || (action === 1 && deal.status !== DealStatus.CheckedOut))
+    return (
+      deal &&
+      ((action === 0 && deal.status !== DealStatus.CheckedIn) ||
+        (action === 1 && deal.status !== DealStatus.CheckedOut))
+    );
   }, [deal, action]);
 
   const actionName = useMemo(() => {
@@ -42,7 +51,7 @@ export const DealCheckInOut = ({ action, deal }: DealCheckInProps) => {
       return false;
     }
 
-    return (Date.now() / 1000) > Number(deal.offer.payload.checkIn);
+    return Date.now() / 1000 > Number(deal.offer.payload.checkIn);
   }, [deal]);
 
   const handleCheckInOut = useCallback(async () => {
@@ -91,25 +100,38 @@ export const DealCheckInOut = ({ action, deal }: DealCheckInProps) => {
 
   return (
     <div style={{ marginTop: 20 }}>
+      {action === 0 && deal.status === DealStatus.CheckedIn && (
+        <div style={{ marginTop: 20 }}>🚨 Already checked in</div>
+      )}
 
-      {action === 0 && deal.status === DealStatus.CheckedIn && <div style={{ marginTop: 20 }}>🚨 Already checked in</div>}
+      {action === 1 && deal.status === DealStatus.CheckedOut && (
+        <div style={{ marginTop: 20 }}>🚨 Already checked out</div>
+      )}
 
-      {action === 1 && deal.status === DealStatus.CheckedOut && <div style={{ marginTop: 20 }}>🚨 Already checked out</div>}
-
-      {actionAllowed &&
+      {actionAllowed && (
         <>
           <h2>Deal {actionName}:</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {action !== 1 &&
+            {action !== 1 && (
               <>
                 <div>
-                  <strong>User's signature{isBeforeCheckInTime ? ' (optional after check in time)' : ''}:</strong>
+                  <strong>
+                    User's signature
+                    {isBeforeCheckInTime
+                      ? ' (optional after check in time)'
+                      : ''}
+                    :
+                  </strong>
                 </div>
                 <div>
-                  <input value={userSign || ''} onChange={(e) => setUserSign(e.target.value as Hash)} disabled={loading} />
+                  <input
+                    value={userSign || ''}
+                    onChange={(e) => setUserSign(e.target.value as Hash)}
+                    disabled={loading}
+                  />
                 </div>
               </>
-            }
+            )}
             <div>
               <button onClick={() => handleCheckInOut()} disabled={loading}>
                 Start{loading ? '...' : ''}
@@ -117,7 +139,7 @@ export const DealCheckInOut = ({ action, deal }: DealCheckInProps) => {
             </div>
           </div>
         </>
-      }
+      )}
 
       {message && <div style={{ marginTop: 20 }}>✅ {message}</div>}
 

@@ -2,12 +2,22 @@ import {
   OfferOptions,
   RequestQuery,
   serverAddress,
-} from '../../examples/shared/index.js';
+} from 'wtmp-examples-shared-files';
 import { EventHandler } from '@libp2p/interfaces/events';
 import { buildRequest } from '@windingtree/sdk-messages';
 import { memoryStorage } from '@windingtree/sdk-storage';
-import { GenericOfferOptions, GenericQuery, OfferData, RequestData } from '@windingtree/sdk-types';
-import { ClientRequestsManager, Client, createClient, ClientRequestRecord } from '@windingtree/sdk-client';
+import {
+  GenericOfferOptions,
+  GenericQuery,
+  OfferData,
+  RequestData,
+} from '@windingtree/sdk-types';
+import {
+  ClientRequestsManager,
+  Client,
+  createClient,
+  ClientRequestRecord,
+} from '@windingtree/sdk-client';
 
 const defaultExpire = '30s';
 

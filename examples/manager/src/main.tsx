@@ -1,13 +1,18 @@
 import { createRoot } from 'react-dom/client';
 import { Hash } from 'viem';
 import { App } from './App.js';
-import { AppConfig, ConfigProvider, NodeProvider, WalletProvider, ContractsProvider } from '@windingtree/sdk-react/providers';
+import {
+  AppConfig,
+  ConfigProvider,
+  NodeProvider,
+  WalletProvider,
+  ContractsProvider,
+} from '@windingtree/sdk-react/providers';
 import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
-import { contractsConfig } from 'wtmp-protocol-examples-shared-files/dist/index.js';
+import { contractsConfig } from 'wtmp-examples-shared-files/dist/index.js';
 
-const targetChain = import.meta.env.VITE_LOCAL_NODE === 'hardhat'
-  ? hardhat
-  : polygonZkEvmTestnet;
+const targetChain =
+  import.meta.env.VITE_LOCAL_NODE === 'hardhat' ? hardhat : polygonZkEvmTestnet;
 
 export interface CustomConfig extends AppConfig {
   supplierId?: Hash;

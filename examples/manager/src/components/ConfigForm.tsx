@@ -21,7 +21,7 @@ export const ConfigForm = () => {
                 type: ConfigActions.SET_CONFIG,
                 payload: {
                   nodeHost: e.target.value,
-                }
+                },
               })
             }
           />

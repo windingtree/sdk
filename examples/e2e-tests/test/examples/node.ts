@@ -8,7 +8,7 @@ import {
   RequestQuery,
   serverAddress,
   stableCoins,
-} from 'wtmp-protocol-examples-shared-files';
+} from 'wtmp-examples-shared-files';
 import { OPEN } from '@libp2p/interface-connection/status';
 import { multiaddr } from '@multiformats/multiaddr';
 import { peerIdFromString } from '@libp2p/peer-id';
@@ -16,13 +16,24 @@ import { PeerId } from '@libp2p/interface-peer-id';
 import { mnemonicToAccount } from 'viem/accounts';
 import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
 import { createLogger } from '@windingtree/sdk-logger';
-import { generateMnemonic, nowSec, parseSeconds, supplierId as spId } from '@windingtree/sdk-utils';
-import { NodeOptions, Node, createNode, RequestEvent, NodeRequestManager } from '@windingtree/sdk-node';
+import {
+  generateMnemonic,
+  nowSec,
+  parseSeconds,
+  supplierId as spId,
+} from '@windingtree/sdk-utils';
+import {
+  NodeOptions,
+  Node,
+  createNode,
+  RequestEvent,
+  NodeRequestManager,
+} from '@windingtree/sdk-node';
 import { JobHandler } from '@windingtree/sdk-queue';
 import { DealStatus, OfferData } from '@windingtree/sdk-types';
 import { noncePeriod } from '@windingtree/sdk-constants';
 import { CenterSub } from '@windingtree/sdk-pubsub';
-import { DateTime } from 'ts-luxon';
+import { DateTime } from 'luxon';
 
 const logger = createLogger('NodeMain');
 
@@ -116,7 +127,7 @@ export class NodeExample {
     const [, , , buyer, , , status] = await contracts.getDeal(offer);
 
     // Deal must be exists and not cancelled
-    if (buyer !== zeroAddress && status === DealStatus.Created) {
+    if (buyer !== zeroAddress && status === Number(DealStatus.Created)) {
       // check for double booking in the availability system
       // If double booking detected - rejects (and refunds) the deal
 
