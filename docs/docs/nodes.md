@@ -1,43 +1,33 @@
-# Supplier flow
+# The Protocol Node
 
-## Supplier configuration
+## Supplier Configuration
 
-### Owner credentials
+> Before we dive into the supplier configuration, it's important to note that the entity registration/management flow and LIF deposit management are implemented in the node manager example application. For details of implementation, please check the example sources located under the `./examples/manager` directory.
 
-EOA or multisig account in the target network. This account is for:
+### Owner Credentials
 
-- Registration of the supplier entity in the protocol smart contract
-- Creation or changing of the signer account that is dedicated to signing the supplier's offers
-- Managing the LIF deposit balance
-- Owning the supplier's deals funds
+The owner credentials refer to an EOA (Externally Owned Account) or multisig account in the target network. This account is used for various purposes, including:
 
-### Signer credentials
+- Registering the supplier entity in the protocol smart contract.
+- Creating or changing the signer account that is dedicated to signing the supplier's offers.
+- Managing the LIF (Líf Token) deposit balance.
+- Owning the supplier's deal funds.
 
-EOA
+### Signer Credentials
 
-### Supplier topics
+The signer credentials refer to an EOA that is used for signing offers on behalf of the supplier. The signer is delegated by the owner to perform this task.
 
-This is a tag or a set of tags that depend on the use cases of the supplier business. If this use case is the hotel this tag will be the geolocation hash that represents the hotel address. If this use case is an abstract service provided without linkage to geolocation this tag can be the special unique code of service.
+### Topics
 
-For hotels the protocol recommends using H3 (Hexagonal hierarchical geospatial indexing system) that looks like this: `87283472bffffff`.
+Topics are tags or sets of tags that depend on the use cases of the supplier's business. For example, if the supplier's business is a hotel, the topic could be the geolocation hash that represents the hotel's address. For abstract services provided without a linkage to geolocation, the topic can be a special unique service code.
 
-The protocol provides with function for converting traditional lat/lng coordinates to `h3` hash and overwise.
+The protocol recommends using H3 (Hexagonal hierarchical geospatial indexing system) for representing geolocation-based topics. An example H3 hash looks like this: `87283472bffffff`.
 
-Here is an example:
+To convert traditional lat/lng coordinates to an H3 hash and vice versa, you can use the `h3` utility from `@windingtree/sdk-utils`.
 
-```typescript
-import { h3 } from '@windingtree/sdk-utils';
+### Entity Registration
 
-const h3Index = h3.latLngToCell(37.3615593, -122.0553238);
-// -> '87283472bffffff'
-
-const hexCenterCoordinates = h3.cellToLatLng(h3Index);
-// -> [37.35171820183272, -122.05032565263946]
-```
-
-### Registration
-
-The supplier must register its entity by sending a transaction to the protocol smart contract. Here is the registration function ABI:
+The supplier must register their entity by sending a transaction to the protocol smart contract. The registration function ABI is as follows:
 
 ```solidity
 function register(
@@ -49,21 +39,16 @@ function register(
 ) external;
 ```
 
-> If the protocol network will support the LIF token as a native token (optional) the `register` function ABI will also have a `payable` modifier
+A unique identifier of the supplier will be calculated by the protocol smart contract as a `keccak256` hash of the provided `salt` and the address of the transaction sender.
 
-A unique identifier of the supplier will be calculated by the protocol smart contract as a `keccak256` hash of provided `salt` and the address of the transaction sender.
+- The `owner` argument is the address of the supplier entity owner. After registration, this account exclusively will be allowed to change the signer address and manage the LIF token deposit.
+- The `signer` argument is the address that is delegated by the `owner` to sign offers.
+- The `lifDeposit` argument is the amount of LIF tokens that the `sender` wants to deposit into the account (in WEI). If a zero `lifDeposit` value is provided, the processing of the tokens deposit in this transaction will be skipped.
+- The `permit` argument is the EIP-712 signature with the allowance to the contract to spend a proper amount of tokens.
 
-The `owner` argument is the address of the supplier entity owner. After the registration, this account exclusively will be allowed to change the signer address and manage the LIF token deposit as well.
+### LIF Deposit Management
 
-The `signer` argument is the address that is delegated by the `owner` to sign offers.
-
-The `lifDeposit` argument is the amount of the LIF tokens that the `sender` wants to deposit into the account (in WEI). If a zero `lifDeposit` value is provided the processing of the tokens deposit in this transaction will be skipped.
-
-The `permit` argument is the EIP-712 signature with the allowance to the contract to spend a proper amount of tokens.
-
-### LIF deposit
-
-This is a set of two smart contract functions for managing the LIF deposit funds of a supplier.
+LIF deposit management consists of two smart contract functions: one for adding deposits and another for withdrawing deposits.
 
 Adding deposits:
 
@@ -77,21 +62,22 @@ Deposits withdrawal:
 function lifDepositWithdraw(uint256 amount) external;
 ```
 
-> These functions can be called by the supplier `owner` only.
+These functions can be called by the supplier `owner` only.
 
-> **Note**: A supplier entity registration flow is implemented in the node manager example application.
+## Creating the Node
 
-## Creating the node
+The node is the main component responsible for handling requests, generating offers, and managing deals. More about the node configuration options can be found [here](./index.md#supplier-node-configuration).
 
-More about the node configuration options is [here](./index.md#supplier-node-configuration).
+To create a node, you'll need to provide the necessary options, including topics, chain configuration, contracts, server address, supplier ID, and signer credentials.
+
+Here's an example:
 
 ```typescript
-import { NodeOptions } from '@windingtree/sdk-node';
-import { serverAddress } from './path/to/config.js';
+import { NodeOptions, createNode } from '@windingtree/sdk-node';
 
 const nodeOptions: NodeOptions = {
   topics: ['topic'], // List of topics on which the node listens for incoming requests. You can use H3 geohash as a topic, for example.
-  chain, // Blockchain network configuration. See the `Chain` type from `viem/chains`.
+  chain: chainConfig, // Blockchain network configuration. See the `Chain` type from `viem/chains`.
   contracts: contractsConfig, // See the `Contracts` type from `@windingtree/type`.
   serverAddress, // Server multiaddr.
   supplierId, // Unique supplier ID that is registered in the protocol smart contract.
@@ -99,7 +85,7 @@ const nodeOptions: NodeOptions = {
   signerPk: signerPk, // Optional. You can provide it instead of signerSeedPhrase.
 };
 
-const node = createNode<RequestQuery, OfferOptions>(options);
+const node = createNode(options);
 
 node.addEventListener('connected', () => {
   console.log('Connected!');
@@ -114,196 +100,132 @@ node.addEventListener('start', () => {
 });
 
 await node.start(); // Start the client
+// ...
 await node.stop(); // Stop the client
 ```
 
-## Subscription to node's events
+## The Node's Events
 
-A node allows subscribing to the following event types.
+The node allows subscribing to the following event types:
 
 - `connected`: emitted when the node is connected to the coordination server
 - `disconnected`: emitted when the node is disconnected
 - `start`: emitted when the node is started
 - `stop`: emitted when the node is stopped
 - `heartbeat`: emitted every second, useful for performing utility functions
-- `request`: emitted on every incoming request
+- `message`: emitted on every incoming request
 
+## Subscribing to Requests
 
-## Subscribing to requests
+When the node starts, it automatically listens for incoming requests on the topics provided in the configuration. Each incoming request leads to a `message` event being emitted. To process these events and handle the incoming requests, you can add a listener for the `message` event.
 
-To start listening to requests the supplier must provide a list of `topics` in the node configuration options.
-
-```typescript
-import { utils } from '@windingtree/sdk';
-
-const topic = utils.latLngToCell(coordinates.lat, coordinates.lng);
-// -> ['87283472bffffff']
-
-const options: NodeOptions = {
-  /** ... */
-  topics: [topic], // <-- When started the node will be subscribed to these topics
-};
-
-const node = createNode(options);
-```
-
-To add a requests handler you should subscribe to the `request` event of the node.
+Here's an example of how to add a request handler by subscribing to the `message` event of the node:
 
 ```typescript
-node.addEventListener('request', async ({ data }): Promise<void> => {
+node.addEventListener('message', async ({ data }) => {
   console.log(`Got the request #${data.id} with query: ${data.query}`);
-  // - validation of the request: expiration time, query parameters, etc
-  // - adding the request to the processing queue
+  // - Perform validation of the request, such as checking expiration time, query parameters, etc.
+  // - Add the request to the processing queue
+  // - And more...
 });
 ```
 
-## Requests processing
+## Queue
 
-It is recommended that all incoming requests that are passed validation should be added to the requests queue to be persisted there and properly processed. If the node will be reloaded, this requests queue will be restored and no one incoming request will be missed.
+For working with deals, it is recommended to use a queue as a scalable solution. The protocol SDK provides such a utility through the `@windingtree/sdk-queue` package.
 
-> It is not mandatory to add requests to the queue. If you want, you can skip this step and process requests right in the `request` event handler. However, you should be aware that this approach can cause requests to drop between application restarts. Also, this approach will consume more system resources because all request handlers will be processed in system memory at the same time.
-
-Before start using the requests queue you should configure an asynchronous processing callback and register it in the `Queue` utility instance.
+Here's an example of how to instantiate a queue:
 
 ```typescript
-import { storage, Queue, createJobHandler } from '@windingtree/sdk';
+import { Queue } from '@windingtree/sdk-queue';
+import { memoryStorage } from '@windingtree/sdk-storage';
 
-const storageInit = await storage.memoryStorage.createInitializer();
+const queueStorageInit = memoryStorage.createInitializer();
 
 const queue = new Queue({
-  /** You can use any other available storage options */
-  storage: storageInit(),
+  storage: await queueStorageInit(),
   hashKey: 'jobs',
-  concurrentJobsNumber: 10,
+  concurrencyLimit: 10,
 });
+```
 
-/**
- * This is interface of object that you want to pass to the job handler as options
- */
-interface RequestHandlerOptions {
-  node: Node<RequestQuery, OfferOptions>;
+Now, we need to properly configure the queue to enable it to handle jobs. We should define a task handler and register it in the queue. Here's how you can complete this:
+
+```typescript
+import { JobHandler } from '@windingtree/sdk-queue';
+
+// Creating a handler factory
+// We need it because a handler will be initialized dynamically to be able to utilize the runtime environment
+const createOfferHandler =
+  <JobData = unknown, HandlerOptions = unknown>(
+    handler: JobHandler<JobData, HandlerOptions>,
+  ) =>
+  (options: HandlerOptions = {} as HandlerOptions) =>
+  (data: JobData) =>
+    handler(data, options);
+
+// Define the type of options that will be injected into the handler scope on every execution
+interface DealHandlerOptions {
+  contracts: ProtocolContracts; // We have to pass the protocol contracts manager there to be able to make interactions with the protocol smart contracts
+  dealsDb: DealsDb; // We also need a database where deals will be stored
 }
 
-/**
- * Handler should be created using createJobHandler factory function
- */
-const requestsHandler = createJobHandler<
-  RequestData<CustomRequestQuery>,
-  RequestHandlerOptions
->(async (data, options) => {
-  // data - raw request
-  // options - object with everything else you want pass into the handler at run time
-});
+// Define the deals handler itself
+const dealHandler = createOfferHandler<
+  OfferData<RequestQuery, OfferOptions>,
+  DealHandlerOptions
+>(async (offer, options) => {
+  // The deals handling source code creation will be reviewed later below
 
-/**
- * Registering of the request handler in the queue
- */
-queue.addJobHandler(
-  'request',
-  requestsHandler({
-    /**
-     * Passing a node reference.
-     * This reference will be available in the handler through the `options` argument
-     * */
-    node,
-  }),
-);
-```
-
-To add a request to the queue you should use the `addJob` method of the `Queue` utility instance.
-
-```typescript
-/**
- * Creation of the job
- */
-queue.addJob('request', rawRequest, {
-  /** Forget about this request if it is expired */
-  expire: rawRequest.expire,
+  // Here, you need to take into account:
+  // - Returning `false` from the function means that the job must be immediately stopped
+  // - Returning `true` will keep the job running
 });
 ```
 
-## Building and publishing of offer
+## Requests Processing
 
-It is the idea to generate an offer on every valid and acceptable request. Associated logic should be incorporated into the request queue handler as explained in the previous chapter.
+To process incoming requests, the protocol SDK offers the `NodeRequestManager` utility. This tool is designed to handle incoming requests with different `nonce` values and select the latest version of the request after a specific timeout (called `noncePeriod`).
 
-Every offer structure must follow the generic message data structure proposed by the protocol.
-
-Here is type of an offer:
+To initialize the `NodeRequestManager`:
 
 ```typescript
-type OfferData<RequestQuery, OfferOptions> = {
-  /** Custom offer options */
-  options: OfferOptions;
-  /** Uniquer offer id */
-  id: string;
-  /** Offer expiration time */
-  expire: number;
-  /** Offer nonce. Must be equal to 1 */
-  nonce: number;
-  /**
-   * Copy of request obtained
-   * {RequestData<RequestQuery>}
-   **/
-  request: {
-    id: string;
-    expire: number;
-    nonce: number;
-    topic: string;
-    query: RequestQuery;
-  };
-  /**
-   * Payment options
-   * {PaymentOption}
-   **/
-  payment: {
-    id: string;
-    price: string;
-    asset: string;
-  }[];
-  /**
-   * Cancellation rules
-   * {CancelOption}
-   **/
-  cancel: {
-    time: number;
-    penalty: number;
-  }[];
-  /**
-   * Offer payload
-   * {UnsignedOfferPayload}
-   **/
-  payload: {
-    /** Unique supplier Id registered on the protocol contract */
-    supplierId: string;
-    /** Target network chain Id */
-    chainId: number;
-    /** <keccak256(request.hash())> */
-    requestHash: string;
-    /** <keccak256(JSON.stringify(offer.options))> */
-    optionsHash: string;
-    /** <keccak256(JSON.stringify(offer.payment))> */
-    paymentHash: string;
-    /** <keccak256(JSON.stringify(offer.cancel(sorted by time DESC) || []))> */
-    cancelHash: string;
-    /** makes the deal NFT transferable or not */
-    transferable: boolean;
-    /** check-in time in seconds */
-    checkIn: number;
-  };
-  /** EIP-712 (Typed) signature */
-  signature: string;
-};
+import { NodeRequestManager } from '@windingtree/sdk-node';
+
+const requestManager = new NodeRequestManager<RequestQuery>({
+  noncePeriod: 2000, // 2 seconds
+});
+
+// Assuming that the node is already initialized
+// We can subscribe to the `message` event and start processing incoming requests
+
+node.addEventListener('message', (e) => {
+  const { topic, data } = e.detail;
+  // You can add logging of incoming requests here
+  requestManager.add(topic, data);
+});
+
+// To avoid memory leakage, prune the cache of the requestManager
+node.addEventListener('heartbeat', () => {
+  requestManager.prune();
+});
 ```
 
-To build and publish an offer you should use the `buildOffer` method of a node instance.
+When a `NodeRequestManager` receives a request and the `noncePeriod` is complete, it will emit a `request` event. This event should be used to proceed to the next step of request processing, which involves creating an offer. More details about offer creation will be covered in the next chapter.
+
+## Building and Publishing an Offer
+
+The idea is to generate an offer for every valid and acceptable request. The associated logic should be incorporated into the request queue handler, as explained in the previous chapter.
+
+To build and publish an offer, you can use the `buildOffer` method of the node instance. Here's an example taken from the protocol node example app (located in the `./examples/node` directory of the SDK repository):
 
 ```typescript
 const offer = await node.buildOffer({
   /** Offer expiration time */
-  expire: '30s',
-  /** Copy of request */
+  expire: '15m',
+  /** Copy of the request */
   request: detail.data,
-  /** Random options data. Just for testing */
+  /** Random options data (for testing purposes) */
   options: {
     date: DateTime.now().toISODate(),
     buongiorno: Math.random() < 0.5,
@@ -311,143 +233,170 @@ const offer = await node.buildOffer({
   },
   /**
    * Dummy payment option.
-   * In production these options managed by supplier
+   * In production, these options are managed by the supplier.
    */
   payment: [
     {
-      id: simpleUid(),
-      price: '1',
-      asset: ZeroAddress,
+      id: randomSalt(),
+      price: BigInt('1000000000000000'), // 0.001 LIF
+      asset: stableCoins.stable18permit,
+    },
+    {
+      id: randomSalt(),
+      price: BigInt('1200000000000000'), // 0.0012 LIF
+      asset: stableCoins.stable18,
     },
   ],
   /** Cancellation options */
   cancel: [
     {
-      time: nowSec() + 500,
-      penalty: 100,
+      time: BigInt(nowSec() + 500),
+      penalty: BigInt(100),
     },
   ],
-  /** Check-in time */
-  checkIn: nowSec() + 1000,
+  /** Check-in and check-out times */
+  checkIn: BigInt(nowSec() + 1000),
+  checkOut: BigInt(nowSec() + 2000),
 });
 ```
 
-## Checking and processing a deal
+## Working with the Protocol Smart Contract
 
-When a client receives one or many offers on his request he chooses one and sends a transaction to the smart contract. If this transaction is succeeded a `Deal` is registered and can be detected by the supplier node.
-
-Detecting a Deal is possible in two ways. The first option is listening for the smart contract events (`Deal` event). The second is continuous smart contract state monitoring.
-
-Listening to smart contract events is a simple but not scalable way in case of huge traffic of deals. In this case, all responsibility is moved to the blockchain network provider (JSON-RPC provider) side. A huge amount of listeners may bring the provider to an unstable state. Because of that the risk of a Deal event missing is rising.
-
-The second, alternative way is creating a queue-enabled poller that will repeatedly request the smart contract for concrete deals until related offers expired.
-
-Depending on the business and offer traffic scale both strategies can be implemented using SDK features.
-
-Here is demonstrated a variant that uses poller based on `Queue` utility.
+To interact with the protocol smart contract, you can use the `ProtocolContracts` utility class, which provides methods for managing deals and entities.
 
 ```typescript
-/**
- * A Deal job handler should be created in the same way as requests
- */
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { polygonZkEvmTestnet } from 'viem/chains';
+import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
+import { contractsConfig } from './path/to/config';
 
-queue.addJob('deal', offer, {
-  expire: offer.expire,
-  every: 5000, // 5 sec
+// Create a public client to interact with the blockchain
+const publicClient = createPublicClient({
+  chain: polygonZkEvmTestnet,
+  transport: http(),
+});
+
+// Create a wallet client to sign transactions and interact with the blockchain
+const walletClient = createWalletClient({
+  chain: polygonZkEvmTestnet,
+  transport: http(),
+  account: node.signer.address, // Use the signer address from the node configuration
+});
+
+// Initialize the ProtocolContracts utility with the necessary configuration
+const contractsManager = new ProtocolContracts({
+  contracts: contractsConfig, // Configuration for the smart contracts
+  publicClient, // Public client instance to interact with the blockchain
+  walletClient, // Wallet client instance to sign transactions and interact with the blockchain
 });
 ```
 
-## Checking for cancellation
+The `ProtocolContracts` class type definition above outlines some of the methods available for interacting with the protocol smart contract. Here are some of the key methods:
 
-The cancellation of a deal can be detected and processed in the same way as deal creation through smart contract events and using a queue-based poller.
+**List of Methods:**
 
-## Checkin
+- `getDeal`: Fetches deal information from the smart contract.
+- `createDeal`: Creates a new deal on offer.
+- `cancelDeal`: Cancels a deal.
+- `transferDeal`: Transfers a deal to another address.
+- `rejectDeal`: Rejects a deal.
+- `claimDeal`: Claims a deal.
+- `refundDeal`: Refunds a deal.
+- `checkInDeal`: Checks-in a deal.
+- `checkOutDeal`: Checks-out a deal.
+- `registerEntity`: Registers a new entity in the registry.
+- `toggleEntity`: Toggles the entity status.
+- `changeEntitySigner`: Changes the signer for an entity.
+- `addEntityDeposit`: Adds tokens deposit to the entity balance.
+- `withdrawEntityDeposit`: Withdraws tokens deposit from the entity balance.
+- `getEntity`: Fetches entity information from the registry.
+- `balanceOfEntity`: Fetches the balance of an entity deposit.
 
-To be able to withdraw funds from the deal the supplier should complete the `checkin` procedure. It is possible to do this in two ways:
+You can use these methods to perform various actions related to deals and entities on the Winding Tree Market Protocol. For example, you can register a new supplier, create and manage deals, check the balance of a supplier, and withdraw the supplier's LIF tokens.
 
-- Before the `checkin` date using the approval signature from the buyer
-- After the `checkin` date without any other conditions
+Keep in mind that interacting with smart contracts involves sending transactions to the blockchain, which may require gas fees. Make sure you have enough funds in the wallet account ([supplier signer account](#signer-credentials)) to cover these fees when performing transactions.
 
-### With approval signature
+With the `ProtocolContracts` utility, you have a powerful tool to work with the protocol smart contract and manage deals on the Winding Tree Market Protocol.
 
-At reception, the supplier manager should ask the buyer to provide the signed check-in voucher. Usually, this voucher comes in the form of QR code which after decoding looks like:
+## Checking Deal State Changes
 
-```json
-{
-  "payload": {
-    "chainId": 127,
-    "tokeId": 3,
-    "supplierId": "0x...",
-    "action": "check-in"
-  },
-  "signature": "0x..."
-}
-```
+Tasks for checking deal state changes can be implemented in the same way as monitoring the creation of deals (requests processing). For more details, refer to the previous section on "Requests Processing."
 
-This signature is the EIP-712 (typed) signature that represents the following domain and values:
+With this information, you have a better understanding of how to configure the supplier node, manage incoming requests, build and publish offers, and handle deal state changes.
 
-```typescript
-interface CheckInEip712Domain {
-  name: string; // Verifying contract name
-  version: string; // Verifying contract version
-  chainId: number; // L3 chain Id
-  verifyingContract: string; // Verifying contract address
-}
+## The Node Management API
 
-const checkInEip712Types = {
-  Checkin: [
-    {
-      name: 'tokenId';
-      type: 'uint256';
-    },
-    {
-      name: 'supplierId';
-      type: 'bytes32';
-    },
-  ];
-}
+The protocol SDK includes the `@windingtree/sdk-node-api` package, which provides a powerful tool for remotely managing the node. This tool is based on [tRPC](https://trpc.io/), an end-to-end typesafe RPC framework, and allows for user management, admin management, and deal management procedures.
 
-interface CheckInEip712Values {
-  tokenId: number;
-  supplierId: string;
-}
-```
+The `@windingtree/sdk-node-api` package includes the following components:
 
-Now, the supplier is able to check the signature validity and send the `check-in` transaction to the protocol smart contract.
+- **Routers**: These modules define the procedures for user management, admin management, and deal management. Procedures include actions like registration, login, logout, delete, update, check-in, and check-out, among others.
+- **Server**: The server module sets up an API server that uses the defined routers to handle requests from clients.
+- **Client**: The client module provides utilities for creating EIP-712 signatures for certain operations and middleware functions for tRPC link operations.
+- **Constants**: This module exports various constants used across the SDK, such as the access token name and the typed domain for admin signatures.
+- **Utils**: This module exports a schema used for pagination in query inputs.
+
+### The Node Management API Instantiation
+
+To set up the node management API, you can use the following example:
 
 ```typescript
-import { CheckInVoucher, DealStatus, utils } from '@windingtree/sdk';
+import { NodeApiServer } from '@windingtree/sdk-node-api/server';
+import { appRouter } from '@windingtree/sdk-node-api/router';
+import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
+import { memoryStorage } from '@windingtree/sdk-storage';
 
-// Your custom QR scanning logic
-const getVoucher = async (): Promise<CheckInVoucher> => {
-  /* scan the QR code => rawVoucher */
-  const voucher = JSON.parse(rawVoucher) as CheckInVoucher;
-  utils.verifyCheckInVoucher(voucher);
-  return voucher;
+// Assuming that the `node` and `ProtocolContracts` instances are already initialized
+
+// Set up in-memory storage for users and deals
+const usersStorage = await memoryStorage.createInitializer({
+  scope: 'users',
+})();
+const dealsStorage = await memoryStorage.createInitializer({
+  scope: 'deals',
+})();
+
+const apiServer = new NodeApiServer({
+  usersStorage,
+  dealsStorage,
+  prefix: 'my-prefix',
+  port: 3000, // Port number for the API server
+  secret: 'my-secret', // Secret key for authentication
+  ownerAccount: '<Entity_Owner_Address>', // Address of the entity owner
+  protocolContracts, // ProtocolContracts instance
+});
+
+// Start the API server and set up the defined routers
+apiServer.start(appRouter);
+```
+
+### Remote Node API Usage
+
+Here's a simple example of how to use the `@windingtree/sdk-node-api/client` in a React application:
+
+```typescript
+import { createAdminSignature } from '@windingtree/sdk-node-api/client';
+import { useNode, useWallet } from '@windingtree/sdk-react/providers';
+
+// Your code to set up the WindingTree Wallet goes here. Assuming you have a `walletClient` object in the app component.
+const { walletClient } = useWallet();
+const { node } = useNode();
+
+const handleAdminRegister = async (name: string) => {
+  try {
+    const signature = await createAdminSignature(walletClient);
+
+    await node.admin.register.mutate({
+      login: name,
+      password: signature,
+    });
+  } catch (error) {
+    console.error('Error admin register:', error);
+  }
 };
 
-const { payload, signature } = await getVoucher();
-
-const deal = await node.getDeal(payload.chainId, payload.tokenId); // will throw if the deal not found
-
-if (deal.status !== DealStatus.ACCEPTED) {
-  throw new Error('Invalid deal');
-}
-
-const owner = await deal.owner();
-
-const buyerAddress = utils.verifyCheckInSignature(payload, signature);
-
-if (buyerAddress !== owner) {
-  throw new Error('Invalid signature');
-}
-
-await node.checkIn(deal, (txHash) => {
-  console.log(`CheckIn transaction ${txhash} is pending`);
-}); // will throw if not succeeded
-
-console.log('Nice!');
+// Call the function to register an admin
+handleAdminRegister();
 ```
 
-When the check-in transaction is successful all the funds that are locked in the deal will be transferred to the supplier account.
-The deal will be updated and marked as checked-in.
+With the node management API, you can remotely manage your node by calling the appropriate procedures through the API server. This allows for easy integration and management of users, admins, and deals on the Winding Tree Market Protocol.
