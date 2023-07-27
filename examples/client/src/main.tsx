@@ -3,9 +3,8 @@ import { WalletProvider } from '@windingtree/sdk-react/providers';
 import { polygonZkEvmTestnet, hardhat } from 'viem/chains';
 import { App } from './App.js';
 
-const targetChain = import.meta.env.VITE_LOCAL_NODE === 'hardhat'
-  ? hardhat
-  : polygonZkEvmTestnet;
+const targetChain =
+  import.meta.env.VITE_LOCAL_NODE === 'hardhat' ? hardhat : polygonZkEvmTestnet;
 
 window.addEventListener('unhandledrejection', (event) => {
   event.preventDefault();

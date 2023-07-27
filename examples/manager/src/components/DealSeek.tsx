@@ -3,7 +3,12 @@ import { DateTime } from 'luxon';
 import { Hash } from 'viem';
 import { stringify } from 'superjson';
 import { useConfig, useNode } from '@windingtree/sdk-react/providers';
-import { DealRecord, DealStatus, GenericOfferOptions, GenericQuery } from '@windingtree/sdk-types';
+import {
+  DealRecord,
+  DealStatus,
+  GenericOfferOptions,
+  GenericQuery,
+} from '@windingtree/sdk-types';
 import { formatBalance } from '@windingtree/sdk-react/utils';
 import { DealCheckInOut } from './DealCheckInOut.js';
 
@@ -16,32 +21,37 @@ export const DealSeek = () => {
   const [offerId, setOfferId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [action, setAction] = useState<number | undefined>();
-  const [deal, setDeal] = useState<DealRecord<GenericQuery, GenericOfferOptions> | undefined>();
+  const [deal, setDeal] = useState<
+    DealRecord<GenericQuery, GenericOfferOptions> | undefined
+  >();
   const [error, setError] = useState<string | undefined>();
 
-  const getDeal = useCallback(async (id: Hash) => {
-    try {
-      setError(undefined);
-      setLoading(false);
-      setAction(undefined);
+  const getDeal = useCallback(
+    async (id: Hash) => {
+      try {
+        setError(undefined);
+        setLoading(false);
+        setAction(undefined);
 
-      if (!node) {
-        return;
+        if (!node) {
+          return;
+        }
+
+        setLoading(true);
+        const record = await node.deals.seek.mutate({
+          id,
+        });
+        console.log('Deal:', record);
+        setDeal(record);
+        setLoading(false);
+      } catch (error) {
+        console.log(error);
+        setError((error as Error).message || 'Unknown login error');
+        setLoading(false);
       }
-
-      setLoading(true);
-      const record = await node.deals.seek.mutate({
-        id,
-      });
-      console.log('Deal:', record);
-      setDeal(record);
-      setLoading(false);
-    } catch (error) {
-      console.log(error);
-      setError((error as Error).message || 'Unknown login error');
-      setLoading(false);
-    }
-  }, [node]);
+    },
+    [node],
+  );
 
   if (!isAuth) {
     return null;
@@ -54,10 +64,16 @@ export const DealSeek = () => {
           <strong>Offer Id:</strong>
         </div>
         <div>
-          <input value={offerId} onChange={(e) => setOfferId(e.target.value)} disabled={loading} />
+          <input
+            value={offerId}
+            onChange={(e) => setOfferId(e.target.value)}
+            disabled={loading}
+          />
         </div>
       </div>
-      <div style={{ marginTop: 5, display: 'flex', flexDirection: 'row', gap: 10 }}>
+      <div
+        style={{ marginTop: 5, display: 'flex', flexDirection: 'row', gap: 10 }}
+      >
         <div>
           <button onClick={() => getDeal(offerId as Hash)} disabled={loading}>
             Get deal{loading ? '...' : ''}
@@ -75,19 +91,67 @@ export const DealSeek = () => {
           </button>
         </div>
       </div>
-      {deal &&
+      {deal && (
         <>
-          <div style={{ marginTop: 30, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div><strong>Offer id</strong>: {deal.offer.payload.id}</div>
-            <div><strong>Created</strong>: {DateTime.fromSeconds(Number(deal.created)).toLocaleString(DateTime.DATETIME_SHORT)} ({DateTime.fromSeconds(Number(deal.created)).toRelative()})</div>
-            <div><strong>Check In</strong>: {DateTime.fromSeconds(Number(deal.offer.payload.checkIn)).toLocaleString(DateTime.DATETIME_SHORT)} ({DateTime.fromSeconds(Number(deal.offer.payload.checkIn)).toRelative()})</div>
-            <div><strong>Check Out</strong>: {DateTime.fromSeconds(Number(deal.offer.payload.checkOut)).toLocaleString(DateTime.DATETIME_SHORT)} ({DateTime.fromSeconds(Number(deal.offer.payload.checkOut)).toRelative()})</div>
-            <div><strong>Offer options:</strong>: {stringify(deal.offer.options)}</div>
-            <div><strong>Buyer</strong>: {deal.buyer}</div>
-            <div><strong>Price</strong>: {formatBalance(deal.price, 4)}</div>
-            <div><strong>Asset</strong>: {deal.asset}</div>
-            <div><strong>Transferable</strong>: {deal.offer.payload.transferable ? 'Yes' : 'No'}</div>
-            <div><strong>Status</strong>: {DealStatus[deal.status]}</div>
+          <div
+            style={{
+              marginTop: 30,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}
+          >
+            <div>
+              <strong>Offer id</strong>: {deal.offer.payload.id}
+            </div>
+            <div>
+              <strong>Created</strong>:{' '}
+              {DateTime.fromSeconds(Number(deal.created)).toLocaleString(
+                DateTime.DATETIME_SHORT,
+              )}{' '}
+              ({DateTime.fromSeconds(Number(deal.created)).toRelative()})
+            </div>
+            <div>
+              <strong>Check In</strong>:{' '}
+              {DateTime.fromSeconds(
+                Number(deal.offer.payload.checkIn),
+              ).toLocaleString(DateTime.DATETIME_SHORT)}{' '}
+              (
+              {DateTime.fromSeconds(
+                Number(deal.offer.payload.checkIn),
+              ).toRelative()}
+              )
+            </div>
+            <div>
+              <strong>Check Out</strong>:{' '}
+              {DateTime.fromSeconds(
+                Number(deal.offer.payload.checkOut),
+              ).toLocaleString(DateTime.DATETIME_SHORT)}{' '}
+              (
+              {DateTime.fromSeconds(
+                Number(deal.offer.payload.checkOut),
+              ).toRelative()}
+              )
+            </div>
+            <div>
+              <strong>Offer options:</strong>: {stringify(deal.offer.options)}
+            </div>
+            <div>
+              <strong>Buyer</strong>: {deal.buyer}
+            </div>
+            <div>
+              <strong>Price</strong>: {formatBalance(deal.price, 4)}
+            </div>
+            <div>
+              <strong>Asset</strong>: {deal.asset}
+            </div>
+            <div>
+              <strong>Transferable</strong>:{' '}
+              {deal.offer.payload.transferable ? 'Yes' : 'No'}
+            </div>
+            <div>
+              <strong>Status</strong>: {DealStatus[deal.status]}
+            </div>
           </div>
 
           <div style={{ marginTop: 20, marginBottom: 5 }}>
@@ -120,7 +184,7 @@ export const DealSeek = () => {
 
           <DealCheckInOut action={action} deal={deal} />
         </>
-      }
+      )}
 
       {error && <div style={{ marginTop: 20 }}>🚨 {error}</div>}
     </>

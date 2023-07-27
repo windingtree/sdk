@@ -18,7 +18,7 @@ import {
   contractsConfig,
   stableCoins,
   serverAddress,
-} from 'wtmp-protocol-examples-shared-files';
+} from 'wtmp-examples-shared-files';
 import { OfferData, DealStatus } from '@windingtree/sdk-types';
 import { noncePeriod } from '@windingtree/sdk-constants';
 import { Queue, JobHandler } from '@windingtree/sdk-queue';

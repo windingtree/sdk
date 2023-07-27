@@ -1,11 +1,9 @@
 {
-  "name": "e2e-tests",
+  "name": "wtmp-e2e-tests",
   "version": "0.0.0",
   "description": "The WindingTree market protocol examples end to end tests",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "keywords": [
     "test"
   ],
@@ -14,17 +12,11 @@
     "Kostiantyn Smyrnov <kostysh@gmail.com>"
   ],
   "license": "ISC",
-  "scripts": {
-    "build": "tsc -p ./tsconfig.json",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "viem": "^1.3.0",
-    "@windingtree/sdk-types": "workspace:*",
-    "@windingtree/sdk-utils": "workspace:*"
-  },
   "devDependencies": {
+    "@types/luxon": "3.3.1",
     "@windingtree/contracts": "1.0.0-beta.12",
+    "@windingtree/sdk-types": "workspace:*",
+    "@windingtree/sdk-utils": "workspace:*",
     "@windingtree/sdk-client": "workspace:*",
     "@windingtree/sdk-constants": "workspace:*",
     "@windingtree/sdk-contracts-manager": "workspace:*",
@@ -35,15 +27,20 @@
     "@windingtree/sdk-queue": "workspace:*",
     "@windingtree/sdk-server": "workspace:*",
     "@windingtree/sdk-storage": "workspace:*",
-    "vitest": "^0.33.0",
-    "wtmp-protocol-examples-shared-files": "workspace:*",
+    "wtmp-examples-shared-files": "workspace:*",
     "@libp2p/interface-connection": "^5.1.1",
     "@libp2p/interface-peer-id": "^2.0.2",
     "@libp2p/interfaces": "^3.3.2",
     "@libp2p/peer-id": "^2.0.4",
     "@multiformats/multiaddr": "^12.1.3",
     "luxon": "^3.3.0",
-    "ts-luxon": "^4.3.2",
     "viem": "^1.3.0"
+  },
+  "scripts": {
+    "build": "echo \"no build specified\" && exit 0",
+    "test": "vitest --run",
+    "test:rel": "vitest related --run",
+    "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
+    "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write ."
   }
 }
