@@ -52,7 +52,11 @@ export class ServerExample {
   };
 
   get connected() {
-    return !!this.server.multiaddrs;
+    try {
+      return !!this.server.multiaddrs;
+    } catch (e) {
+      return false;
+    }
   }
 
   stop = async () => {

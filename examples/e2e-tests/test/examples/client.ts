@@ -1,8 +1,4 @@
-import {
-  OfferOptions,
-  RequestQuery,
-  serverAddress,
-} from 'wtmp-examples-shared-files';
+import { RequestQuery, serverAddress } from 'wtmp-examples-shared-files';
 import { EventHandler } from '@libp2p/interfaces/events';
 import { buildRequest } from '@windingtree/sdk-messages';
 import { memoryStorage } from '@windingtree/sdk-storage';
@@ -13,22 +9,27 @@ import {
   RequestData,
 } from '@windingtree/sdk-types';
 import {
-  ClientRequestsManager,
   Client,
-  createClient,
   ClientRequestRecord,
+  ClientRequestsManager,
 } from '@windingtree/sdk-client';
+import { createLogger } from '@windingtree/sdk-logger';
 
 const defaultExpire = '30s';
 
+const logger = createLogger('Server');
+
 export class ClientExample {
+  private requests: Set<RequestData<RequestQuery>> = new Set<
+    RequestData<RequestQuery>
+  >();
   private client: Client | undefined;
   private requestsManager: ClientRequestsManager | undefined;
 
   private offers: Set<OfferData> = new Set();
 
   public start = async () => {
-    this.client = createClient<RequestQuery, OfferOptions>({
+    this.client = new Client({
       serverAddress,
     });
 
@@ -56,19 +57,24 @@ export class ClientExample {
   };
 
   onClientStart = () => {
-    console.log('🚀 Client started at:', new Date().toISOString());
+    logger.trace('🚀 Client started at:', new Date().toISOString());
   };
 
   onClientStop = () => {
-    console.log('👋 Client stopped at:', new Date().toISOString());
+    logger.trace('👋 Client stopped at:', new Date().toISOString());
   };
 
   onClientConnected = () => {
-    console.log('🔗 Client connected to server at:', new Date().toISOString());
+    logger.trace('🔗 Client connected to server at:', new Date().toISOString());
+    //requests emit localstorage
+    this.requests.forEach((request) => {
+      this.client?.subscribe(request.id);
+      this.requestsManager?.add(request);
+    });
   };
 
   onClientDisconnected = () => {
-    console.log(
+    logger.trace(
       '🔌 Client disconnected from server at:',
       new Date().toISOString(),
     );
@@ -113,6 +119,7 @@ export class ClientExample {
       },
     });
 
+    this.requests.add(request);
     this.client.publish(request);
   };
 
@@ -124,7 +131,31 @@ export class ClientExample {
     return this.offers;
   }
 
+  get getRequests() {
+    return this.requests;
+  }
+
+  setRequests = (requests: Set<RequestData<RequestQuery>>) => {
+    this.requests = requests;
+  };
+
   stop = async () => {
+    this.client?.removeEventListener('start', this.onClientStart);
+    this.client?.removeEventListener('stop', this.onClientStop);
+    this.client?.removeEventListener('connected', this.onClientConnected);
+    this.client?.removeEventListener('disconnected', this.onClientDisconnected);
+    this.client?.removeEventListener('publish', this.onRequestPublish);
+    this.client?.removeEventListener('offer', this.onOffer);
+
+    this.requestsManager?.removeEventListener(
+      'subscribe',
+      this.onRequestSubscribe,
+    );
+    this.requestsManager?.removeEventListener(
+      'unsubscribe',
+      this.onRequestUnsubscribe,
+    );
+
     await this.client?.stop();
   };
 }

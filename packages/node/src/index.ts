@@ -462,6 +462,9 @@ export class Node<
         if (this.libp2p && !this.serverConnected) {
           try {
             await this.libp2p.dial(this.serverMultiaddr);
+            await (this.libp2p.services.pubsub as CenterSub).stop();
+            await (this.libp2p.services.pubsub as CenterSub).start();
+            this.enable();
           } catch (error) {
             logger.error(error);
           }
@@ -473,7 +476,9 @@ export class Node<
       });
     }.bind(this);
 
-    this.connectionInterval = setInterval(retry, 5000);
+    if (!this.connectionInterval) {
+      this.connectionInterval = setInterval(retry, 5000);
+    }
   }
 }
 
