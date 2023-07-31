@@ -14,7 +14,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/luxon": "3.3.1",
-    "@windingtree/contracts": "1.0.0-beta.12",
+    "@windingtree/contracts": "^1.0.0",
     "@windingtree/sdk-types": "workspace:*",
     "@windingtree/sdk-utils": "workspace:*",
     "@windingtree/sdk-client": "workspace:*",

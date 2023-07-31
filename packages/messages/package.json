@@ -31,7 +31,7 @@
     "@windingtree/sdk-test-utils": "workspace:*"
   },
   "dependencies": {
-    "@windingtree/contracts": "1.0.0-beta.12",
+    "@windingtree/contracts": "^1.0.0",
     "@windingtree/sdk-types": "workspace:*",
     "@windingtree/sdk-utils": "workspace:*",
     "abitype": "^0.9.3",
