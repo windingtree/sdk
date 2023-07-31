@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@windingtree/contracts": "1.0.0-beta.12",
+    "@windingtree/contracts": "^1.0.0",
     "@windingtree/sdk-logger": "workspace:*",
     "@windingtree/sdk-types": "workspace:*",
     "superjson": "^1.13.1",

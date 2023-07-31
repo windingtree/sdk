@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@libp2p/interfaces": "^3.3.2",
-    "@windingtree/contracts": "1.0.0-beta.12",
+    "@windingtree/contracts": "^1.0.0",
     "@windingtree/sdk-constants": "workspace:*",
     "@windingtree/sdk-contracts-manager": "workspace:*",
     "@windingtree/sdk-db": "workspace:*",

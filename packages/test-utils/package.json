@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@windingtree/contracts": "1.0.0-beta.12",
+    "@windingtree/contracts": "^1.0.0",
     "@windingtree/sdk-types": "workspace:*",
     "viem": "^1.3.0",
     "vitest": "^0.33.0"
