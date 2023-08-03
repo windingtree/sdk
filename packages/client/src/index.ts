@@ -240,7 +240,7 @@ export class Client<
       () => {
         this.dispatchEvent(new CustomEvent<void>('heartbeat'));
 
-        if (!this.serverConnected) {
+        if (!this.serverConnected && !this.connectionInterval) {
           this.retryConnection();
         }
       },
@@ -402,9 +402,7 @@ export class Client<
       });
     }.bind(this);
 
-    if (!this.connectionInterval) {
-      this.connectionInterval = setInterval(retry, 5000);
-    }
+    this.connectionInterval = setInterval(retry, 5000);
   }
 }
 

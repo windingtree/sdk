@@ -512,4 +512,16 @@ export class ClientRequestsManager<
       }),
     );
   }
+
+  refreshSubscriptions() {
+    const requestIds = this.getAll().filter(
+      (requestRecord) =>
+        requestRecord.subscribed && !isExpired(requestRecord.data.expire),
+    );
+
+    requestIds.forEach((requestRecord) => {
+      requestRecord.subscribed = false;
+      this._subscribe(requestRecord);
+    });
+  }
 }

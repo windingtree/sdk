@@ -24,7 +24,6 @@ import { Requests, RequestsRegistryRecord } from './components/Requests.js';
 import { MakeDeal } from './components/MakeDeal.js';
 import { Offers } from './components/Offers.js';
 import { Deals, DealsRegistryRecord } from './components/Deals.js';
-import { isExpired } from '@windingtree/sdk-utils';
 
 /** Target chain config */
 const chain =
@@ -92,14 +91,7 @@ export const App = () => {
         new Date().toISOString(),
       );
 
-      const requests = requestsManager.current?.getAll();
-      const requestIds = requests
-        ?.filter(
-          (requests: ClientRequestRecord) => !isExpired(requests.data.expire),
-        )
-        .map((request: ClientRequestRecord) => request.data.id);
-
-      requestIds?.forEach((id: string) => client.current?.subscribe(id));
+      requestsManager.current?.refreshSubscriptions();
     };
 
     const onClientDisconnected = () => {
