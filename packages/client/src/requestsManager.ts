@@ -286,13 +286,15 @@ export class ClientRequestsManager<
    *
    * @private
    * @param {ClientRequestRecord<CustomRequestQuery, CustomOfferOptions>} record Request record
+   * @param {boolean} force
    * @returns {ClientRequestRecord<CustomRequestQuery, CustomOfferOptions>}
    * @memberof ClientRequestsManager
    */
   private _subscribe(
     record: ClientRequestRecord<CustomRequestQuery, CustomOfferOptions>,
+    force: boolean = false,
   ): ClientRequestRecord<CustomRequestQuery, CustomOfferOptions> {
-    if (!isExpired(record.data.expire) && !record.subscribed) {
+    if ((!isExpired(record.data.expire) && !record.subscribed) || force) {
       const subscribedRecord = {
         ...record,
         subscribed: true,
@@ -520,8 +522,7 @@ export class ClientRequestsManager<
     );
 
     requestIds.forEach((requestRecord) => {
-      requestRecord.subscribed = false;
-      this._subscribe(requestRecord);
+      this._subscribe(requestRecord, true);
     });
   }
 }
