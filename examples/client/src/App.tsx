@@ -1,33 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
-import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
+import { useState, useEffect } from 'react';
 import { EventHandler } from '@libp2p/interfaces/events';
-import {
-  Client,
-  createClient,
-  ClientRequestsManager,
-  ClientDealsManager,
-  ClientRequestRecord,
-} from '@windingtree/sdk-client';
-import { localStorage } from '@windingtree/sdk-storage';
+import { ClientRequestRecord } from '@windingtree/sdk-client';
 import { buildRequest } from '@windingtree/sdk-messages';
-import {
-  RequestQuery,
-  OfferOptions,
-  contractsConfig,
-  serverAddress,
-} from 'wtmp-examples-shared-files';
+import { RequestQuery, OfferOptions } from 'wtmp-examples-shared-files';
 import { OfferData, RequestData } from '@windingtree/sdk-types';
-import { useWallet, AccountWidget } from '@windingtree/sdk-react/providers';
+import {
+  AccountWidget,
+  useClient,
+  useRequestsManager,
+  useDealsManager,
+} from '@windingtree/sdk-react/providers';
 import { FormValues, RequestForm } from './components/RequestForm.js';
 import { Tabs, TabPanel } from './components/Tabs.js';
 import { Requests, RequestsRegistryRecord } from './components/Requests.js';
 import { MakeDeal } from './components/MakeDeal.js';
 import { Offers } from './components/Offers.js';
 import { Deals, DealsRegistryRecord } from './components/Deals.js';
-
-/** Target chain config */
-const chain =
-  import.meta.env.LOCAL_NODE === 'true' ? hardhat : polygonZkEvmTestnet;
 
 /** Default request expiration time */
 const defaultExpire = '30s';
@@ -39,13 +27,9 @@ const defaultTopic = 'hello';
  * Main application component
  */
 export const App = () => {
-  const client = useRef<Client<RequestQuery, OfferOptions> | undefined>();
-  const requestsManager = useRef<
-    ClientRequestsManager<RequestQuery, OfferOptions> | undefined
-  >();
-  const dealsManager = useRef<ClientDealsManager<RequestQuery, OfferOptions>>();
-  const { publicClient } = useWallet();
-  const [connected, setConnected] = useState<boolean>(false);
+  const { client, clientConnected } = useClient<RequestQuery, OfferOptions>();
+  const { requestsManager } = useRequestsManager<RequestQuery, OfferOptions>();
+  const { dealsManager } = useDealsManager<RequestQuery, OfferOptions>();
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [requests, setRequests] = useState<RequestsRegistryRecord[]>([]);
   const [deals, setDeals] = useState<DealsRegistryRecord[]>([]);
@@ -57,21 +41,18 @@ export const App = () => {
   >();
   const [error, setError] = useState<string | undefined>();
 
-  /** This hook starts the client that will be available via `client.current` */
   useEffect(() => {
     const updateRequests = () => {
-      setRequests(requestsManager.current?.getAll() || []);
+      setRequests(() => requestsManager?.getAll() || []);
     };
 
     const updateDeals = () => {
-      if (dealsManager.current) {
-        dealsManager.current
-          .getAll()
-          .then((newDeals) => {
-            setDeals(newDeals);
-          })
-          .catch(console.error);
-      }
+      dealsManager
+        ?.getAll()
+        .then((newDeals) => {
+          setDeals(() => newDeals);
+        })
+        .catch(console.error);
     };
 
     const onClientStart = () => {
@@ -85,154 +66,95 @@ export const App = () => {
     };
 
     const onClientConnected = () => {
-      setConnected(true);
       console.log(
         '🔗 Client connected to server at:',
         new Date().toISOString(),
       );
 
-      requestsManager.current?.refreshSubscriptions();
+      requestsManager?.refreshSubscriptions();
     };
 
     const onClientDisconnected = () => {
-      setConnected(false);
       console.log(
         '🔌 Client disconnected from server at:',
         new Date().toISOString(),
       );
     };
 
-    const onRequestSubscribe: EventHandler<
-      CustomEvent<ClientRequestRecord>
-    > = ({ detail }) => {
-      client.current?.subscribe(detail.data.id);
-    };
-
-    const onRequestUnsubscribe: EventHandler<
-      CustomEvent<ClientRequestRecord>
-    > = ({ detail }) => {
-      client.current?.unsubscribe(detail.data.id);
-    };
-
     const onRequestPublish: EventHandler<
       CustomEvent<RequestData<RequestQuery>>
     > = ({ detail }) => {
-      requestsManager.current?.add(detail);
+      requestsManager?.add(detail);
     };
 
     const onOffer: EventHandler<
       CustomEvent<OfferData<RequestQuery, OfferOptions>>
     > = ({ detail }) => {
-      requestsManager.current?.addOffer(detail);
+      requestsManager?.addOffer(detail);
     };
 
-    const startClient = async () => {
-      try {
-        setError(undefined);
-
-        const storageInitializer = localStorage.createInitializer({
-          session: false, // session or local storage
-        });
-
-        const store = await storageInitializer();
-
-        requestsManager.current = new ClientRequestsManager<
-          RequestQuery,
-          OfferOptions
-        >({
-          storage: store,
-          prefix: 'wt_requests_',
-        });
-
-        dealsManager.current = new ClientDealsManager<
-          RequestQuery,
-          OfferOptions
-        >({
-          storage: store,
-          prefix: 'wt_deals_',
-          checkInterval: '5s',
-          chain,
-          contracts: contractsConfig,
-          publicClient,
-        });
-
-        client.current = createClient<RequestQuery, OfferOptions>({
-          serverAddress,
-        });
-
-        client.current.addEventListener('start', onClientStart);
-        client.current.addEventListener('stop', onClientStop);
-        client.current.addEventListener('connected', onClientConnected);
-        client.current.addEventListener('disconnected', onClientDisconnected);
-        client.current.addEventListener('publish', onRequestPublish);
-        client.current.addEventListener('offer', onOffer);
-
-        requestsManager.current.addEventListener('request', updateRequests);
-        requestsManager.current.addEventListener('expire', updateRequests);
-        requestsManager.current.addEventListener('cancel', updateRequests);
-        requestsManager.current.addEventListener('delete', updateRequests);
-        requestsManager.current.addEventListener('clear', updateRequests);
-        requestsManager.current.addEventListener('offer', updateRequests);
-        requestsManager.current.addEventListener(
-          'subscribe',
-          onRequestSubscribe,
-        );
-        requestsManager.current.addEventListener(
-          'unsubscribe',
-          onRequestUnsubscribe,
-        );
-
-        dealsManager.current.addEventListener('changed', updateDeals);
-
-        await client.current.start();
-      } catch (error) {
-        console.log(error);
-        setError('Something went wrong...');
-      }
+    const onRequestSubscribe: EventHandler<
+      CustomEvent<ClientRequestRecord>
+    > = ({ detail }) => {
+      client.subscribe(detail.data.id);
     };
 
-    const stopClient = async () => {
-      client.current?.stop();
+    const onRequestUnsubscribe: EventHandler<
+      CustomEvent<ClientRequestRecord>
+    > = ({ detail }) => {
+      client.unsubscribe(detail.data.id);
     };
 
-    startClient();
+    client.addEventListener('start', onClientStart);
+    client.addEventListener('stop', onClientStop);
+    client.addEventListener('connected', onClientConnected);
+    client.addEventListener('disconnected', onClientDisconnected);
+    client.addEventListener('publish', onRequestPublish);
+    client.addEventListener('offer', onOffer);
+
+    requestsManager?.addEventListener('request', updateRequests);
+    requestsManager?.addEventListener('expire', updateRequests);
+    requestsManager?.addEventListener('cancel', updateRequests);
+    requestsManager?.addEventListener('delete', updateRequests);
+    requestsManager?.addEventListener('clear', updateRequests);
+    requestsManager?.addEventListener('offer', updateRequests);
+    requestsManager?.addEventListener('subscribe', onRequestSubscribe);
+    requestsManager?.addEventListener('unsubscribe', onRequestUnsubscribe);
+
+    dealsManager?.addEventListener('changed', updateDeals);
+
+    client.start().catch(console.error);
 
     return () => {
-      client.current?.removeEventListener('start', onClientStart);
-      client.current?.removeEventListener('stop', onClientStop);
-      client.current?.removeEventListener('connected', onClientConnected);
-      client.current?.removeEventListener('disconnected', onClientDisconnected);
-      client.current?.removeEventListener('publish', onRequestPublish);
-      client.current?.removeEventListener('offer', onOffer);
+      client.removeEventListener('start', onClientStart);
+      client.removeEventListener('stop', onClientStop);
+      client.removeEventListener('connected', onClientConnected);
+      client.removeEventListener('disconnected', onClientDisconnected);
+      client.removeEventListener('publish', onRequestPublish);
+      client.removeEventListener('offer', onOffer);
 
-      requestsManager.current?.removeEventListener('request', updateRequests);
-      requestsManager.current?.removeEventListener('expire', updateRequests);
-      requestsManager.current?.removeEventListener('cancel', updateRequests);
-      requestsManager.current?.removeEventListener('delete', updateRequests);
-      requestsManager.current?.removeEventListener('clear', updateRequests);
-      requestsManager.current?.removeEventListener('offer', updateRequests);
-      requestsManager.current?.removeEventListener(
-        'subscribe',
-        onRequestSubscribe,
-      );
-      requestsManager.current?.removeEventListener(
-        'unsubscribe',
-        onRequestUnsubscribe,
-      );
+      requestsManager?.removeEventListener('request', updateRequests);
+      requestsManager?.removeEventListener('expire', updateRequests);
+      requestsManager?.removeEventListener('cancel', updateRequests);
+      requestsManager?.removeEventListener('delete', updateRequests);
+      requestsManager?.removeEventListener('clear', updateRequests);
+      requestsManager?.removeEventListener('offer', updateRequests);
+      requestsManager?.removeEventListener('subscribe', onRequestSubscribe);
+      requestsManager?.removeEventListener('unsubscribe', onRequestUnsubscribe);
 
-      dealsManager.current?.removeEventListener('changed', updateDeals);
+      dealsManager?.removeEventListener('changed', updateDeals);
 
-      stopClient().catch(console.error);
-      dealsManager.current?.stop();
+      client.stop().catch(console.error);
+      dealsManager?.stop();
     };
-  }, [publicClient]);
+  }, [client, requestsManager, dealsManager]);
 
   /** Publishing of request */
   const sendRequest = async ({ topic, message }: FormValues) => {
     try {
       setError(undefined);
 
-      if (!client.current) {
+      if (!client) {
         throw new Error('The client is not initialized yet');
       }
 
@@ -245,7 +167,7 @@ export const App = () => {
         },
       });
 
-      client.current.publish(request);
+      client.publish(request);
     } catch (error) {
       console.log('@@@', error);
       setError((error as Error).message);
@@ -262,10 +184,10 @@ export const App = () => {
         </div>
         <AccountWidget />
       </div>
-      {client.current && <div>✅ Client started</div>}
-      {connected && <div>✅ Connected to the coordination server</div>}
+      {client && <div>✅ Client started</div>}
+      {clientConnected && <div>✅ Connected to the coordination server</div>}
       <RequestForm
-        connected={connected}
+        connected={clientConnected}
         onSubmit={sendRequest}
         defaultTopic={defaultTopic}
       />
@@ -286,15 +208,13 @@ export const App = () => {
       <TabPanel id={0} activeTab={selectedTab}>
         <Requests
           requests={requests}
-          subscribed={(id) =>
-            requestsManager.current?.get(id)?.subscribed || false
-          }
+          subscribed={(id) => requestsManager?.get(id)?.subscribed || false}
           onClear={() => {
-            requestsManager.current?.clear();
+            requestsManager?.clear();
           }}
           onCancel={(id) => {
-            if (client.current) {
-              requestsManager.current?.cancel(id);
+            if (client) {
+              requestsManager?.cancel(id);
             }
           }}
           onOffers={setOffers}
@@ -307,10 +227,10 @@ export const App = () => {
             setOffers(undefined);
           }}
         />
-        <MakeDeal offer={offer} manager={dealsManager.current} />
+        <MakeDeal offer={offer} manager={dealsManager} />
       </TabPanel>
       <TabPanel id={1} activeTab={selectedTab}>
-        <Deals deals={deals} manager={dealsManager.current} />
+        <Deals deals={deals} manager={dealsManager} />
       </TabPanel>
 
       {error && <div style={{ marginTop: 20 }}>🚨 {error}</div>}
