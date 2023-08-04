@@ -22,7 +22,10 @@ export interface WalletProviderProps extends PropsWithChildren {
   targetChain: Chain;
 }
 
-export const WalletProvider = ({ targetChain, children }: WalletProviderProps) => {
+export const WalletProvider = ({
+  targetChain,
+  children,
+}: WalletProviderProps) => {
   const [walletClient, setWalletClient] = useState<WalletClient | undefined>();
   const [chainId, setChainId] = useState<bigint | undefined>();
   const [account, setAccount] = useState<Address | undefined>();

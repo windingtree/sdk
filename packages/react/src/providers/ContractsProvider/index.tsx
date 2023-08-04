@@ -8,7 +8,10 @@ export interface ContractProviderProps extends PropsWithChildren {
   contractsConfig: Contracts;
 }
 
-export const ContractsProvider = ({ contractsConfig, children }: ContractProviderProps) => {
+export const ContractsProvider = ({
+  contractsConfig,
+  children,
+}: ContractProviderProps) => {
   const { publicClient, walletClient } = useWallet();
   const [contracts, setContracts] = useState<ProtocolContracts | undefined>();
 
@@ -18,7 +21,7 @@ export const ContractsProvider = ({ contractsConfig, children }: ContractProvide
         contracts: contractsConfig,
         publicClient,
         walletClient,
-      })
+      }),
     );
 
     return () => setContracts(undefined);
@@ -27,7 +30,7 @@ export const ContractsProvider = ({ contractsConfig, children }: ContractProvide
   return (
     <ContractsContext.Provider
       value={{
-        contracts
+        contracts,
       }}
     >
       {children}

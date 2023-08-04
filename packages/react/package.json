@@ -50,6 +50,8 @@
     "@vitejs/plugin-react": "^4.0.3",
     "@windingtree/sdk-contracts-manager": "workspace:*",
     "@windingtree/sdk-node-api": "workspace:*",
+    "@windingtree/sdk-client": "workspace:*",
+    "@windingtree/sdk-storage": "workspace:*",
     "@windingtree/sdk-types": "workspace:*",
     "eslint": "^8.45.0",
     "eslint-config-react-app": "^7.0.1",
@@ -78,6 +80,7 @@
   },
   "scripts": {
     "build": "vite build",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write ."
   }
 }

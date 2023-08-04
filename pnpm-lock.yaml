@@ -703,12 +703,18 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.0.3
         version: 4.0.3(vite@4.4.4)
+      '@windingtree/sdk-client':
+        specifier: workspace:*
+        version: link:../client
       '@windingtree/sdk-contracts-manager':
         specifier: workspace:*
         version: link:../contracts-manger
       '@windingtree/sdk-node-api':
         specifier: workspace:*
         version: link:../node-api
+      '@windingtree/sdk-storage':
+        specifier: workspace:*
+        version: link:../storage
       '@windingtree/sdk-types':
         specifier: workspace:*
         version: link:../types
