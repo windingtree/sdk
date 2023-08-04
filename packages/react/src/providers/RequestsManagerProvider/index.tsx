@@ -20,7 +20,7 @@ export const RequestsManagerProvider = <
   storageInitializer,
   prefix,
 }: RequestsManagerProvideProps<CustomStorage>) => {
-  const [requestManager, setRequestManager] = useState<
+  const [requestsManager, setRequestsManager] = useState<
     ClientRequestsManager<RequestQuery, OfferOptions> | undefined
   >();
 
@@ -28,7 +28,7 @@ export const RequestsManagerProvider = <
     const startManager = async () => {
       const storage = await storageInitializer();
 
-      setRequestManager(
+      setRequestsManager(
         () =>
           new ClientRequestsManager<RequestQuery, OfferOptions>({
             storage,
@@ -43,7 +43,7 @@ export const RequestsManagerProvider = <
   return (
     <RequestsManagerContext.Provider
       value={{
-        requestManager,
+        requestsManager,
       }}
     >
       {children}
