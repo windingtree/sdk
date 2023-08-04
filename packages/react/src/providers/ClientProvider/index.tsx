@@ -1,4 +1,4 @@
-import { PropsWithChildren, useMemo } from 'react';
+import { PropsWithChildren, useMemo, useState, useEffect } from 'react';
 import { GenericQuery, GenericOfferOptions } from '@windingtree/sdk-types';
 import { createClient } from '@windingtree/sdk-client';
 import { ClientContext } from './ClientProviderContext.js';
@@ -21,12 +21,25 @@ export const ClientProvider = <
       }),
     [serverAddress],
   );
+  const [clientConnected, setClientConnected] = useState<boolean>(false);
+
+  useEffect(() => {
+    const onClientConnected = () => setClientConnected(true);
+    const onClientDisconnected = () => setClientConnected(false);
+    client.addEventListener('connected', onClientConnected);
+    client.addEventListener('disconnected', onClientDisconnected);
+
+    return () => {
+      client.removeEventListener('connected', onClientConnected);
+      client.removeEventListener('disconnected', onClientDisconnected);
+    };
+  }, [client]);
 
   return (
     <ClientContext.Provider
       value={{
         client,
-        clientConnected: Boolean(client.connected),
+        clientConnected,
       }}
     >
       {children}
