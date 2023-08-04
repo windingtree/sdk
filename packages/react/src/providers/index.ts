@@ -12,3 +12,6 @@ export * from './NodeProvider/index.js';
 
 export * from './ConfigProvider/ConfigProviderContext.js';
 export * from './ConfigProvider/index.js';
+
+export * from './ClientProvider/ClientProviderContext.js';
+export * from './ClientProvider/index.js';

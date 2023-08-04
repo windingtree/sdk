@@ -1,4 +1,8 @@
-import { CreateTRPCClientOptions, createTRPCProxyClient, httpBatchLink  } from '@trpc/client';
+import {
+  CreateTRPCClientOptions,
+  createTRPCProxyClient,
+  httpBatchLink,
+} from '@trpc/client';
 import superjson from 'superjson';
 import { PropsWithChildren, useState, useEffect } from 'react';
 import { NodeContext } from './NodeProviderContext.js';
@@ -33,7 +37,8 @@ export const NodeProvider = ({ children }: PropsWithChildren) => {
         setError(undefined);
 
         const tRpcNode = createTRPCProxyClient<AppRouter>({
-          transformer: superjson as unknown as CreateTRPCClientOptions<AppRouter>['transformer'],
+          transformer:
+            superjson as unknown as CreateTRPCClientOptions<AppRouter>['transformer'],
           links: [
             unauthorizedLink(resetAuth),
             httpBatchLink({
@@ -63,9 +68,7 @@ export const NodeProvider = ({ children }: PropsWithChildren) => {
           errMessage = 'Node connection failed';
         }
 
-        setError(
-          () => errMessage || 'Unknown node provider error',
-        );
+        setError(() => errMessage || 'Unknown node provider error');
       }
     };
 
