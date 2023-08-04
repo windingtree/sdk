@@ -90,6 +90,8 @@ export const App = () => {
         '🔗 Client connected to server at:',
         new Date().toISOString(),
       );
+
+      requestsManager.current?.refreshSubscriptions();
     };
 
     const onClientDisconnected = () => {

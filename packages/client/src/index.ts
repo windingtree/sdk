@@ -239,6 +239,10 @@ export class Client<
       'gossipsub:heartbeat',
       () => {
         this.dispatchEvent(new CustomEvent<void>('heartbeat'));
+
+        if (!this.serverConnected && !this.connectionInterval) {
+          this.retryConnection();
+        }
       },
     );
 
@@ -311,8 +315,6 @@ export class Client<
     await this.libp2p.start();
     this.dispatchEvent(new CustomEvent<void>('start'));
     logger.trace('🚀 Client started at:', new Date().toISOString());
-
-    this.retryConnection();
   }
 
   /**
@@ -376,7 +378,7 @@ export class Client<
     if (!this.libp2p) {
       throw new Error('libp2p not initialized yet');
     }
-
+    await (this.libp2p.services.pubsub as CenterSub).stop();
     await this.libp2p.stop();
     this.dispatchEvent(new CustomEvent<void>('stop'));
     logger.trace('👋 Client stopped at:', new Date().toISOString());
@@ -388,12 +390,13 @@ export class Client<
         if (this.libp2p && !this.serverConnected) {
           try {
             await this.libp2p.dial(this.serverMultiaddr);
+            await (this.libp2p.services.pubsub as CenterSub).stop();
+            await (this.libp2p.services.pubsub as CenterSub).start();
           } catch (error) {
             logger.error(error);
           }
         }
       };
-
       dial().catch((error) => {
         logger.error(error);
       });
