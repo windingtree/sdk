@@ -15,3 +15,9 @@ export * from './ConfigProvider/index.js';
 
 export * from './ClientProvider/ClientProviderContext.js';
 export * from './ClientProvider/index.js';
+
+export * from './RequestsManagerProvider/RequestsManagerProviderContext.js';
+export * from './RequestsManagerProvider/index.js';
+
+export * from './DealsManagerProvider/DealsManagerProviderContext.js';
+export * from './DealsManagerProvider/index.js';
