@@ -13,6 +13,6 @@ temp
 coverage
 typedoc
 typechain
-
+db/*
 #ide
 .idea
