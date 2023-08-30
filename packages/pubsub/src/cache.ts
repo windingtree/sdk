@@ -49,7 +49,7 @@ export class MessagesCache {
    */
   async prune(): Promise<void> {
     const now = Math.ceil(Date.now() / 1000);
-    for (const [id, message] of this.cache.entries<CachedMessage>()) {
+    for (const [id, message] of await this.cache.entries<CachedMessage>()) {
       if (message.expire < now) {
         await this.cache.delete(id);
       }
@@ -62,9 +62,9 @@ export class MessagesCache {
    * @returns {CashedMessageEntry[]}
    * @memberof MessagesCache
    */
-  get(): CashedMessageEntry[] {
+  async get(): Promise<CashedMessageEntry[]> {
     const messages: CashedMessageEntry[] = [];
-    for (const [id, entry] of this.cache.entries<CachedMessage>()) {
+    for (const [id, entry] of await this.cache.entries<CachedMessage>()) {
       messages.push({
         id,
         data: entry.data,

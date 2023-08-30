@@ -6,7 +6,7 @@ import {
 } from '@chainsafe/libp2p-gossipsub';
 import { ToSendGroupCount } from '@chainsafe/libp2p-gossipsub/metrics';
 import { PeerIdStr, TopicStr } from '@chainsafe/libp2p-gossipsub/types';
-import { PubSub, Message } from '@libp2p/interface-pubsub';
+import { Message, PubSub } from '@libp2p/interface-pubsub';
 import { PeerId } from '@libp2p/interface-peer-id';
 import type { Direction } from '@libp2p/interface-connection';
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
@@ -204,13 +204,13 @@ export class CenterSub extends GossipSub {
    * @returns {void}
    * @memberof CenterSub
    */
-  private handlePeerConnect(peerId: PeerId): void {
+  private async handlePeerConnect(peerId: PeerId): Promise<void> {
     try {
       if (!this.messages) {
         logger.trace('Messages storage not initialized');
         return;
       }
-      const missedMessages = this.messages.get();
+      const missedMessages = await this.messages.get();
       logger.trace(
         'handlePeerConnect: missedMessages.length:',
         missedMessages.length,
@@ -244,6 +244,7 @@ export class CenterSub extends GossipSub {
 
     if (!hasPeer && direction === 'inbound') {
       // We need to wait for the outbound stream to be opened
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       setTimeout(() => this.handlePeerConnect(peerId), outboundStreamDelay);
     }
   }
