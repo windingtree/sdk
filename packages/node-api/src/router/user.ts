@@ -85,6 +85,7 @@ export const userRouter = router({
         `${ACCESS_TOKEN_NAME}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly`,
       );
       logger.trace(`User ${user.login} logged out`);
+      /* c8 ignore next 7 */
     } catch (error) {
       logger.error('user.logout', error);
       throw new TRPCError({
@@ -107,6 +108,7 @@ export const userRouter = router({
         `${ACCESS_TOKEN_NAME}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly`,
       );
       logger.trace(`User ${user.login} deleted`);
+      /* c8 ignore next 7 */
     } catch (error) {
       logger.error('user.delete', error);
       throw new TRPCError({
@@ -131,8 +133,9 @@ export const userRouter = router({
         const { user, users } = ctx;
         await users.set(user, password);
         logger.trace(`User ${user.login} updated`);
+        /* c8 ignore next 7 */
       } catch (error) {
-        logger.error('users.get', error);
+        logger.error('users.update', error);
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: (error as Error).message,

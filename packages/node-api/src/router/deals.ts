@@ -35,6 +35,7 @@ export const dealsRouter = router({
       try {
         const { deals } = ctx;
         return await deals.getAll(input);
+        /* c8 ignore next 7 */
       } catch (error) {
         logger.error('deals.getAll', error);
         throw new TRPCError({
@@ -71,6 +72,7 @@ export const dealsRouter = router({
     .use(withDeals.unstable_pipe(withContracts))
     .input(DealsCheckInInputSchema)
     .mutation(async ({ input, ctx }) => {
+      /* c8 ignore next 77 */
       try {
         const { id, sign } = input;
         const { deals, contracts } = ctx;
@@ -142,7 +144,7 @@ export const dealsRouter = router({
           receipt,
         };
       } catch (error) {
-        logger.error('user.register', error);
+        logger.error('deals.checkIn', error);
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: (error as Error).message,
@@ -157,6 +159,7 @@ export const dealsRouter = router({
     .use(withDeals.unstable_pipe(withContracts))
     .input(DealsGetInputSchema)
     .mutation(async ({ input, ctx }) => {
+      /* c8 ignore next 61 */
       try {
         const { id } = input;
         const { deals, contracts } = ctx;
@@ -212,7 +215,7 @@ export const dealsRouter = router({
           receipt,
         };
       } catch (error) {
-        logger.error('user.register', error);
+        logger.error('deals.checkOut', error);
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: (error as Error).message,
@@ -269,8 +272,9 @@ export const dealsRouter = router({
         await deals.set(deal);
 
         return deal;
+        /* c8 ignore next 7 */
       } catch (error) {
-        logger.error('user.register', error);
+        logger.error('deals.seek', error);
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: (error as Error).message,

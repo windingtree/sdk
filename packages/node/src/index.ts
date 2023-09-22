@@ -129,6 +129,8 @@ export interface NodeOptions extends ServerAddressOption, ChainsConfigOption {
   signerPk?: Hex;
 }
 
+/* all test of Node module in e2e tests */
+/* c8 ignore next 370 */
 /**
  * The protocol node
  *
