@@ -1,36 +1,45 @@
 import {
-  describe,
-  beforeAll,
   afterAll,
-  it,
+  beforeAll,
+  buildRandomDeal,
+  describe,
   expect,
+  it,
 } from '@windingtree/sdk-test-utils';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import { z } from 'zod';
-import { Hash } from 'viem';
+import { createPublicClient, createWalletClient, Hash, http } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import superjson from 'superjson';
-import { generateMnemonic } from '@windingtree/sdk-utils';
+import { generateMnemonic, supplierId as spId } from '@windingtree/sdk-utils';
 import { UserInputType } from '@windingtree/sdk-db';
 import {
+  authAdminProcedure,
+  authProcedure,
   NodeApiServer,
   NodeApiServerOptions,
   router,
-  authProcedure,
-  authAdminProcedure,
 } from '../src/server.js';
-import { adminRouter, userRouter, dealsRouter } from '../src/router/index.js';
+import { adminRouter, dealsRouter, userRouter } from '../src/router/index.js';
 import { memoryStorage } from '@windingtree/sdk-storage';
 import {
   ACCESS_TOKEN_NAME,
   accessTokenLink,
   createAdminSignature,
 } from '../src/client.js';
+import { HashSchema } from '../dist/router.js';
+import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
+import { contractsConfig } from 'wtmp-examples-shared-files';
+import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
+import { PaginationOptions } from '@windingtree/sdk-types';
+import { randomSalt } from '@windingtree/contracts';
+import { serviceRouter } from '../src/router/service.js';
 
 const testRouter = router({
   admin: adminRouter,
   user: userRouter,
   deals: dealsRouter,
+  service: serviceRouter,
   testAuth: authProcedure.output(z.boolean()).mutation(() => {
     return true;
   }),
@@ -38,6 +47,8 @@ const testRouter = router({
     return true;
   }),
 });
+
+const chain = process.env.LOCAL_NODE === 'true' ? hardhat : polygonZkEvmTestnet;
 
 describe('NodeApiServer', () => {
   const user: UserInputType = {
@@ -53,6 +64,18 @@ describe('NodeApiServer', () => {
   let accessTokenAdmin: string | undefined;
 
   beforeAll(async () => {
+    const contractsManager = new ProtocolContracts({
+      contracts: contractsConfig,
+      publicClient: createPublicClient({
+        chain,
+        transport: http(),
+      }),
+      walletClient: createWalletClient({
+        chain,
+        transport: http(),
+        account: owner.address,
+      }),
+    });
     options = {
       usersStorage: await memoryStorage.createInitializer({
         scope: 'users',
@@ -61,6 +84,10 @@ describe('NodeApiServer', () => {
       port: 3456,
       secret: 'secret',
       ownerAccount: owner.address,
+      dealsStorage: await memoryStorage.createInitializer({
+        scope: 'deals',
+      })(),
+      protocolContracts: contractsManager,
     };
     server = new NodeApiServer(options);
 
@@ -165,6 +192,28 @@ describe('NodeApiServer', () => {
       await expect(clientUser.testAdminAuth.mutate()).rejects.toThrow(
         'UNAUTHORIZED',
       );
+    });
+  });
+
+  describe('user.update', () => {
+    const newPassword = 'new-password';
+
+    it('should log in a registered user and return an access token', async () => {
+      const result = await clientUser.user.update.mutate({
+        ...user,
+        password: newPassword,
+      });
+      expect(result).to.be.eq(undefined);
+      expect(accessTokenUser).toBeDefined();
+    });
+
+    it('should log in a registered user and return an access token', async () => {
+      const result = await clientUser.user.login.mutate({
+        ...user,
+        password: newPassword,
+      });
+      expect(result).to.be.eq(undefined);
+      expect(accessTokenUser).toBeDefined();
     });
   });
 
@@ -348,6 +397,80 @@ describe('NodeApiServer', () => {
           `User new-${name} not found`,
         );
       });
+    });
+  });
+
+  describe('Deal route', () => {
+    let admin: UserInputType;
+    let id: `0x${string}`;
+    let deal;
+
+    beforeAll(async () => {
+      admin = {
+        login: 'admin',
+        password: await createAdminSignature(owner),
+      };
+      await clientAdmin.admin.register.mutate(admin);
+      await clientAdmin.admin.login.mutate(admin);
+      const signer = mnemonicToAccount(generateMnemonic());
+      const supplierId = spId(randomSalt(), signer.address);
+      deal = await buildRandomDeal(signer, supplierId);
+      id = deal.offer.id;
+      await server.deals?.set(deal);
+    });
+
+    afterAll(async () => {
+      await clientAdmin.user.delete.mutate();
+    });
+
+    it('should throw if accessed by a not an admin 1', () => {
+      expect(HashSchema).to.be.string;
+    });
+
+    it('should throw if accessed by a not an admin 2', async () => {
+      const randomId = randomSalt();
+      expect(
+        (await clientAdmin.deals.seek.mutate({ id: randomId })).offer.id,
+      ).toEqual(randomId);
+      expect(
+        (await clientAdmin.deals.get.query({ id: randomId })).offer.id,
+      ).toEqual(randomId);
+      expect((await clientAdmin.service.ping.query()).message).toEqual('pong');
+    });
+
+    it('should throw if accessed by a not an admin 3', async () => {
+      const salt = randomSalt();
+      await expect(
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
+        clientAdmin.deals.get.query(JSON.parse(JSON.stringify({ id: salt }))),
+      ).rejects.toThrow(`Deal ${salt} not found`);
+    });
+
+    it('should throw if accessed by a not an admin 4', async () => {
+      expect((await clientAdmin.deals.seek.mutate({ id })).offer.id).toEqual(
+        id,
+      );
+    });
+
+    it('should throw if accessed by a not an admin 8', async () => {
+      const salt = randomSalt();
+      await expect(
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
+        clientAdmin.deals.get.query(JSON.parse(JSON.stringify({ id: salt }))),
+      ).rejects.toThrow(`Deal ${salt} not found`);
+    });
+
+    it('should throw if accessed by a not an admin 9', async () => {
+      await clientAdmin.deals.getAll.query({});
+    });
+
+    it('should throw if accessed by a not an admin 10', async () => {
+      await expect(
+        clientAdmin.deals.getAll.query({
+          start: 'string',
+          skip: 10,
+        } as unknown as PaginationOptions),
+      ).rejects.toThrow('Expected number, received string');
     });
   });
 });
