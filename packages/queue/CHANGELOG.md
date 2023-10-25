@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0-beta.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-queue@1.2.0-beta.0...@windingtree/sdk-queue@1.2.0-beta.1) (2023-10-25)
+
+
+### Features
+
+* update libp2p ([71daad4](https://github.com/windingtree/sdk/commit/71daad41838ae6b2833c76aa36b5b2071a041e92))
+
+
+
+
+
 # [1.2.0-beta.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-queue@1.1.0...@windingtree/sdk-queue@1.2.0-beta.0) (2023-07-31)
 
 ### Features

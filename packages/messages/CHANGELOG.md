@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0-beta.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-messages@1.2.0-beta.0...@windingtree/sdk-messages@1.2.0-beta.1) (2023-10-25)
+
+
+### Features
+
+* improve test coverage ([9d49c6e](https://github.com/windingtree/sdk/commit/9d49c6e2e172cce2c6eb320a3f0e4b097d8e83a8))
+* move buildRandomDeal to messages package ([e0aea26](https://github.com/windingtree/sdk/commit/e0aea265f62cd5ca91b259c6f683a596ceb3ddd4))
+
+
+
+
+
 # [1.2.0-beta.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-messages@1.1.0...@windingtree/sdk-messages@1.2.0-beta.0) (2023-07-31)
 
 ### Features

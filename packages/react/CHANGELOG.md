@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0-beta.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-react@1.1.1-beta.0...@windingtree/sdk-react@1.2.0-beta.0) (2023-10-25)
+
+
+### Bug Fixes
+
+* 🐛 Missed exaports are added to the react package ([cbb4b75](https://github.com/windingtree/sdk/commit/cbb4b75f497b1a58e004d9135cd7e2a869de119f))
+
+
+### Features
+
+* 🎸 Added DealsManagerProvider to the react package ([ac1129f](https://github.com/windingtree/sdk/commit/ac1129f5d1c45c9f93336718d59bfbe4c7bb60fc))
+* 🎸 Added providers for client and requestsManager ([b5f24b8](https://github.com/windingtree/sdk/commit/b5f24b879b6752654325e385841c4061d952a419))
+
+
+
+
+
 ## [1.1.1-beta.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-react@1.1.0...@windingtree/sdk-react@1.1.1-beta.0) (2023-07-31)
 
 **Note:** Version bump only for package @windingtree/sdk-react
