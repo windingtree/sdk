@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   beforeAll,
-  buildRandomDeal,
   describe,
   expect,
   it,
@@ -12,6 +11,7 @@ import { generateMnemonic, supplierId as spId } from '@windingtree/sdk-utils';
 import { memoryStorage, Storage } from '@windingtree/sdk-storage';
 import { DealRecord } from '@windingtree/sdk-types';
 import { DealsDb, DealsDbOptions } from '../src/deals.js';
+import { buildRandomDeal } from "@windingtree/sdk-messages";
 
 describe('DealsDb', () => {
   const signer = mnemonicToAccount(generateMnemonic());
