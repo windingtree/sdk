@@ -1,4 +1,3 @@
-import { EventHandler } from '@libp2p/interfaces/events';
 import { Hash, Hex, zeroAddress } from 'viem';
 import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { randomSalt } from '@windingtree/contracts';
@@ -9,10 +8,9 @@ import {
   serverAddress,
   stableCoins,
 } from 'wtmp-examples-shared-files';
-import { OPEN } from '@libp2p/interface-connection/status';
 import { multiaddr } from '@multiformats/multiaddr';
 import { peerIdFromString } from '@libp2p/peer-id';
-import { PeerId } from '@libp2p/interface-peer-id';
+import { PeerId } from '@libp2p/interface/peer-id';
 import { mnemonicToAccount } from 'viem/accounts';
 import { ProtocolContracts } from '@windingtree/sdk-contracts-manager';
 import { createLogger } from '@windingtree/sdk-logger';
@@ -23,17 +21,18 @@ import {
   supplierId as spId,
 } from '@windingtree/sdk-utils';
 import {
-  NodeOptions,
-  Node,
   createNode,
-  RequestEvent,
+  Node,
+  NodeOptions,
   NodeRequestManager,
+  RequestEvent,
 } from '@windingtree/sdk-node';
 import { JobHandler } from '@windingtree/sdk-queue';
 import { DealStatus, OfferData } from '@windingtree/sdk-types';
 import { noncePeriod } from '@windingtree/sdk-constants';
 import { CenterSub } from '@windingtree/sdk-pubsub';
 import { DateTime } from 'luxon';
+import { EventHandler } from '@libp2p/interface/events';
 
 const logger = createLogger('NodeMain');
 
@@ -274,8 +273,7 @@ export class NodeExample {
       !!this.node.libp2p &&
       (this.node.libp2p.services.pubsub as CenterSub).started &&
       this.node.libp2p.getPeers().length > 0 &&
-      this.node.libp2p.getConnections(this.serverPeerId)[0]?.stat.status ===
-        OPEN
+      this.node.libp2p.getConnections(this.serverPeerId)[0]?.status === 'open'
     );
   }
 

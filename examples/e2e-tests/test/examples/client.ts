@@ -1,5 +1,5 @@
 import { RequestQuery, serverAddress } from 'wtmp-examples-shared-files';
-import { EventHandler } from '@libp2p/interfaces/events';
+import { EventHandler } from '@libp2p/interface/events';
 import { buildRequest } from '@windingtree/sdk-messages';
 import { memoryStorage } from '@windingtree/sdk-storage';
 import {
