@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { EventHandler } from '@libp2p/interfaces/events';
+import { EventHandler } from '@libp2p/interface/events';
 import { DateTime } from 'luxon';
 import {
   Address,

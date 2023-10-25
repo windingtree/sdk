@@ -1,50 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { describe, expect, it, beforeAll } from '@windingtree/sdk-test-utils';
-import {
-  createRandomRequest,
-  createRandomOffer,
-} from '@windingtree/sdk-messages';
-import { HDAccount, Hash } from 'viem';
+import { beforeAll, describe, expect, it } from '@windingtree/sdk-test-utils';
 import { mnemonicToAccount } from 'viem/accounts';
 import { randomSalt } from '@windingtree/contracts';
-import { supplierId as spId } from '@windingtree/sdk-utils';
-import { generateMnemonic } from '@windingtree/sdk-utils';
-import { Storage } from '@windingtree/sdk-storage';
-import { memoryStorage } from '@windingtree/sdk-storage';
+import { generateMnemonic, supplierId as spId } from '@windingtree/sdk-utils';
+import { memoryStorage, Storage } from '@windingtree/sdk-storage';
 import { DealRecord } from '@windingtree/sdk-types';
 import { DealsDb, DealsDbOptions } from '../src/deals.js';
-import { DealStatus } from '@windingtree/sdk-types';
-
-const buildRandomDeal = async (
-  signer: HDAccount,
-  supplierId: Hash,
-): Promise<DealRecord> => {
-  const typedDomain = {
-    chainId: 1,
-    name: 'Test',
-    version: '1',
-    contract: signer.address,
-  };
-  const request = await createRandomRequest('test', '100s');
-  const offer = await createRandomOffer(
-    request,
-    '200s',
-    typedDomain,
-    supplierId,
-    signer,
-  );
-
-  return {
-    chainId: typedDomain.chainId,
-    created: BigInt(Math.round(Date.now() / 1000)),
-    offer,
-    retailerId: 'test',
-    buyer: '0x0',
-    price: BigInt(1),
-    asset: '0x0',
-    status: DealStatus.Claimed,
-  };
-};
+import { buildRandomDeal } from '@windingtree/sdk-messages';
 
 describe('DealsDb', () => {
   const signer = mnemonicToAccount(generateMnemonic());

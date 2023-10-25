@@ -1,25 +1,24 @@
-import { createLibp2p, Libp2pInit, Libp2pOptions, Libp2p } from 'libp2p';
+import { createLibp2p, Libp2p, Libp2pInit, Libp2pOptions } from 'libp2p';
 import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
-import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
-import { OPEN } from '@libp2p/interface-connection/status';
+import { CustomEvent, EventEmitter } from '@libp2p/interface/events';
 import { multiaddr, Multiaddr } from '@multiformats/multiaddr';
-import { PeerId } from '@libp2p/interface-peer-id';
+import { PeerId } from '@libp2p/interface/peer-id';
 import { peerIdFromString } from '@libp2p/peer-id';
-import { Hex, Hash, Chain } from 'viem';
+import { Chain, Hash, Hex } from 'viem';
 import { stringify } from 'superjson';
 
 import { mnemonicToAccount, privateKeyToAccount } from 'viem/accounts';
 import {
+  ChainsConfigOption,
   Contracts,
   GenericOfferOptions,
   GenericQuery,
   OfferData,
   ServerAddressOption,
-  ChainsConfigOption,
 } from '@windingtree/sdk-types';
 import {
   Account,
@@ -129,6 +128,8 @@ export interface NodeOptions extends ServerAddressOption, ChainsConfigOption {
   signerPk?: Hex;
 }
 
+/* all test of Node module in e2e tests */
+/* c8 ignore next 370 */
 /**
  * The protocol node
  *
@@ -222,7 +223,7 @@ export class Node<
       !!this.libp2p &&
       (this.libp2p.services.pubsub as CenterSub).started &&
       this.libp2p.getPeers().length > 0 &&
-      this.libp2p.getConnections(this.serverPeerId)[0]?.stat.status === OPEN
+      this.libp2p.getConnections(this.serverPeerId)[0]?.status === 'open'
     );
   }
 
@@ -361,7 +362,7 @@ export class Node<
       () => {
         this.dispatchEvent(new CustomEvent<void>('heartbeat'));
 
-        if (!this.serverConnected) {
+        if (!this.serverConnected && !this.connectionInterval) {
           this.retryConnection();
         }
       },
@@ -462,6 +463,9 @@ export class Node<
         if (this.libp2p && !this.serverConnected) {
           try {
             await this.libp2p.dial(this.serverMultiaddr);
+            await (this.libp2p.services.pubsub as CenterSub).stop();
+            await (this.libp2p.services.pubsub as CenterSub).start();
+            this.enable();
           } catch (error) {
             logger.error(error);
           }

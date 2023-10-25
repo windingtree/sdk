@@ -1,4 +1,4 @@
-import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { EventEmitter, CustomEvent } from '@libp2p/interface/events';
 import {
   GenericOfferOptions,
   GenericQuery,
@@ -286,13 +286,15 @@ export class ClientRequestsManager<
    *
    * @private
    * @param {ClientRequestRecord<CustomRequestQuery, CustomOfferOptions>} record Request record
+   * @param {boolean} force
    * @returns {ClientRequestRecord<CustomRequestQuery, CustomOfferOptions>}
    * @memberof ClientRequestsManager
    */
   private _subscribe(
     record: ClientRequestRecord<CustomRequestQuery, CustomOfferOptions>,
+    force: boolean = false,
   ): ClientRequestRecord<CustomRequestQuery, CustomOfferOptions> {
-    if (!isExpired(record.data.expire) && !record.subscribed) {
+    if ((!isExpired(record.data.expire) && !record.subscribed) || force) {
       const subscribedRecord = {
         ...record,
         subscribed: true,
@@ -511,5 +513,16 @@ export class ClientRequestsManager<
         detail: requestId,
       }),
     );
+  }
+
+  refreshSubscriptions() {
+    const requestIds = this.getAll().filter(
+      (requestRecord) =>
+        requestRecord.subscribed && !isExpired(requestRecord.data.expire),
+    );
+
+    requestIds.forEach((requestRecord) => {
+      this._subscribe(requestRecord, true);
+    });
   }
 }

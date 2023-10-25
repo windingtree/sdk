@@ -1,22 +1,25 @@
 import { mnemonicToAccount } from 'viem/accounts';
 import {
-  expect,
-  describe,
-  it,
   beforeAll,
+  describe,
+  expect,
   expectDeepEqual,
+  it,
 } from '@windingtree/sdk-test-utils';
-import { supplierId as spId } from '@windingtree/sdk-utils';
+import { generateMnemonic, supplierId as spId } from '@windingtree/sdk-utils';
 import { randomSalt } from '@windingtree/contracts';
-import { RequestData, OfferData } from '@windingtree/sdk-types';
-import { generateMnemonic } from '@windingtree/sdk-utils';
+import { OfferData, RequestData } from '@windingtree/sdk-types';
 import {
-  CustomQuery,
-  CustomOfferOptions,
   createRandomOffer,
   createRandomRequest,
-} from '../src/testUtils.js';
-import { buildOffer, verifyOffer } from '../src/index.js';
+  CustomOfferOptions,
+  CustomQuery,
+} from '../src/index.js';
+import {
+  buildOffer,
+  createCheckInOutSignature,
+  verifyOffer,
+} from '../src/index.js';
 
 describe('Shared.messages', () => {
   const topic = 'test';
@@ -97,6 +100,43 @@ describe('Shared.messages', () => {
         expectDeepEqual(fromRaw, offer);
       });
 
+      it('should restore an offer from raw data without transferable option', async () => {
+        const fromRaw = await buildOffer<CustomQuery, CustomOfferOptions>({
+          domain: typedDomain,
+          account: signer,
+          supplierId,
+          expire: offer.expire,
+          request: offer.request,
+          options: offer.options,
+          payment: offer.payment,
+          cancel: offer.cancel,
+          checkIn: offer.payload.checkIn,
+          checkOut: offer.payload.checkOut,
+          transferable: offer.payload.transferable,
+          idOverride: offer.id,
+          signatureOverride: offer.signature,
+        });
+        expectDeepEqual(fromRaw, offer);
+      });
+
+      it('should throw Chain Id must be provided with a typed domain', async () => {
+        await expect(
+          buildOffer<CustomQuery, CustomOfferOptions>({
+            domain: {},
+            supplierId,
+            expire: offer.expire,
+            request: offer.request,
+            options: offer.options,
+            payment: offer.payment,
+            cancel: offer.cancel,
+            checkIn: offer.payload.checkIn,
+            checkOut: offer.payload.checkOut,
+            transferable: offer.payload.transferable,
+            idOverride: offer.id,
+          }),
+        ).rejects.toThrow('Chain Id must be provided with a typed domain');
+      });
+
       it('should throw is signatureOverride not been provided', async () => {
         await expect(
           buildOffer<CustomQuery, CustomOfferOptions>({
@@ -151,6 +191,41 @@ describe('Shared.messages', () => {
           offer,
         }),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('#createCheckInOutSignature', () => {
+    let offer: OfferData<CustomQuery, CustomOfferOptions>;
+
+    beforeAll(async () => {
+      offer = await createRandomOffer(
+        request,
+        BigInt(1),
+        typedDomain,
+        supplierId,
+        signer,
+      );
+    });
+
+    it('should create check in out signature', async () => {
+      await expect(
+        createCheckInOutSignature({
+          offerId: offer.id,
+          domain: typedDomain,
+          account: signer,
+          address: signer.address,
+        }),
+      ).resolves.toBeTypeOf('string');
+    });
+
+    it('should create check in out signature without address', async () => {
+      await expect(
+        createCheckInOutSignature({
+          offerId: offer.id,
+          domain: typedDomain,
+          account: signer,
+        }),
+      ).resolves.toBeTypeOf('string');
     });
   });
 });

@@ -27,7 +27,12 @@ The providers can be imported directly from the package:
 import { createRoot } from 'react-dom/client';
 import { Hash } from 'viem';
 import { App } from './App.js';
-import { ConfigProvider, NodeProvider, WalletProvider, ContractsProvider } from '@windingtree/sdk-react/providers';
+import {
+  ConfigProvider,
+  NodeProvider,
+  WalletProvider,
+  ContractsProvider,
+} from '@windingtree/sdk-react/providers';
 import { polygonZkEvmTestnet } from 'viem/chains';
 import { contractsConfig } from 'wtmp-examples-shared-files/dist/index.js';
 
@@ -48,7 +53,11 @@ root.render(
 Then these providers can be used inside components:
 
 ```typescript
-import { useConfig, useNode, useWallet } from '@windingtree/sdk-react/providers';
+import {
+  useConfig,
+  useNode,
+  useWallet,
+} from '@windingtree/sdk-react/providers';
 
 export const Widget = () => {
   const { isAuth, login, setAuth, resetAuth } = useConfig();
