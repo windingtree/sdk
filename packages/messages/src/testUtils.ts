@@ -1,8 +1,10 @@
 import {
   GenericQuery,
   GenericOfferOptions,
-  RequestData, DealRecord, DealStatus
-} from "@windingtree/sdk-types";
+  RequestData,
+  DealRecord,
+  DealStatus,
+} from '@windingtree/sdk-types';
 import { Hash, HDAccount, TypedDataDomain } from 'viem';
 import { randomSalt } from '@windingtree/contracts';
 import { buildRequest, buildOffer } from './index.js';

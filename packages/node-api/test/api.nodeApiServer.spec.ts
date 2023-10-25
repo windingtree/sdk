@@ -33,7 +33,7 @@ import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { PaginationOptions } from '@windingtree/sdk-types';
 import { randomSalt } from '@windingtree/contracts';
 import { serviceRouter } from '../src/router/service.js';
-import { buildRandomDeal } from "@windingtree/sdk-messages";
+import { buildRandomDeal } from '@windingtree/sdk-messages';
 
 const testRouter = router({
   admin: adminRouter,
