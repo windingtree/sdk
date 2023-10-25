@@ -1,4 +1,4 @@
-import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { EventEmitter, CustomEvent } from '@libp2p/interface/events';
 import {
   Address,
   Hash,

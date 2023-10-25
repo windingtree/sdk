@@ -58,8 +58,10 @@
     "access": "public"
   },
   "devDependencies": {
+    "@windingtree/contracts": "^1.0.0",
     "@windingtree/sdk-test-utils": "workspace:*",
-    "@windingtree/sdk-utils": "workspace:*"
+    "@windingtree/sdk-utils": "workspace:*",
+    "wtmp-examples-shared-files": "workspace:*"
   },
   "dependencies": {
     "@trpc/client": "^10.34.0",

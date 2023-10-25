@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@libp2p/interfaces": "^3.3.2",
+    "@libp2p/interface": "^0.1.3",
     "@windingtree/contracts": "^1.0.0",
     "@windingtree/sdk-logger": "workspace:*",
     "@windingtree/sdk-storage": "workspace:*",
