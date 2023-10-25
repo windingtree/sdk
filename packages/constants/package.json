@@ -27,6 +27,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "devDependencies": {
+    "@windingtree/sdk-test-utils": "workspace:*"
+  },
   "scripts": {
     "build": "tsup",
     "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",

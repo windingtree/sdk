@@ -6,9 +6,9 @@ import {
 } from '@chainsafe/libp2p-gossipsub';
 import { ToSendGroupCount } from '@chainsafe/libp2p-gossipsub/metrics';
 import { PeerIdStr, TopicStr } from '@chainsafe/libp2p-gossipsub/types';
-import { PubSub, Message } from '@libp2p/interface-pubsub';
-import { PeerId } from '@libp2p/interface-peer-id';
-import type { Direction } from '@libp2p/interface-connection';
+import { PeerId } from '@libp2p/interface/peer-id';
+import type { Direction } from '@libp2p/interface/connection';
+import type { Message, PubSub } from '@libp2p/interface/pubsub';
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
 import { Multiaddr } from '@multiformats/multiaddr';
 import { sha256 } from 'multiformats/hashes/sha2';
@@ -56,7 +56,6 @@ export class CenterSub extends GossipSub {
   protected messages: MessagesCache | undefined;
   protected seenPeerMessageCache = new Map<string, Set<string>>();
   protected messageTransformer: MessageTransformer;
-
   /**
    * Creates an instance of CenterSub.
    *
@@ -204,13 +203,13 @@ export class CenterSub extends GossipSub {
    * @returns {void}
    * @memberof CenterSub
    */
-  private handlePeerConnect(peerId: PeerId): void {
+  private async handlePeerConnect(peerId: PeerId): Promise<void> {
     try {
       if (!this.messages) {
         logger.trace('Messages storage not initialized');
         return;
       }
-      const missedMessages = this.messages.get();
+      const missedMessages = await this.messages.get();
       logger.trace(
         'handlePeerConnect: missedMessages.length:',
         missedMessages.length,
@@ -244,6 +243,7 @@ export class CenterSub extends GossipSub {
 
     if (!hasPeer && direction === 'inbound') {
       // We need to wait for the outbound stream to be opened
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       setTimeout(() => this.handlePeerConnect(peerId), outboundStreamDelay);
     }
   }

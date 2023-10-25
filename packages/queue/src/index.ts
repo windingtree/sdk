@@ -1,4 +1,4 @@
-import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { EventEmitter, CustomEvent } from '@libp2p/interface/events';
 import { simpleUid } from '@windingtree/contracts';
 import { Storage } from '@windingtree/sdk-storage';
 import { backoffWithJitter } from '@windingtree/sdk-utils';

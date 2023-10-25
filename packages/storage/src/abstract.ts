@@ -10,9 +10,9 @@ export abstract class Storage {
     key: string,
   ): Promise<CustomValueType | undefined>;
   abstract delete(key: string): Promise<boolean>;
-  abstract entries<CustomValueType = unknown>(): IterableIterator<
-    [string, CustomValueType]
-  >;
+  abstract entries<CustomValueType = unknown>():
+    | IterableIterator<[string, CustomValueType]>
+    | Promise<[[string, CustomValueType]]>;
 }
 
 export interface GenericStorageOptions {

@@ -60,14 +60,14 @@ export const ConfigProvider = ({ children }: PropsWithChildren) => {
     setConfig({
       type: ConfigActions.SET_CONFIG,
       payload: { login },
-    })
+    });
   }, []);
 
   const resetAuth = useCallback(() => {
     setConfig({
       type: ConfigActions.SET_CONFIG,
-      payload: { login: undefined, },
-    })
+      payload: { login: undefined },
+    });
   }, []);
 
   useEffect(() => {

@@ -1,11 +1,11 @@
-import { createLibp2p, Libp2pOptions, Libp2p } from 'libp2p';
+import { createLibp2p, Libp2p, Libp2pOptions } from 'libp2p';
 import { createFromJSON } from '@libp2p/peer-id-factory';
 import { noise } from '@chainsafe/libp2p-noise';
 import { mplex } from '@libp2p/mplex';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { webSockets } from '@libp2p/websockets';
 import { all } from '@libp2p/websockets/filters';
-import { EventEmitter, CustomEvent } from '@libp2p/interfaces/events';
+import { CustomEvent, EventEmitter } from '@libp2p/interface/events';
 import { NodeKeyJson, PeerOptions } from '@windingtree/sdk-types';
 import { centerSub, CenterSub } from '@windingtree/sdk-pubsub';
 import { decodeText } from '@windingtree/sdk-utils';

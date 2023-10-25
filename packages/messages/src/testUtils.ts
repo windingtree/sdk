@@ -2,6 +2,8 @@ import {
   GenericQuery,
   GenericOfferOptions,
   RequestData,
+  DealRecord,
+  DealStatus,
 } from '@windingtree/sdk-types';
 import { Hash, HDAccount, TypedDataDomain } from 'viem';
 import { randomSalt } from '@windingtree/contracts';
@@ -82,3 +84,34 @@ export const createRandomOffer = (
     checkOut: 1n,
     transferable: true,
   });
+
+export const buildRandomDeal = async (
+  signer: HDAccount,
+  supplierId: Hash,
+): Promise<DealRecord> => {
+  const typedDomain = {
+    chainId: 1,
+    name: 'Test',
+    version: '1',
+    contract: signer.address,
+  };
+  const request = await createRandomRequest('test', '100s');
+  const offer = await createRandomOffer(
+    request,
+    '200s',
+    typedDomain,
+    supplierId,
+    signer,
+  );
+
+  return {
+    chainId: typedDomain.chainId,
+    created: BigInt(Math.round(Date.now() / 1000)),
+    offer,
+    retailerId: 'test',
+    buyer: '0x0',
+    price: BigInt(1),
+    asset: '0x0',
+    status: DealStatus.Claimed,
+  };
+};

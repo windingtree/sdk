@@ -84,8 +84,9 @@ export class DealsDb {
    * @returns {Promise<DealRecord[]>} Deals records
    * @memberof DealsDb
    */
-  async getAll(pagination?: PaginationOptions): Promise<DealRecord[]> {
-    return new Promise((resolve, reject) => {
+  getAll(pagination?: PaginationOptions): Promise<DealRecord[]> {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises, no-async-promise-executor
+    return new Promise(async (resolve, reject) => {
       try {
         const page: Required<PaginationOptions> = {
           start: pagination?.start ?? 0,
@@ -96,7 +97,7 @@ export class DealsDb {
         const to = from + page.skip ?? 0;
         const records: DealRecord[] = [];
 
-        for (const record of this.storage.entries<DealRecord>()) {
+        for (const record of await this.storage.entries<DealRecord>()) {
           if (to > 0 && cursor >= from && cursor < to) {
             records.push(record[1]);
           }
