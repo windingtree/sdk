@@ -6,9 +6,9 @@ import {
 } from '@chainsafe/libp2p-gossipsub';
 import { ToSendGroupCount } from '@chainsafe/libp2p-gossipsub/metrics';
 import { PeerIdStr, TopicStr } from '@chainsafe/libp2p-gossipsub/types';
-import { Message, PubSub } from '@libp2p/interface-pubsub';
-import { PeerId } from '@libp2p/interface-peer-id';
-import type { Direction } from '@libp2p/interface-connection';
+import { PeerId } from '@libp2p/interface/peer-id';
+import type { Direction } from '@libp2p/interface/connection';
+import type { Message, PubSub } from '@libp2p/interface/pubsub';
 import { RPC } from '@chainsafe/libp2p-gossipsub/message';
 import { Multiaddr } from '@multiformats/multiaddr';
 import { sha256 } from 'multiformats/hashes/sha2';
@@ -56,7 +56,6 @@ export class CenterSub extends GossipSub {
   protected messages: MessagesCache | undefined;
   protected seenPeerMessageCache = new Map<string, Set<string>>();
   protected messageTransformer: MessageTransformer;
-
   /**
    * Creates an instance of CenterSub.
    *

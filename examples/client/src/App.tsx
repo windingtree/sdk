@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { EventHandler } from '@libp2p/interfaces/events';
+import { EventHandler } from '@libp2p/interface/events';
 import { ClientRequestRecord } from '@windingtree/sdk-client';
 import { buildRequest } from '@windingtree/sdk-messages';
 import { RequestQuery, OfferOptions } from 'wtmp-examples-shared-files';
