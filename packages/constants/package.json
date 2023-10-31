@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-constants",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "libp2p PubSub protocol implementation for the WindingTree market protocol",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",

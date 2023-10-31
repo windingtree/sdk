@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-logger",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Logger",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",

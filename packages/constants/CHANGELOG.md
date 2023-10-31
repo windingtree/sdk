@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-constants@1.2.0...@windingtree/sdk-constants@1.2.1) (2023-10-31)
+
+
+### Bug Fixes
+
+* 🐛 Fixed file ext for cjs modules ([6f985f2](https://github.com/windingtree/sdk/commit/6f985f2a6b076abdf145176d5036fe89267f2c5a))
+
+
+
+
+
 # [1.2.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-constants@1.2.0-beta.0...@windingtree/sdk-constants@1.2.0) (2023-10-25)
 
 **Note:** Version bump only for package @windingtree/sdk-constants
