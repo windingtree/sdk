@@ -10,7 +10,7 @@
     "dist"
   ],
   "types": "./dist/index.d.ts",
-  "main": "./dist/index.cjs.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "exports": {
     ".": {
@@ -20,7 +20,7 @@
       },
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.cjs.js"
+        "default": "./dist/index.cjs"
       }
     },
     "./local": {
@@ -30,7 +30,7 @@
       },
       "require": {
         "types": "./dist/local.d.ts",
-        "default": "./dist/local.cjs.js"
+        "default": "./dist/local.cjs"
       }
     },
     "./memory": {
@@ -40,7 +40,7 @@
       },
       "require": {
         "types": "./dist/memory.d.ts",
-        "default": "./dist/memory.cjs.js"
+        "default": "./dist/memory.cjs"
       }
     },
     "./level": {
@@ -50,7 +50,7 @@
       },
       "require": {
         "types": "./dist/level.d.ts",
-        "default": "./dist/level.cjs.js"
+        "default": "./dist/level.cjs"
       }
     }
   },

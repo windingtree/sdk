@@ -10,7 +10,7 @@
     "dist"
   ],
   "types": "./dist/index.d.ts",
-  "main": "./dist/index.cjs.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "exports": {
     ".": {
@@ -20,7 +20,7 @@
       },
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.cjs.js"
+        "default": "./dist/index.cjs"
       }
     },
     "./h3": {
@@ -30,7 +30,7 @@
       },
       "require": {
         "types": "./dist/h3.d.ts",
-        "default": "./dist/h3.cjs.js"
+        "default": "./dist/h3.cjs"
       }
     },
     "./regex": {
@@ -40,7 +40,7 @@
       },
       "require": {
         "types": "./dist/regex.d.ts",
-        "default": "./dist/regex.cjs.js"
+        "default": "./dist/regex.cjs"
       }
     },
     "./text": {
@@ -50,7 +50,7 @@
       },
       "require": {
         "types": "./dist/text.d.ts",
-        "default": "./dist/text.cjs.js"
+        "default": "./dist/text.cjs"
       }
     },
     "./time": {
@@ -60,7 +60,7 @@
       },
       "require": {
         "types": "./dist/time.d.ts",
-        "default": "./dist/time.cjs.js"
+        "default": "./dist/time.cjs"
       }
     },
     "./uid": {
@@ -70,7 +70,7 @@
       },
       "require": {
         "types": "./dist/uid.d.ts",
-        "default": "./dist/uid.cjs.js"
+        "default": "./dist/uid.cjs"
       }
     },
     "./wallet": {
@@ -80,7 +80,7 @@
       },
       "require": {
         "types": "./dist/wallet.d.ts",
-        "default": "./dist/wallet.cjs.js"
+        "default": "./dist/wallet.cjs"
       }
     }
   },
