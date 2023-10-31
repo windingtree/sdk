@@ -42,6 +42,16 @@
         "types": "./dist/memory.d.ts",
         "default": "./dist/memory.cjs.js"
       }
+    },
+    "./level": {
+      "import": {
+        "types": "./dist/level.d.ts",
+        "default": "./dist/level.js"
+      },
+      "require": {
+        "types": "./dist/level.d.ts",
+        "default": "./dist/level.cjs.js"
+      }
     }
   },
   "publishConfig": {
@@ -51,7 +61,8 @@
     "@windingtree/sdk-logger": "workspace:*",
     "classic-level": "^1.3.0",
     "level-transcoder": "^1.0.1",
-    "superjson": "^1.13.1"
+    "superjson": "^1.13.1",
+    "buffer": "^6.0.3"
   },
   "scripts": {
     "build": "tsup",
