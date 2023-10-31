@@ -6,6 +6,7 @@ import {
 import { ClassicLevel } from 'classic-level';
 import { parse, stringify } from 'superjson';
 import { IEncoding } from 'level-transcoder';
+import { Buffer } from 'buffer';
 import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('LocalStorage');
