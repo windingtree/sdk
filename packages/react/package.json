@@ -8,7 +8,7 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/index.cjs.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -19,7 +19,7 @@
       },
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.cjs.js"
+        "default": "./dist/index.cjs"
       }
     },
     "./providers": {
@@ -29,7 +29,7 @@
       },
       "require": {
         "types": "./dist/providers/index.d.ts",
-        "default": "./dist/providers.cjs.js"
+        "default": "./dist/providers.cjs"
       }
     },
     "./utils": {
@@ -39,7 +39,7 @@
       },
       "require": {
         "types": "./dist/utils/index.d.ts",
-        "default": "./dist/utils.cjs.js"
+        "default": "./dist/utils.cjs"
       }
     }
   },
