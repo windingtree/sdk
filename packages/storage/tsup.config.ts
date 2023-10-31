@@ -8,6 +8,7 @@ export default defineConfig([
       index: './src/index.ts',
       local: './src/local.ts',
       memory: './src/memory.ts',
+      level: './src/level.ts',
     },
     platform: 'neutral',
     treeshake: true,
