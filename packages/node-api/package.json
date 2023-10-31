@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-node-api",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "The WindingTree market protocol node API server and client",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
@@ -10,7 +10,7 @@
     "dist"
   ],
   "types": "./dist/index.d.ts",
-  "main": "./dist/index.cjs.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "exports": {
     ".": {
@@ -20,7 +20,7 @@
       },
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.cjs.js"
+        "default": "./dist/index.cjs"
       }
     },
     "./router": {
@@ -30,7 +30,7 @@
       },
       "require": {
         "types": "./dist/router.d.ts",
-        "default": "./dist/router.cjs.js"
+        "default": "./dist/router.cjs"
       }
     },
     "./server": {
@@ -40,7 +40,7 @@
       },
       "require": {
         "types": "./dist/server.d.ts",
-        "default": "./dist/server.cjs.js"
+        "default": "./dist/server.cjs"
       }
     },
     "./client": {
@@ -50,7 +50,7 @@
       },
       "require": {
         "types": "./dist/client.d.ts",
-        "default": "./dist/client.cjs.js"
+        "default": "./dist/client.cjs"
       }
     }
   },

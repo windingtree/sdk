@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.2.0...@windingtree/sdk-storage@1.2.1) (2023-10-31)
+
+
+### Bug Fixes
+
+* 🐛 Added missed export of levelDb ([3887e4e](https://github.com/windingtree/sdk/commit/3887e4ec665e2aafca2c7f2b503cb5a23d4680fe))
+
+
+
+
+
 # [1.2.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.2.0-beta.0...@windingtree/sdk-storage@1.2.0) (2023-10-25)
 
 **Note:** Version bump only for package @windingtree/sdk-storage

@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-db",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Databases for the WindingTree market protocol",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
@@ -10,7 +10,7 @@
     "dist"
   ],
   "types": "./dist/index.d.ts",
-  "main": "./dist/index.cjs.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "exports": {
     ".": {
@@ -20,7 +20,7 @@
       },
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.cjs.js"
+        "default": "./dist/index.cjs"
       }
     },
     "./users": {
@@ -30,7 +30,7 @@
       },
       "require": {
         "types": "./dist/users.d.ts",
-        "default": "./dist/users.cjs.js"
+        "default": "./dist/users.cjs"
       }
     },
     "./deals": {
@@ -40,7 +40,7 @@
       },
       "require": {
         "types": "./dist/deals.d.ts",
-        "default": "./dist/deals.cjs.js"
+        "default": "./dist/deals.cjs"
       }
     }
   },
