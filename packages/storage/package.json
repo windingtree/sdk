@@ -62,7 +62,7 @@
     "buffer": "^6.0.3",
     "classic-level": "^1.3.0",
     "level-transcoder": "^1.0.1",
-    "superjson": "^1.13.1"
+    "superjson": "^2.2.1"
   },
   "scripts": {
     "build": "tsup",
