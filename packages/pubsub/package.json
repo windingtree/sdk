@@ -38,7 +38,7 @@
     "@windingtree/sdk-utils": "workspace:*",
     "libp2p": "^0.46.14",
     "multiformats": "^12.0.1",
-    "superjson": "^1.13.1"
+    "superjson": "^2.2.1"
   },
   "scripts": {
     "build": "tsup",
