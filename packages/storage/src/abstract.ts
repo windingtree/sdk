@@ -17,6 +17,7 @@ export abstract class Storage {
 
 export interface GenericStorageOptions {
   scope?: string;
+  path?: string;
 }
 
 /**

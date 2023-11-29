@@ -32,7 +32,9 @@ export class LevelDBStorage extends Storage {
 
     options = options ?? {};
 
-    this.db = new ClassicLevel<string, string | string[]>('./db', {
+    const dbPath = options.path || './db'
+
+    this.db = new ClassicLevel<string, string | string[]>(dbPath, {
       keyEncoding: 'utf8',
       valueEncoding: superJsonEncoding,
       createIfMissing: true,
