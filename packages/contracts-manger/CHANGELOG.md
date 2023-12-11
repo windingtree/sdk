@@ -5,14 +5,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 # [1.3.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.2.1...@windingtree/sdk-contracts-manager@1.3.0) (2023-11-29)
 
-
 ### Features
 
-* update superjson ([1a83a91](https://github.com/windingtree/sdk/commit/1a83a91e8467c6cddbb15c67d08cbe30fb6d9633))
-
-
-
-
+- update superjson ([1a83a91](https://github.com/windingtree/sdk/commit/1a83a91e8467c6cddbb15c67d08cbe30fb6d9633))
 
 ## [1.2.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.2.0...@windingtree/sdk-contracts-manager@1.2.1) (2023-10-31)
 

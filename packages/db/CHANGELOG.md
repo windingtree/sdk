@@ -7,10 +7,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @windingtree/sdk-db
 
-
-
-
-
 ## [1.2.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.1...@windingtree/sdk-db@1.2.2) (2023-10-31)
 
 ### Bug Fixes

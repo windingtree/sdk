@@ -5,16 +5,11 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 # [1.3.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.2.2...@windingtree/sdk-storage@1.3.0) (2023-11-29)
 
-
 ### Features
 
-* add LevelStorageOptions ([235d207](https://github.com/windingtree/sdk/commit/235d207d77c0ea90a084a36bfa362b50e6bc0159))
-* add path to storage options ([bcf8938](https://github.com/windingtree/sdk/commit/bcf89389a6808bdf0bd32761417867d021951c40))
-* update superjson ([1a83a91](https://github.com/windingtree/sdk/commit/1a83a91e8467c6cddbb15c67d08cbe30fb6d9633))
-
-
-
-
+- add LevelStorageOptions ([235d207](https://github.com/windingtree/sdk/commit/235d207d77c0ea90a084a36bfa362b50e6bc0159))
+- add path to storage options ([bcf8938](https://github.com/windingtree/sdk/commit/bcf89389a6808bdf0bd32761417867d021951c40))
+- update superjson ([1a83a91](https://github.com/windingtree/sdk/commit/1a83a91e8467c6cddbb15c67d08cbe30fb6d9633))
 
 ## [1.2.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.2.1...@windingtree/sdk-storage@1.2.2) (2023-10-31)
 
