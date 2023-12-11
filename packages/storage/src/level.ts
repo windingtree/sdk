@@ -22,17 +22,23 @@ const superJsonEncoding: IEncoding<
   name: 'super-json-encoding',
 };
 
+export interface LevelStorageOptions extends GenericStorageOptions {
+  path?: string;
+}
+
 export class LevelDBStorage extends Storage {
   protected db: ClassicLevel<string, string | string[]>;
   /** Key for storing ids included in the scope */
   scopeIdsKey?: string;
 
-  constructor(options?: GenericStorageOptions) {
+  constructor(options?: LevelStorageOptions) {
     super();
 
     options = options ?? {};
 
-    this.db = new ClassicLevel<string, string | string[]>('./db', {
+    const dbPath = options.path || './db';
+
+    this.db = new ClassicLevel<string, string | string[]>(dbPath, {
       keyEncoding: 'utf8',
       valueEncoding: superJsonEncoding,
       createIfMissing: true,

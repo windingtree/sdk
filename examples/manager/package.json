@@ -27,7 +27,7 @@
     "@windingtree/contracts": "^1.0.0",
     "@windingtree/sdk-types": "workspace:*",
     "@windingtree/sdk-utils": "workspace:*",
-    "superjson": "^1.13.1"
+    "superjson": "^2.2.1"
   },
   "eslintConfig": {
     "extends": [

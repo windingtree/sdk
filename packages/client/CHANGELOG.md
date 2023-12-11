@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-client@1.2.2...@windingtree/sdk-client@1.3.0) (2023-11-29)
+
+
+### Features
+
+* update superjson ([1a83a91](https://github.com/windingtree/sdk/commit/1a83a91e8467c6cddbb15c67d08cbe30fb6d9633))
+
+
+
+
+
 ## [1.2.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-client@1.2.1...@windingtree/sdk-client@1.2.2) (2023-10-31)
 
 ### Bug Fixes
