@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.3.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.3.0...@windingtree/sdk-storage@1.3.1) (2023-12-11)
+
+**Note:** Version bump only for package @windingtree/sdk-storage
+
 # [1.3.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.2.2...@windingtree/sdk-storage@1.3.0) (2023-11-29)
 
 ### Features

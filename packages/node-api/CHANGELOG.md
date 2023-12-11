@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.3.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.3.0...@windingtree/sdk-node-api@1.3.1) (2023-12-11)
+
+### Bug Fixes
+
+- 🐛 Fixed wrong arguments order in the supplierId utility ([904ee70](https://github.com/windingtree/sdk/commit/904ee70f7e906b68ae01f86de7d08d956fbf7688))
+
 # [1.3.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.2.2...@windingtree/sdk-node-api@1.3.0) (2023-11-29)
 
 ### Features

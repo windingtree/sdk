@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.3](https://github.com/windingtree/sdk/compare/@windingtree/sdk-logger@1.1.2...@windingtree/sdk-logger@1.1.3) (2023-12-11)
+
+**Note:** Version bump only for package @windingtree/sdk-logger
+
 ## [1.1.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-logger@1.1.1...@windingtree/sdk-logger@1.1.2) (2023-10-31)
 
 ### Bug Fixes
