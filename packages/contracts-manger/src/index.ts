@@ -136,9 +136,8 @@ export class ProtocolContracts<
 
       logger.trace('Request options:', stringify(requestOptions));
 
-      const { request } = await this.publicClient.simulateContract(
-        requestOptions,
-      );
+      const { request } =
+        await this.publicClient.simulateContract(requestOptions);
 
       const hash = await walletClient.writeContract(request);
 

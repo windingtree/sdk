@@ -37,7 +37,7 @@ describe('Utils.uid', () => {
     const owner = mnemonicToAccount(generateMnemonic());
 
     it('should generate bytes32-formatted supplierId', () => {
-      expect(bytes32RegExp.exec(supplierId(randomSalt(), owner.address))).to.not
+      expect(bytes32RegExp.exec(supplierId(owner.address, randomSalt()))).to.not
         .null;
     });
   });

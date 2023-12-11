@@ -1,4 +1,4 @@
-import { IncomingMessage, ServerResponse, createServer } from 'node:http';
+import { IncomingMessage, ServerResponse, createServer } from 'http';
 import { AnyRouter, TRPCError, initTRPC } from '@trpc/server';
 import {
   CreateHTTPContextOptions,

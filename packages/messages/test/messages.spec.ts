@@ -30,7 +30,7 @@ describe('Shared.messages', () => {
     version: '1',
     contract: signer.address,
   };
-  const supplierId = spId(randomSalt(), signer.address);
+  const supplierId = spId(signer.address, randomSalt());
 
   let request: RequestData<CustomQuery>;
 

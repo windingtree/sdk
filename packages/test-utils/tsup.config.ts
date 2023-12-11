@@ -9,7 +9,7 @@ export default defineConfig([
     },
     platform: 'node',
     treeshake: true,
-    dts: true,
+    dts: { resolve: true },
     sourcemap: true,
     splitting: false,
     clean: true,

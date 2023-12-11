@@ -69,7 +69,7 @@ export class NodeExample {
   constructor() {
     const mnemonic = generateMnemonic();
     const signer = mnemonicToAccount(mnemonic);
-    const supplierId = spId(randomSalt(), signer.address);
+    const supplierId = spId(signer.address, randomSalt());
 
     const options: NodeOptions = {
       topics: ['hello'],
