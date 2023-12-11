@@ -25,7 +25,7 @@ describe('Client.ClientRequestManager', () => {
     version: '1',
     contract: signer.address,
   };
-  const supplierId = spId(randomSalt(), signer.address);
+  const supplierId = spId(signer.address, randomSalt());
 
   beforeEach(async () => {
     const init = memoryStorage.createInitializer();

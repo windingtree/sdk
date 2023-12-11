@@ -413,7 +413,7 @@ describe('NodeApiServer', () => {
       await clientAdmin.admin.register.mutate(admin);
       await clientAdmin.admin.login.mutate(admin);
       const signer = mnemonicToAccount(generateMnemonic());
-      const supplierId = spId(randomSalt(), signer.address);
+      const supplierId = spId(signer.address, randomSalt());
       deal = await buildRandomDeal(signer, supplierId);
       id = deal.offer.id;
       await server.deals?.set(deal);

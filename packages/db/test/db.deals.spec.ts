@@ -10,7 +10,7 @@ import { buildRandomDeal } from '@windingtree/sdk-messages';
 
 describe('DealsDb', () => {
   const signer = mnemonicToAccount(generateMnemonic());
-  const supplierId = spId(randomSalt(), signer.address);
+  const supplierId = spId(signer.address, randomSalt());
   let dealsDbOptions: DealsDbOptions;
   let storage: Storage;
   let dealsDb: DealsDb;
