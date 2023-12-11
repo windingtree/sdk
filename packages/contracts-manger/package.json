@@ -31,8 +31,8 @@
     "@windingtree/contracts": "^1.0.0",
     "@windingtree/sdk-logger": "workspace:*",
     "@windingtree/sdk-types": "workspace:*",
-    "superjson": "^1.13.1",
-    "viem": "^1.3.0"
+    "superjson": "^2.2.1",
+    "viem": "^1.19.13"
   },
   "devDependencies": {
     "@windingtree/sdk-test-utils": "workspace:*",
