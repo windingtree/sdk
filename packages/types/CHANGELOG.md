@@ -5,30 +5,17 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ## [1.1.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-types@1.1.1...@windingtree/sdk-types@1.1.2) (2023-10-31)
 
-
 ### Bug Fixes
 
-* 🐛 Fixed file ext for cjs modules ([6f985f2](https://github.com/windingtree/sdk/commit/6f985f2a6b076abdf145176d5036fe89267f2c5a))
-
-
-
-
+- 🐛 Fixed file ext for cjs modules ([6f985f2](https://github.com/windingtree/sdk/commit/6f985f2a6b076abdf145176d5036fe89267f2c5a))
 
 ## [1.1.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-types@1.1.1-beta.0...@windingtree/sdk-types@1.1.1) (2023-10-25)
 
 **Note:** Version bump only for package @windingtree/sdk-types
 
-
-
-
-
 ## [1.1.1-beta.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-types@1.1.0...@windingtree/sdk-types@1.1.1-beta.0) (2023-10-25)
 
 **Note:** Version bump only for package @windingtree/sdk-types
-
-
-
-
 
 # [1.1.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-types@1.1.0-beta.3...@windingtree/sdk-types@1.1.0) (2023-07-27)
 

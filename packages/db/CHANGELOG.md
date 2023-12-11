@@ -3,45 +3,31 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [1.2.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.1...@windingtree/sdk-db@1.2.2) (2023-10-31)
+## [1.2.3](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.2...@windingtree/sdk-db@1.2.3) (2023-11-29)
 
+**Note:** Version bump only for package @windingtree/sdk-db
+
+## [1.2.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.1...@windingtree/sdk-db@1.2.2) (2023-10-31)
 
 ### Bug Fixes
 
-* 🐛 Fixed file ext for cjs modules ([6f985f2](https://github.com/windingtree/sdk/commit/6f985f2a6b076abdf145176d5036fe89267f2c5a))
-
-
-
-
+- 🐛 Fixed file ext for cjs modules ([6f985f2](https://github.com/windingtree/sdk/commit/6f985f2a6b076abdf145176d5036fe89267f2c5a))
 
 ## [1.2.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.0...@windingtree/sdk-db@1.2.1) (2023-10-31)
 
 **Note:** Version bump only for package @windingtree/sdk-db
 
-
-
-
-
 # [1.2.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.0-beta.1...@windingtree/sdk-db@1.2.0) (2023-10-25)
 
 **Note:** Version bump only for package @windingtree/sdk-db
 
-
-
-
-
 # [1.2.0-beta.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.0-beta.0...@windingtree/sdk-db@1.2.0-beta.1) (2023-10-25)
-
 
 ### Features
 
-* fix async issues ([803ab03](https://github.com/windingtree/sdk/commit/803ab03f1b5d176844247c2d065dfadabc12355f))
-* improve test coverage ([9d49c6e](https://github.com/windingtree/sdk/commit/9d49c6e2e172cce2c6eb320a3f0e4b097d8e83a8))
-* move buildRandomDeal to messages package ([e0aea26](https://github.com/windingtree/sdk/commit/e0aea265f62cd5ca91b259c6f683a596ceb3ddd4))
-
-
-
-
+- fix async issues ([803ab03](https://github.com/windingtree/sdk/commit/803ab03f1b5d176844247c2d065dfadabc12355f))
+- improve test coverage ([9d49c6e](https://github.com/windingtree/sdk/commit/9d49c6e2e172cce2c6eb320a3f0e4b097d8e83a8))
+- move buildRandomDeal to messages package ([e0aea26](https://github.com/windingtree/sdk/commit/e0aea265f62cd5ca91b259c6f683a596ceb3ddd4))
 
 # [1.2.0-beta.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.1.0...@windingtree/sdk-db@1.2.0-beta.0) (2023-07-31)
 

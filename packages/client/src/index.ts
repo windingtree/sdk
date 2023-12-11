@@ -145,7 +145,7 @@ export class Client<
   /** Server is connected */
   private serverConnected = false;
   /** Entity for stop timer after reconnect */
-  private connectionInterval?: NodeJS.Timer;
+  private connectionInterval?: NodeJS.Timeout;
 
   /**
    *Creates an instance of Client.
