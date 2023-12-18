@@ -328,10 +328,12 @@ export class NodeApiServer {
         .split(';')
         .reduce<Record<string, string>>((a, v) => {
           const pair = v.split('=');
-          return {
-            ...a,
-            [pair[0].toLowerCase()]: pair[1],
-          };
+          if (pair.length === 2) {
+            Object.assign(a, {
+              [pair[0].toLowerCase().trim()]: pair[1].trim(),
+            });
+          }
+          return a;
         }, {});
       accessToken = cookies[ACCESS_TOKEN_NAME.toLocaleLowerCase()];
     }
