@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.3.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.3.1...@windingtree/sdk-node-api@1.3.2) (2023-12-18)
+
+### Bug Fixes
+
+- 🐛 Fixed auth cookie parser ([60d5ef5](https://github.com/windingtree/sdk/commit/60d5ef5f2a3c51fd34404fd800e416f1c6b16648))
+
 ## [1.3.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.3.0...@windingtree/sdk-node-api@1.3.1) (2023-12-11)
 
 ### Bug Fixes
