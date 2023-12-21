@@ -24,7 +24,7 @@ export default defineConfig([
     },
     platform: 'node',
     treeshake: true,
-    dts: { resolve: true },
+    // dts: { resolve: true },
     sourcemap: true,
     format: ['esm', 'cjs'],
     external: Object.keys(dependencies),

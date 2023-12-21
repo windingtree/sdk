@@ -25,11 +25,11 @@
     },
     "./router": {
       "import": {
-        "types": "./dist/router.d.ts",
+        "types": "./dist/router/index.d.ts",
         "default": "./dist/router.js"
       },
       "require": {
-        "types": "./dist/router.d.ts",
+        "types": "./dist/router/index.d.ts",
         "default": "./dist/router.cjs"
       }
     },
@@ -79,7 +79,7 @@
     "zod": "^3.22.4"
   },
   "scripts": {
-    "build": "rm -rf dist && tsup",
+    "build": "rm -rf dist && tsc -p ./tsconfig-build.json --emitDeclarationOnly  && tsup",
     "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
     "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
     "test": "vitest --run test",
