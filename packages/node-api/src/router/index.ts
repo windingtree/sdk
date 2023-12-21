@@ -4,6 +4,7 @@ import { userRouter } from './user.js';
 import { adminRouter } from './admin.js';
 import { dealsRouter } from './deals.js';
 
+export * from './service.js';
 export * from './admin.js';
 export * from './user.js';
 export * from './deals.js';
