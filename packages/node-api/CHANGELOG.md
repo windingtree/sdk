@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.3.4](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.3.3...@windingtree/sdk-node-api@1.3.4) (2023-12-21)
+
+### Bug Fixes
+
+- 🐛 Added export of the service router in node-api ([4277e36](https://github.com/windingtree/sdk/commit/4277e3649ae1a22c062d934496c733a3244c0497))
+
 ## [1.3.3](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.3.2...@windingtree/sdk-node-api@1.3.3) (2023-12-21)
 
 ### Bug Fixes
