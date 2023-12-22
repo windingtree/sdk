@@ -20,14 +20,9 @@ const logger = createLogger('NodeApiServer');
  */
 export interface NodeApiServerOptions {
   /**
-   * An instance of the storage system that the API server will use for persisting users state.
+   * An instances of the storage system that the API server will use.
    */
-  usersStorage: Storage;
-
-  /**
-   * An instance of the storage system that the API server will use for persisting deals state.
-   */
-  dealsStorage?: Storage;
+  storage: Record<string, Storage>;
 
   /**
    * An instance of the protocol contracts manager.
@@ -78,6 +73,7 @@ export interface ApiContext {
   user?: User;
   deals?: DealsDb;
   contracts?: ProtocolContracts;
+  storage: Record<string, Storage>;
 }
 
 /**
@@ -216,6 +212,8 @@ export class NodeApiServer {
   deals?: DealsDb;
   /** An instance of the ProtocolContracts that manages deals via the protocol smart contracts */
   protocolContracts?: ProtocolContracts;
+  /** An instances of the storage system that the API server will use */
+  storage: Record<string, Storage>;
   /** An Ethereum account address of the Node owner */
   ownerAccount?: Address;
   /** The duration (as a string or number) after which the access token will expire */
@@ -229,8 +227,7 @@ export class NodeApiServer {
    */
   constructor(options: NodeApiServerOptions) {
     const {
-      usersStorage,
-      dealsStorage,
+      storage,
       protocolContracts,
       prefix,
       port,
@@ -241,17 +238,18 @@ export class NodeApiServer {
 
     // TODO Validate NodeApiServerOptions
 
+    this.storage = storage;
     this.port = port;
     this.secret = secret;
     this.ownerAccount = ownerAccount;
     this.expire = expire ?? '1h';
 
     /** Initialize the UsersDb instance with the provided options */
-    this.users = new UsersDb({ storage: usersStorage, prefix });
+    this.users = new UsersDb({ storage: storage['users'], prefix });
 
-    if (dealsStorage) {
+    if (storage['deals']) {
       /** Initialize the UsersDb instance with the provided options */
-      this.deals = new DealsDb({ storage: dealsStorage, prefix });
+      this.deals = new DealsDb({ storage: storage['deals'], prefix });
     }
 
     if (protocolContracts) {
@@ -317,6 +315,7 @@ export class NodeApiServer {
       users: this.users,
       deals: this.deals,
       contracts: this.protocolContracts,
+      storage: this.storage,
     };
 
     let accessToken: string | undefined;

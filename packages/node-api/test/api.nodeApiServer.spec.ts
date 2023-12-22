@@ -77,16 +77,18 @@ describe('NodeApiServer', () => {
       }),
     });
     options = {
-      usersStorage: await memoryStorage.createInitializer({
-        scope: 'users',
-      })(),
+      storage: {
+        users: await memoryStorage.createInitializer({
+          scope: 'users',
+        })(),
+        deals: await memoryStorage.createInitializer({
+          scope: 'deals',
+        })(),
+      },
       prefix: 'test',
       port: 3456,
       secret: 'secret',
       ownerAccount: owner.address,
-      dealsStorage: await memoryStorage.createInitializer({
-        scope: 'deals',
-      })(),
       protocolContracts: contractsManager,
     };
     server = new NodeApiServer(options);
