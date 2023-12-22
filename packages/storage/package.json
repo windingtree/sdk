@@ -65,7 +65,7 @@
     "superjson": "^2.2.1"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "rm -rf dist && tsc -p ./tsconfig-build.json --emitDeclarationOnly && tsup",
     "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
     "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
     "test": "vitest --run test",
