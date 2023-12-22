@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-queue",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Jobs queue",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",

@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-server",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "The WindingTree market protocol server",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",

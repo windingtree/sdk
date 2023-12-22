@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.4.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.3.4...@windingtree/sdk-node-api@1.4.0) (2023-12-22)
+
+### Features
+
+- 🎸 Updated node-api configuration options ([c268c57](https://github.com/windingtree/sdk/commit/c268c57a1624a3a19d46c6693ae0cd5389505a63))
+
 ## [1.3.4](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.3.3...@windingtree/sdk-node-api@1.3.4) (2023-12-21)
 
 ### Bug Fixes
