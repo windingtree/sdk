@@ -1,44 +1,64 @@
-import {
-  CreateTRPCClientOptions,
-  createTRPCProxyClient,
-  httpBatchLink,
-} from '@trpc/client';
+import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
-import { PropsWithChildren, useState, useEffect } from 'react';
+import {
+  type PropsWithChildren,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 import { NodeContext } from './NodeProviderContext.js';
+import { AppRouter } from '@windingtree/sdk-node-api/router';
 import { unauthorizedLink } from '@windingtree/sdk-node-api/client';
-import type { AppRouter } from '@windingtree/sdk-node-api/router';
 import { useConfig } from '../ConfigProvider/ConfigProviderContext.js';
+import { usePoller } from '../../hooks/usePoller.js';
+import { createLogger } from '@windingtree/sdk-logger';
+
+// Initialize logger
+const logger = createLogger('NodeProvider');
 
 export const NodeProvider = ({ children }: PropsWithChildren) => {
-  const { nodeHost, setAuth, resetAuth } = useConfig();
+  const { nodeHost, resetAuth } = useConfig();
   const [node, setNode] = useState<
     ReturnType<typeof createTRPCProxyClient<AppRouter>> | undefined
   >();
   const [error, setError] = useState<string | undefined>();
+  const [isConnected, setIsConnected] = useState<boolean>(false);
 
-  const stopClient = () => {
-    try {
-      setError(() => undefined);
-      setNode(() => undefined);
-    } catch (error) {
-      setError((error as Error).message || 'Unknown node provider error');
-    }
-  };
+  // Function to stop and reset the client
+  const stopClient = useCallback(() => {
+    setError(undefined);
+    setNode(undefined);
+  }, []);
 
-  useEffect(() => {
-    if (!nodeHost) {
-      stopClient();
+  // Function to check the connection
+  const checkConnection = useCallback(async () => {
+    setError(undefined);
+
+    if (!node) {
+      setIsConnected(false);
       return;
     }
 
-    const startClient = async () => {
-      try {
-        setError(undefined);
+    try {
+      const { message } = await node.service.ping.query();
+      setIsConnected(message === 'pong');
+    } catch (err) {
+      setIsConnected(false);
+      setError('Unable to connect the Node');
+      logger.error(err);
+    }
+  }, [node]);
 
+  // Initialize and clean up the client
+  useEffect(() => {
+    const startClient = async () => {
+      if (!nodeHost) {
+        return;
+      }
+
+      try {
         const tRpcNode = createTRPCProxyClient<AppRouter>({
-          transformer:
-            superjson as unknown as CreateTRPCClientOptions<AppRouter>['transformer'],
+          transformer: superjson,
           links: [
             unauthorizedLink(resetAuth),
             httpBatchLink({
@@ -46,7 +66,6 @@ export const NodeProvider = ({ children }: PropsWithChildren) => {
               fetch(url, options) {
                 return fetch(url, {
                   ...options,
-                  // allows to send cookies to the server
                   credentials: 'include',
                 });
               },
@@ -54,21 +73,10 @@ export const NodeProvider = ({ children }: PropsWithChildren) => {
           ],
         });
 
-        const { message } = await tRpcNode.service.ping.query();
-
-        if (message === 'pong') {
-          setNode(() => tRpcNode);
-        }
-      } catch (error) {
-        console.log(error);
-        setNode(() => undefined);
-        let errMessage = (error as Error).message;
-
-        if (errMessage === 'Failed to fetch') {
-          errMessage = 'Node connection failed';
-        }
-
-        setError(() => errMessage || 'Unknown node provider error');
+        setNode(() => tRpcNode);
+      } catch (err) {
+        setError((err as Error).message || 'Unknown node provider error');
+        logger.error(err);
       }
     };
 
@@ -77,13 +85,16 @@ export const NodeProvider = ({ children }: PropsWithChildren) => {
     return () => {
       stopClient();
     };
-  }, [nodeHost, setAuth, resetAuth]);
+  }, [stopClient, resetAuth, nodeHost]);
+
+  // Polling for connection check
+  usePoller(checkConnection, 5000, true, 'NodeConnection');
 
   return (
     <NodeContext.Provider
       value={{
         node,
-        nodeConnected: Boolean(node),
+        nodeConnected: isConnected,
         nodeError: error,
       }}
     >

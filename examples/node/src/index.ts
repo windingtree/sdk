@@ -289,6 +289,7 @@ const main = async (): Promise<void> => {
     secret: 'secret',
     ownerAccount: entityOwnerAddress,
     protocolContracts: contractsManager,
+    cors: ['http://localhost:5173'],
   });
 
   apiServer.start(appRouter);

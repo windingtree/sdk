@@ -55,6 +55,11 @@ export interface NodeApiServerOptions {
    * If not provided, some default value or policy might be used.
    */
   expire?: string | number;
+
+  /**
+   * CORS origins
+   */
+  cors: string[];
 }
 
 /**
@@ -218,6 +223,8 @@ export class NodeApiServer {
   ownerAccount?: Address;
   /** The duration (as a string or number) after which the access token will expire */
   expire: string | number;
+  /** CORS origins */
+  cors: string[];
 
   /**
    * Creates an instance of NodeApiServerOptions.
@@ -234,6 +241,7 @@ export class NodeApiServer {
       secret,
       ownerAccount,
       expire,
+      cors,
     } = options;
 
     // TODO Validate NodeApiServerOptions
@@ -243,6 +251,7 @@ export class NodeApiServer {
     this.secret = secret;
     this.ownerAccount = ownerAccount;
     this.expire = expire ?? '1h';
+    this.cors = cors || ['*']; // All origins are allowed by default
 
     /** Initialize the UsersDb instance with the provided options */
     this.users = new UsersDb({ storage: storage['users'], prefix });
@@ -390,7 +399,7 @@ export class NodeApiServer {
     // Create a http server for handling of HTTP requests
     // TODO Implement origin configuration via .env
     this.server = createServer((req, res) => {
-      res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5174');
+      res.setHeader('Access-Control-Allow-Origin', this.cors.join(', '));
       res.setHeader('Access-Control-Request-Method', 'GET');
       res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET');
       res.setHeader(

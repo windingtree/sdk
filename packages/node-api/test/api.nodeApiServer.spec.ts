@@ -90,6 +90,7 @@ describe('NodeApiServer', () => {
       secret: 'secret',
       ownerAccount: owner.address,
       protocolContracts: contractsManager,
+      cors: ['*'],
     };
     server = new NodeApiServer(options);
 
