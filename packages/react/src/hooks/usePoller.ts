@@ -22,36 +22,47 @@ export const usePoller = (
 ): void => {
   useEffect(() => {
     let failures = 0;
-    let intervalId: ReturnType<typeof setInterval>;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    // Check if the poller should be running.
-    if (enabled && delay !== null && failures < maxFailures) {
-      // Function to be run at each interval.
-      const fnRunner = async (): Promise<void> => {
-        try {
-          // Execute the provided function.
-          const context = fn();
-          // Wait for the function if it returns a Promise.
-          await Promise.resolve(context);
-        } catch (error) {
-          // Increment failure count and log error.
-          failures++;
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-          logger.error(`Poller ${name} error: ${errorMessage}`);
-        }
-      };
+    // Schedules the next execution of fnRunner
+    const scheduleNextRun = () => {
+      if (enabled && delay !== null) {
+        timeoutId = setTimeout(fnRunner, delay);
+      }
+    };
 
-      // Setting up the interval.
-      intervalId = setInterval(fnRunner, delay);
-      logger.trace(`Poller ${name} started`);
+    // Function to be executed at each interval
+    const fnRunner = async (): Promise<void> => {
+      if (failures >= maxFailures) {
+        // Stop polling after reaching maximum failures
+        logger.error(`Poller ${name} stopped after reaching max failures`);
+        return;
+      }
+
+      try {
+        // Execute the provided function
+        await Promise.resolve(fn());
+        // Schedule the next run after successful execution
+        scheduleNextRun();
+      } catch (error) {
+        failures++;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Poller ${name} error: ${errorMessage}`);
+        // Schedule the next run even if an error occurred
+        scheduleNextRun();
+      }
+    };
+
+    if (enabled) {
+      // Start the initial run
+      scheduleNextRun();
     }
 
-    // Cleanup function for the useEffect.
+    // Cleanup function for useEffect
     return () => {
-      // Clear the interval when the component is unmounted or dependencies change.
-      if (intervalId) {
-        clearInterval(intervalId);
+      if (timeoutId) {
+        // Clear the timeout when the component is unmounted or dependencies change
+        clearTimeout(timeoutId);
       }
       logger.trace(`Poller ${name} stopped`);
     };
