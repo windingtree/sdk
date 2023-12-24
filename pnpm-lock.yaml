@@ -700,6 +700,9 @@ importers:
       '@trpc/client':
         specifier: ^10.44.1
         version: 10.44.1(@trpc/server@10.44.1)
+      '@trpc/server':
+        specifier: ^10.44.1
+        version: 10.44.1
       '@types/react':
         specifier: ^18.2.15
         version: 18.2.43
@@ -715,6 +718,9 @@ importers:
       '@windingtree/sdk-contracts-manager':
         specifier: workspace:*
         version: link:../contracts-manger
+      '@windingtree/sdk-logger':
+        specifier: workspace:*
+        version: link:../logger
       '@windingtree/sdk-node-api':
         specifier: workspace:*
         version: link:../node-api
