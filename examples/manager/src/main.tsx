@@ -4,9 +4,9 @@ import { App } from './App.js';
 import {
   AppConfig,
   ConfigProvider,
-  NodeProvider,
   WalletProvider,
   ContractsProvider,
+  NodeProvider,
 } from '@windingtree/sdk-react/providers';
 import { hardhat, polygonZkEvmTestnet } from 'viem/chains';
 import { contractsConfig } from 'wtmp-examples-shared-files/dist/index.js';
