@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.5.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.4.0...@windingtree/sdk-node-api@1.5.0) (2023-12-24)
+
+### Features
+
+- 🎸 Updated NodeProvider in the react package ([be3f13b](https://github.com/windingtree/sdk/commit/be3f13b34a7323de9f0f9b5d08191e8221feeba2))
+
 # [1.4.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.3.4...@windingtree/sdk-node-api@1.4.0) (2023-12-22)
 
 ### Features
