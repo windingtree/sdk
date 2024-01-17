@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.4](https://github.com/windingtree/sdk/compare/@windingtree/sdk-types@1.1.4-beta.0...@windingtree/sdk-types@1.1.4) (2024-01-17)
+
+**Note:** Version bump only for package @windingtree/sdk-types
+
 ## [1.1.4-beta.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-types@1.1.3...@windingtree/sdk-types@1.1.4-beta.0) (2024-01-17)
 
 **Note:** Version bump only for package @windingtree/sdk-types
