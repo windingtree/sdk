@@ -3,16 +3,31 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [1.2.0-beta.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.2.0-beta.0...@windingtree/sdk-contracts-manager@1.2.0-beta.1) (2023-10-25)
+## [1.3.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.3.0...@windingtree/sdk-contracts-manager@1.3.1) (2023-12-11)
 
+**Note:** Version bump only for package @windingtree/sdk-contracts-manager
+
+# [1.3.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.2.1...@windingtree/sdk-contracts-manager@1.3.0) (2023-11-29)
 
 ### Features
 
-* improve test coverage ([9d49c6e](https://github.com/windingtree/sdk/commit/9d49c6e2e172cce2c6eb320a3f0e4b097d8e83a8))
+- update superjson ([1a83a91](https://github.com/windingtree/sdk/commit/1a83a91e8467c6cddbb15c67d08cbe30fb6d9633))
 
+## [1.2.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.2.0...@windingtree/sdk-contracts-manager@1.2.1) (2023-10-31)
 
+### Bug Fixes
 
+- 🐛 Fixed file ext for cjs modules ([6f985f2](https://github.com/windingtree/sdk/commit/6f985f2a6b076abdf145176d5036fe89267f2c5a))
 
+# [1.2.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.2.0-beta.1...@windingtree/sdk-contracts-manager@1.2.0) (2023-10-25)
+
+**Note:** Version bump only for package @windingtree/sdk-contracts-manager
+
+# [1.2.0-beta.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.2.0-beta.0...@windingtree/sdk-contracts-manager@1.2.0-beta.1) (2023-10-25)
+
+### Features
+
+- improve test coverage ([9d49c6e](https://github.com/windingtree/sdk/commit/9d49c6e2e172cce2c6eb320a3f0e4b097d8e83a8))
 
 # [1.2.0-beta.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.1.0...@windingtree/sdk-contracts-manager@1.2.0-beta.0) (2023-07-31)
 

@@ -163,7 +163,7 @@ export class Node<
   /** Server is connected */
   private serverConnected = false;
   /** Entity for stop timer after reconnect */
-  private connectionInterval?: NodeJS.Timer;
+  private connectionInterval?: NodeJS.Timeout;
 
   /**
    * @param {NodeOptions} options Node initialization options

@@ -280,13 +280,16 @@ const main = async (): Promise<void> => {
   })();
 
   const apiServer = new NodeApiServer({
-    usersStorage,
-    dealsStorage,
+    storage: {
+      users: usersStorage,
+      deals: dealsStorage,
+    },
     prefix: 'test',
     port: 3456,
     secret: 'secret',
     ownerAccount: entityOwnerAddress,
     protocolContracts: contractsManager,
+    cors: ['http://localhost:5173'],
   });
 
   apiServer.start(appRouter);

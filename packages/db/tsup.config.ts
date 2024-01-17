@@ -11,7 +11,7 @@ export default defineConfig([
     },
     platform: 'neutral',
     treeshake: true,
-    dts: true,
+    dts: { resolve: true },
     sourcemap: true,
     splitting: false,
     clean: true,

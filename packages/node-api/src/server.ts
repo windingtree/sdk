@@ -1,4 +1,4 @@
-import { IncomingMessage, ServerResponse, createServer } from 'node:http';
+import { IncomingMessage, ServerResponse, createServer } from 'http';
 import { AnyRouter, TRPCError, initTRPC } from '@trpc/server';
 import {
   CreateHTTPContextOptions,
@@ -20,14 +20,9 @@ const logger = createLogger('NodeApiServer');
  */
 export interface NodeApiServerOptions {
   /**
-   * An instance of the storage system that the API server will use for persisting users state.
+   * An instances of the storage system that the API server will use.
    */
-  usersStorage: Storage;
-
-  /**
-   * An instance of the storage system that the API server will use for persisting deals state.
-   */
-  dealsStorage?: Storage;
+  storage: Record<string, Storage>;
 
   /**
    * An instance of the protocol contracts manager.
@@ -60,6 +55,11 @@ export interface NodeApiServerOptions {
    * If not provided, some default value or policy might be used.
    */
   expire?: string | number;
+
+  /**
+   * CORS origins
+   */
+  cors: string[];
 }
 
 /**
@@ -78,6 +78,7 @@ export interface ApiContext {
   user?: User;
   deals?: DealsDb;
   contracts?: ProtocolContracts;
+  storage: Record<string, Storage>;
 }
 
 /**
@@ -216,10 +217,14 @@ export class NodeApiServer {
   deals?: DealsDb;
   /** An instance of the ProtocolContracts that manages deals via the protocol smart contracts */
   protocolContracts?: ProtocolContracts;
+  /** An instances of the storage system that the API server will use */
+  storage: Record<string, Storage>;
   /** An Ethereum account address of the Node owner */
   ownerAccount?: Address;
   /** The duration (as a string or number) after which the access token will expire */
   expire: string | number;
+  /** CORS origins */
+  cors: string[];
 
   /**
    * Creates an instance of NodeApiServerOptions.
@@ -229,29 +234,31 @@ export class NodeApiServer {
    */
   constructor(options: NodeApiServerOptions) {
     const {
-      usersStorage,
-      dealsStorage,
+      storage,
       protocolContracts,
       prefix,
       port,
       secret,
       ownerAccount,
       expire,
+      cors,
     } = options;
 
     // TODO Validate NodeApiServerOptions
 
+    this.storage = storage;
     this.port = port;
     this.secret = secret;
     this.ownerAccount = ownerAccount;
     this.expire = expire ?? '1h';
+    this.cors = cors || ['*']; // All origins are allowed by default
 
     /** Initialize the UsersDb instance with the provided options */
-    this.users = new UsersDb({ storage: usersStorage, prefix });
+    this.users = new UsersDb({ storage: storage['users'], prefix });
 
-    if (dealsStorage) {
+    if (storage['deals']) {
       /** Initialize the UsersDb instance with the provided options */
-      this.deals = new DealsDb({ storage: dealsStorage, prefix });
+      this.deals = new DealsDb({ storage: storage['deals'], prefix });
     }
 
     if (protocolContracts) {
@@ -317,6 +324,7 @@ export class NodeApiServer {
       users: this.users,
       deals: this.deals,
       contracts: this.protocolContracts,
+      storage: this.storage,
     };
 
     let accessToken: string | undefined;
@@ -328,10 +336,12 @@ export class NodeApiServer {
         .split(';')
         .reduce<Record<string, string>>((a, v) => {
           const pair = v.split('=');
-          return {
-            ...a,
-            [pair[0].toLowerCase()]: pair[1],
-          };
+          if (pair.length === 2) {
+            Object.assign(a, {
+              [pair[0].toLowerCase().trim()]: pair[1].trim(),
+            });
+          }
+          return a;
         }, {});
       accessToken = cookies[ACCESS_TOKEN_NAME.toLocaleLowerCase()];
     }
@@ -389,7 +399,7 @@ export class NodeApiServer {
     // Create a http server for handling of HTTP requests
     // TODO Implement origin configuration via .env
     this.server = createServer((req, res) => {
-      res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5174');
+      res.setHeader('Access-Control-Allow-Origin', this.cors.join(', '));
       res.setHeader('Access-Control-Request-Method', 'GET');
       res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET');
       res.setHeader(

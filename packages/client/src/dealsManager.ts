@@ -99,7 +99,7 @@ export class ClientDealsManager<
   private contracts: Contracts;
   private chain: Chain;
   private storageKeyPrefix: string;
-  private checkInterval?: NodeJS.Timer;
+  private checkInterval?: NodeJS.Timeout;
   private ongoingCheck = false;
 
   /**

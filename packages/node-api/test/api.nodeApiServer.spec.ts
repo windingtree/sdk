@@ -77,17 +77,20 @@ describe('NodeApiServer', () => {
       }),
     });
     options = {
-      usersStorage: await memoryStorage.createInitializer({
-        scope: 'users',
-      })(),
+      storage: {
+        users: await memoryStorage.createInitializer({
+          scope: 'users',
+        })(),
+        deals: await memoryStorage.createInitializer({
+          scope: 'deals',
+        })(),
+      },
       prefix: 'test',
       port: 3456,
       secret: 'secret',
       ownerAccount: owner.address,
-      dealsStorage: await memoryStorage.createInitializer({
-        scope: 'deals',
-      })(),
       protocolContracts: contractsManager,
+      cors: ['*'],
     };
     server = new NodeApiServer(options);
 
@@ -413,7 +416,7 @@ describe('NodeApiServer', () => {
       await clientAdmin.admin.register.mutate(admin);
       await clientAdmin.admin.login.mutate(admin);
       const signer = mnemonicToAccount(generateMnemonic());
-      const supplierId = spId(randomSalt(), signer.address);
+      const supplierId = spId(signer.address, randomSalt());
       deal = await buildRandomDeal(signer, supplierId);
       id = deal.offer.id;
       await server.deals?.set(deal);

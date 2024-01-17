@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-node-api",
-  "version": "1.2.0-beta.0",
+  "version": "1.5.0",
   "description": "The WindingTree market protocol node API server and client",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
@@ -10,7 +10,7 @@
     "dist"
   ],
   "types": "./dist/index.d.ts",
-  "main": "./dist/index.cjs.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "exports": {
     ".": {
@@ -20,17 +20,17 @@
       },
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.cjs.js"
+        "default": "./dist/index.cjs"
       }
     },
     "./router": {
       "import": {
-        "types": "./dist/router.d.ts",
+        "types": "./dist/router/index.d.ts",
         "default": "./dist/router.js"
       },
       "require": {
-        "types": "./dist/router.d.ts",
-        "default": "./dist/router.cjs.js"
+        "types": "./dist/router/index.d.ts",
+        "default": "./dist/router.cjs"
       }
     },
     "./server": {
@@ -40,7 +40,7 @@
       },
       "require": {
         "types": "./dist/server.d.ts",
-        "default": "./dist/server.cjs.js"
+        "default": "./dist/server.cjs"
       }
     },
     "./client": {
@@ -50,7 +50,7 @@
       },
       "require": {
         "types": "./dist/client.d.ts",
-        "default": "./dist/client.cjs.js"
+        "default": "./dist/client.cjs"
       }
     }
   },
@@ -64,22 +64,22 @@
     "wtmp-examples-shared-files": "workspace:*"
   },
   "dependencies": {
-    "@trpc/client": "^10.34.0",
-    "@trpc/server": "^10.34.0",
+    "@trpc/client": "^10.44.1",
+    "@trpc/server": "^10.44.1",
     "@windingtree/sdk-contracts-manager": "workspace:*",
     "@windingtree/sdk-db": "workspace:*",
     "@windingtree/sdk-logger": "workspace:*",
     "@windingtree/sdk-messages": "workspace:*",
     "@windingtree/sdk-storage": "workspace:*",
     "@windingtree/sdk-types": "workspace:*",
-    "abitype": "^0.9.3",
+    "abitype": "^0.10.3",
     "jose": "^4.14.4",
-    "superjson": "^1.13.1",
-    "viem": "^1.3.0",
-    "zod": "^3.21.4"
+    "superjson": "^2.2.1",
+    "viem": "^1.19.3",
+    "zod": "^3.22.4"
   },
   "scripts": {
-    "build": "rm -rf dist && tsup",
+    "build": "rm -rf dist && tsc -p ./tsconfig-build.json --emitDeclarationOnly  && tsup",
     "lint": "eslint . --ext .ts --ignore-path ../../.lintignore",
     "lint:fix": "eslint . --ext .ts --ignore-path ../../.lintignore --fix && prettier --ignore-path ../../.lintignore  --write .",
     "test": "vitest --run test",
