@@ -46,7 +46,8 @@ export const usePoller = (
         scheduleNextRun();
       } catch (error) {
         failures++;
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
         logger.error(`Poller ${name} error: ${errorMessage}`);
         // Schedule the next run even if an error occurred
         scheduleNextRun();

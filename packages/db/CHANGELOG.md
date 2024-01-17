@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.6-beta.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.5...@windingtree/sdk-db@1.2.6-beta.0) (2024-01-17)
+
+**Note:** Version bump only for package @windingtree/sdk-db
+
 ## [1.2.5](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.4...@windingtree/sdk-db@1.2.5) (2023-12-22)
 
 **Note:** Version bump only for package @windingtree/sdk-db
