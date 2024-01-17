@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.1-beta.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.4.0...@windingtree/sdk-storage@1.4.1-beta.0) (2024-01-17)
+
+### Bug Fixes
+
+- 🐛 fix: Fixed scope-related logic in the LevelDB storage ([0afaff8](https://github.com/windingtree/sdk/commit/0afaff8ad44cf92eeeed44b872ce99732f821ef7))
+
 # [1.4.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.3.1...@windingtree/sdk-storage@1.4.0) (2023-12-22)
 
 ### Features
