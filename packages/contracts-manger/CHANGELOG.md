@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.4.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.3.2...@windingtree/sdk-contracts-manager@1.4.0) (2024-01-22)
+
+### Features
+
+- 🎸 Added subscribeMarket method to ProtocolsContracts ([310f526](https://github.com/windingtree/sdk/commit/310f526cdf69e13a9c0bc35668b5e23ab851ba73))
+
 ## [1.3.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.3.2-beta.0...@windingtree/sdk-contracts-manager@1.3.2) (2024-01-17)
 
 **Note:** Version bump only for package @windingtree/sdk-contracts-manager
