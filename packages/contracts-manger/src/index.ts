@@ -15,6 +15,8 @@ import {
   stringToHex,
   getAddress,
   zeroAddress,
+  GetFilterLogsReturnType,
+  InferEventName,
 } from 'viem';
 import { stringify } from 'superjson';
 import {
@@ -683,5 +685,72 @@ export class ProtocolContracts<
       functionName: 'balanceOfEntity',
       args: [id],
     });
+  }
+
+  /**
+   * Subscribes to specific events emitted by the market smart contract.
+   *
+   * @param eventName - The name of the event to listen for.
+   * @param onLogs - Callback function to handle the event logs.
+   * @param fromBlock - (Optional) The starting block number for listening to events.
+   * @param pollInterval - (Optional) Interval in milliseconds for polling new events.
+   * @returns A function to unsubscribe from the event.
+   * @template TEventName - Generic type parameter for event name.
+   */
+  async subscribeMarket<TEventName extends string | undefined = undefined>(
+    eventName: InferEventName<typeof marketABI, TEventName>,
+    onLogs: (logs: GetFilterLogsReturnType<typeof marketABI>) => void,
+    fromBlock?: bigint,
+    pollInterval = 1000,
+  ): Promise<() => void> {
+    let blockNumber = await this.publicClient.getBlockNumber();
+    let isUnsubscribed = false;
+    let timeoutId: NodeJS.Timeout;
+
+    // Use the specified fromBlock or the current block number
+    if (fromBlock && fromBlock < blockNumber) {
+      blockNumber = fromBlock;
+    }
+
+    // Function to fetch and process logs
+    const getLogs = async () => {
+      if (isUnsubscribed) return; // Stop if unsubscribed
+
+      // Create an event filter
+      const filter = await this.publicClient.createContractEventFilter({
+        abi: marketABI,
+        address: this.contracts['market'].address,
+        eventName,
+        fromBlock: blockNumber,
+        strict: true,
+      });
+
+      // Retrieve logs based on the filter
+      const logs = await this.publicClient.getFilterLogs({ filter });
+
+      // Process logs and update the block number
+      if (logs.length > 0) {
+        const maxBlockNumber = logs.reduce(
+          (max, log) => (log.blockNumber > max ? log.blockNumber : max),
+          BigInt(0),
+        );
+        blockNumber = maxBlockNumber + BigInt(1);
+        onLogs(logs);
+      }
+
+      // Schedule the next call
+      timeoutId = setTimeout(() => {
+        getLogs().catch(logger.error);
+      }, pollInterval);
+    };
+
+    // Initial call to start the polling process
+    getLogs().catch(logger.error);
+
+    // Return the unsubscribe function
+    return () => {
+      isUnsubscribed = true; // Set the flag to stop further polling
+      clearTimeout(timeoutId); // Clear the timeout to stop scheduled calls
+    };
   }
 }
