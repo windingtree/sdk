@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.4.1...@windingtree/sdk-storage@1.4.2) (2024-01-26)
+
+### Bug Fixes
+
+- 🐛 Fixed concurency issue in storages: local, level ([95b4168](https://github.com/windingtree/sdk/commit/95b41680234f0d581f2c6556c23d97a8ea19b852))
+
 ## [1.4.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.4.1-beta.0...@windingtree/sdk-storage@1.4.1) (2024-01-17)
 
 **Note:** Version bump only for package @windingtree/sdk-storage
