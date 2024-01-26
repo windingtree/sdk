@@ -35,6 +35,12 @@ export interface LocalStorageOptions extends GenericStorageOptions {
 export class LocalStorage extends Storage {
   db: WindowStorage;
   scopeIdsKey?: string;
+  /**
+   * Queue of pending storage operations to prevent concurrent data modifications.
+   * @private
+   * @type {(() => Promise<void>)[]}
+   */
+  private operationQueue: (() => Promise<void>)[] = [];
 
   /**
    * Creates an instance of LocalStorage.
@@ -55,6 +61,33 @@ export class LocalStorage extends Storage {
     }
 
     logger.trace('Local storage initialized');
+  }
+
+  /**
+   * Processes the queue of operations
+   */
+  private async processQueue(): Promise<void> {
+    while (this.operationQueue.length > 0) {
+      const operation = this.operationQueue.shift();
+      if (operation) {
+        try {
+          await operation();
+        } catch (error) {
+          logger.error('processQueue', error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Enqueues an operation to be executed
+   * @param {() => Promise<void>} operation - An async operation to be executed
+   */
+  private enqueueOperation(operation: () => Promise<void>) {
+    this.operationQueue.push(operation);
+    if (this.operationQueue.length === 1) {
+      this.processQueue().catch(logger.error);
+    }
   }
 
   /**
@@ -127,17 +160,20 @@ export class LocalStorage extends Storage {
   }
 
   /**
-   * Sets the key to the storage
-   *
+   * Sets a key-value pair in the storage
    * @template ValueType
-   * @param {string} key
-   * @param {ValueType} value
-   * @memberof LocalStorage
+   * @param {string} key - The key to set
+   * @param {ValueType} value - The value to set
    */
-  // eslint-disable-next-line @typescript-eslint/require-await
   async set<ValueType>(key: string, value: ValueType) {
-    this.db.setItem(key, this.serialize(value));
-    this.addScopeId(key);
+    return new Promise<void>((resolve) => {
+      // eslint-disable-next-line @typescript-eslint/require-await
+      this.enqueueOperation(async () => {
+        this.db.setItem(key, this.serialize(value));
+        this.addScopeId(key);
+        resolve();
+      });
+    });
   }
 
   /**
@@ -160,22 +196,27 @@ export class LocalStorage extends Storage {
   }
 
   /**
-   * Deletes the key
-   *
-   * @param {string} key
-   * @returns {Promise<boolean>}
-   * @memberof LocalStorage
+   * Deletes a key from the storage
+   * @param {string} key - The key to delete
+   * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating if the operation was successful
    */
-  // eslint-disable-next-line @typescript-eslint/require-await
   async delete(key: string): Promise<boolean> {
-    this.db.removeItem(key);
-    const isDeleted = this.db.getItem(key) === null;
-
-    if (isDeleted) {
-      this.deleteScopeId(key);
-    }
-
-    return isDeleted;
+    return new Promise((resolve) => {
+      // eslint-disable-next-line @typescript-eslint/require-await
+      this.enqueueOperation(async () => {
+        const keyExists = this.db.getItem(key);
+        if (!keyExists) {
+          resolve(false);
+          return;
+        }
+        this.db.removeItem(key);
+        const isDeleted = this.db.getItem(key) === null;
+        if (isDeleted) {
+          this.deleteScopeId(key);
+        }
+        resolve(isDeleted);
+      });
+    });
   }
 
   /**
