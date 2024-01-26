@@ -38,6 +38,13 @@ export class LevelDBStorage extends Storage {
   scopeIdsKey?: string;
 
   /**
+   * Queue for managing database operations to prevent concurrent access issues.
+   * @private
+   * @type {(() => Promise<void>)[]}
+   */
+  private operationQueue: (() => Promise<void>)[] = [];
+
+  /**
    * Creates an instance of LevelDBStorage.
    *
    * @param {LevelStorageOptions} [options]
@@ -62,6 +69,36 @@ export class LevelDBStorage extends Storage {
     }
 
     logger.trace('LevelDB storage initialized');
+  }
+
+  /**
+   * Processes the operation queue. Ensures operations are executed one after the other.
+   * @private
+   * @returns {Promise<void>}
+   */
+  private async processQueue(): Promise<void> {
+    while (this.operationQueue.length > 0) {
+      const operation = this.operationQueue.shift();
+      if (operation) {
+        try {
+          await operation();
+        } catch (error) {
+          logger.error('processQueue', error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Enqueues an operation and starts processing if it's the only operation in the queue.
+   * @private
+   * @param {() => Promise<void>} operation - The operation to enqueue and execute.
+   */
+  private enqueueOperation(operation: () => Promise<void>) {
+    this.operationQueue.push(operation);
+    if (this.operationQueue.length === 1) {
+      this.processQueue().catch(logger.error);
+    }
   }
 
   private async getScopeIds(): Promise<Set<string>> {
@@ -110,30 +147,38 @@ export class LevelDBStorage extends Storage {
   }
 
   /**
-   * Deletes the key from the storage
-   *
-   * @param {string} key
+   * Deletes the key from the storage.
+   * Enqueues the delete operation to ensure sequential execution.
+   * @param {string} key - The key to delete.
    * @returns {Promise<boolean>}
-   * @memberof LevelDBStorage
    */
   async delete(key: string): Promise<boolean> {
-    try {
-      const keyExists = await this.db
-        .get(key)
-        .then(() => true)
-        .catch(() => false);
-
-      if (!keyExists) {
-        return false;
-      }
-
-      await this.db.del(key);
-      await this.deleteScopeId(key);
-      return true;
-    } catch (e) {
-      logger.error('delete', e);
-      return false;
-    }
+    return new Promise((resolve, reject) => {
+      this.enqueueOperation(async () => {
+        try {
+          const keyExists = await this.db
+            .get(key)
+            .then(() => true)
+            .catch(() => false);
+          if (!keyExists) {
+            resolve(false);
+            return;
+          }
+          await this.db.del(key);
+          await this.deleteScopeId(key);
+          resolve(true);
+        } catch (error) {
+          logger.error('Error in delete operation', error);
+          reject(
+            new Error(
+              `Delete filed: ${key}: ${
+                (error as Error).message ?? 'Unknown delete error'
+              }`,
+            ),
+          );
+        }
+      });
+    });
   }
 
   /**
@@ -177,16 +222,32 @@ export class LevelDBStorage extends Storage {
   }
 
   /**
-   * Sets the value for the given key in the storage
-   *
+   * Sets the value for the given key in the storage.
+   * Enqueues the operation to ensure sequential execution.
    * @template ValueType
-   * @param {string} key
-   * @param {ValueType} value
-   * @memberof LevelDBStorage
+   * @param {string} key - The key to set the value for.
+   * @param {ValueType} value - The value to set.
+   * @returns {Promise<void>}
    */
   async set<ValueType>(key: string, value: ValueType): Promise<void> {
-    await this.db.put(key, value as string | string[]);
-    await this.addScopeId(key);
+    return new Promise((resolve, reject) => {
+      this.enqueueOperation(async () => {
+        try {
+          await this.db.put(key, value as string | string[]);
+          await this.addScopeId(key);
+          resolve();
+        } catch (error) {
+          logger.error('Error in set operation', error);
+          reject(
+            new Error(
+              `Set failed ${key}: ${
+                (error as Error).message ?? 'Unknown set error'
+              }`,
+            ),
+          );
+        }
+      });
+    });
   }
 
   /**
