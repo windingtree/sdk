@@ -57,4 +57,4 @@ pnpm example:client
 
 ## Contributing
 
-[Contribution guidelines](https://windingtree.github.io/sdk/#/docs/contribution)
+[Contribution guidelines](https://windingtree.github.io/sdk/#/contribution)
