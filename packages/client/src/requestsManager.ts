@@ -203,7 +203,7 @@ export class ClientRequestsManager<
       string,
       ClientRequestRecord<CustomRequestQuery, CustomOfferOptions>
     >();
-    this.storageKey = `${prefix}_requests_records`;
+    this.storageKey = `${prefix}_requests`;
     this.storage = storage;
     this._storageUp().catch(logger.error);
   }

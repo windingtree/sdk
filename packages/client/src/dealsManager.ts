@@ -135,7 +135,7 @@ export class ClientDealsManager<
       string,
       DealRecord<CustomRequestQuery, CustomOfferOptions>
     >();
-    this.storageKeyPrefix = prefix;
+    this.storageKeyPrefix = `${prefix}_deals`;
     this.storage = storage;
     this._storageUp()
       .then(() => {
@@ -143,7 +143,7 @@ export class ClientDealsManager<
           () => {
             this._checkDealsStates().catch(logger.error);
           },
-          Number(parseSeconds(checkInterval)),
+          Number(parseSeconds(checkInterval)) * 1000, // sec to millis
         );
       })
       .catch(logger.error);
