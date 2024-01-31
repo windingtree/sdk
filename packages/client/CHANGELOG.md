@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.3.6](https://github.com/windingtree/sdk/compare/@windingtree/sdk-client@1.3.5...@windingtree/sdk-client@1.3.6) (2024-01-31)
+
+### Bug Fixes
+
+- 🐛 Fixed invalid checkInterval value in dealsManager ([c647d98](https://github.com/windingtree/sdk/commit/c647d9850bfd949f4a21b802bce2d76637e0bbe7))
+
 ## [1.3.5](https://github.com/windingtree/sdk/compare/@windingtree/sdk-client@1.3.4...@windingtree/sdk-client@1.3.5) (2024-01-26)
 
 **Note:** Version bump only for package @windingtree/sdk-client
