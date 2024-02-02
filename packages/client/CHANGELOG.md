@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.4.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-client@1.3.6...@windingtree/sdk-client@1.4.0) (2024-02-02)
+
+### Features
+
+- 🎸 Added getById feature to the dealsManager ([d6687a2](https://github.com/windingtree/sdk/commit/d6687a2723811e6aadcb38653523180d5156800f))
+
 ## [1.3.6](https://github.com/windingtree/sdk/compare/@windingtree/sdk-client@1.3.5...@windingtree/sdk-client@1.3.6) (2024-01-31)
 
 ### Bug Fixes
