@@ -346,6 +346,25 @@ export class ClientDealsManager<
   }
 
   /**
+   * Returns an up-to-date deal record by offer Id
+   *
+   * @param {Hash} id Offer Id
+   * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>>}
+   * @memberof ClientDealsManager
+   */
+  async getById(
+    id: Hash,
+  ): Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>> {
+    const deal = this.deals.get(id);
+
+    if (!deal) {
+      throw new Error(`Deal with offer Id: ${id} not found!`);
+    }
+
+    return await this._buildDealRecord(deal.offer);
+  }
+
+  /**
    * Returns all an up-to-date deal records
    *
    * @returns {Promise<DealRecord<CustomRequestQuery, CustomOfferOptions>[]>}
