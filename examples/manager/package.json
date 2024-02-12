@@ -13,6 +13,7 @@
     "@windingtree/sdk-storage": "workspace:*",
     "@windingtree/sdk-messages": "workspace:*",
     "@windingtree/sdk-node-api": "workspace:*",
+    "@windingtree/sdk-db": "workspace:*",
     "wtmp-examples-shared-files": "workspace:*",
     "eslint": "^8.45.0",
     "eslint-config-react-app": "^7.0.1",

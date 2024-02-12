@@ -5,6 +5,11 @@ import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('DealsDb');
 
+export interface PaginatedDealRecords extends Required<PaginationOptions> {
+  total: number;
+  records: DealRecord[];
+}
+
 /**
  * Interface defining the properties of a Deal.
  */
@@ -84,7 +89,7 @@ export class DealsDb {
    * @returns {Promise<DealRecord[]>} Deals records
    * @memberof DealsDb
    */
-  getAll(pagination?: PaginationOptions): Promise<DealRecord[]> {
+  getAll(pagination?: PaginationOptions): Promise<PaginatedDealRecords> {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises, no-async-promise-executor
     return new Promise(async (resolve, reject) => {
       try {
@@ -105,7 +110,11 @@ export class DealsDb {
           cursor++;
         }
 
-        resolve(records);
+        resolve({
+          ...page,
+          total: cursor,
+          records,
+        });
       } catch (error) {
         logger.error('getAll', error);
         reject(error);

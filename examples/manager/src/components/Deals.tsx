@@ -9,6 +9,7 @@ import {
   GenericQuery,
 } from '@windingtree/sdk-types';
 import { centerEllipsis, formatBalance } from '@windingtree/sdk-react/utils';
+import { PaginatedDealRecords } from '@windingtree/sdk-db';
 
 /**
  * Deals table
@@ -30,7 +31,7 @@ export const Deals = () => {
     if (!node) {
       return;
     }
-    const records = await node.deals.getAll.query({});
+    const { records } = await node.deals.getAll.query({}) as PaginatedDealRecords;
     console.log('Deals:', records);
     setDeals(records);
   }, [node]);
@@ -88,6 +89,9 @@ export const Deals = () => {
           </tbody>
         </table>
       </div>
+
+      {message && <div style={{ marginTop: 20 }}>🚨 {message}</div>}
+      {error && <div style={{ marginTop: 20 }}>🚨 {error}</div>}
     </div>
   );
 };
