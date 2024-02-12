@@ -77,21 +77,24 @@ describe('DealsDb', () => {
     it('get all deal records from the storage', async () => {
       const pagination = { start: 0, skip: 10 };
       const deals = await dealsDb.getAll(pagination);
-      expect(deals.length).toEqual(pagination.skip);
-      deals.forEach((d) => {
+      expect(deals.records.length).toEqual(pagination.skip);
+      deals.records.forEach((d) => {
         const record = records.find((r) => r.offer.id === d.offer.id);
         expect(record).to.be.deep.eq(d);
       });
+      expect(deals.total).to.be.equal(records.length);
+      expect(deals.start).to.be.equal(pagination.start);
+      expect(deals.skip).to.be.equal(pagination.skip);
     });
 
     it('should return an empty array when no deals are found', async () => {
       const deals = await dealsDb.getAll({ start: 100, skip: 10 });
-      expect(deals.length).toBe(0);
+      expect(deals.records.length).toBe(0);
     });
 
     it('should return all remaining deals when the skip count exceeds available deals', async () => {
       const deals = await dealsDb.getAll({ start: 5, skip: 10 });
-      expect(deals.length).toBe(5);
+      expect(deals.records.length).toBe(5);
     });
   });
 });
