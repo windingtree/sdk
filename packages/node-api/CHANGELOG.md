@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.4](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.5.3...@windingtree/sdk-node-api@1.5.4) (2024-02-12)
+
+**Note:** Version bump only for package @windingtree/sdk-node-api
+
 ## [1.5.3](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.5.2...@windingtree/sdk-node-api@1.5.3) (2024-01-26)
 
 **Note:** Version bump only for package @windingtree/sdk-node-api
