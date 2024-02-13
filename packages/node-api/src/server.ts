@@ -397,9 +397,7 @@ export class NodeApiServer {
     });
 
     // Create a http server for handling of HTTP requests
-    // TODO Implement origin configuration via .env
     this.server = createServer((req, res) => {
-      res.setHeader('Access-Control-Allow-Origin', this.cors.join(', '));
       res.setHeader('Access-Control-Request-Method', 'GET');
       res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET');
       res.setHeader(
@@ -407,6 +405,12 @@ export class NodeApiServer {
         'Content-Type, Authorization',
       );
       res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+      const origin = req.headers.origin;
+
+      if (origin && this.cors.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
 
       if (req.method === 'OPTIONS') {
         res.writeHead(200);
