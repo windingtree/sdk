@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.5](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.5.4...@windingtree/sdk-node-api@1.5.5) (2024-02-13)
+
+### Bug Fixes
+
+- 🐛 Fixed invalid CORD handling in the node-api server ([56a973f](https://github.com/windingtree/sdk/commit/56a973f2fbc647d94e130d028d5081f5237a66fe))
+
 ## [1.5.4](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.5.3...@windingtree/sdk-node-api@1.5.4) (2024-02-12)
 
 **Note:** Version bump only for package @windingtree/sdk-node-api
