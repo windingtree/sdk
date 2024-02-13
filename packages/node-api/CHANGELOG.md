@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.6](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.5.5...@windingtree/sdk-node-api@1.5.6) (2024-02-13)
+
+### Bug Fixes
+
+- 🐛 Fixed invalid PaginationInputSchema in the node-api ([2db274d](https://github.com/windingtree/sdk/commit/2db274d824a42e58522fdd8787a76d3561bb701e))
+
 ## [1.5.5](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.5.4...@windingtree/sdk-node-api@1.5.5) (2024-02-13)
 
 ### Bug Fixes
