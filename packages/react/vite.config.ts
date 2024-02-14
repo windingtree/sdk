@@ -17,6 +17,7 @@ export default defineConfig({
         index: './src/index.ts',
         providers: './src/providers/index.ts',
         utils: './src/utils/index.ts',
+        hooks: './src/hooks/index.ts',
       },
       name: '@windingtree/sdk-react',
       formats: ['es', 'cjs'],
