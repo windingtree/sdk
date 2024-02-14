@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.9](https://github.com/windingtree/sdk/compare/@windingtree/sdk-react@1.4.8...@windingtree/sdk-react@1.4.9) (2024-02-14)
+
+### Bug Fixes
+
+- 🐛 Fixed hooks export in the sdk-react module ([17d6f0f](https://github.com/windingtree/sdk/commit/17d6f0fad2dc8be2e0fc353df487224c5f1920ec))
+
 ## [1.4.8](https://github.com/windingtree/sdk/compare/@windingtree/sdk-react@1.4.7...@windingtree/sdk-react@1.4.8) (2024-02-13)
 
 **Note:** Version bump only for package @windingtree/sdk-react
