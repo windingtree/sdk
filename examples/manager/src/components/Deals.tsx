@@ -31,7 +31,9 @@ export const Deals = () => {
     if (!node) {
       return;
     }
-    const { records } = await node.deals.getAll.query({}) as PaginatedDealRecords;
+    const { records } = (await node.deals.getAll.query(
+      {},
+    )) as PaginatedDealRecords;
     console.log('Deals:', records);
     setDeals(records);
   }, [node]);
