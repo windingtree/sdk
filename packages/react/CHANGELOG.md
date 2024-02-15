@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.10](https://github.com/windingtree/sdk/compare/@windingtree/sdk-react@1.4.9...@windingtree/sdk-react@1.4.10) (2024-02-15)
+
+**Note:** Version bump only for package @windingtree/sdk-react
+
 ## [1.4.9](https://github.com/windingtree/sdk/compare/@windingtree/sdk-react@1.4.8...@windingtree/sdk-react@1.4.9) (2024-02-14)
 
 ### Bug Fixes

@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.5.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.4.0...@windingtree/sdk-contracts-manager@1.5.0) (2024-02-15)
+
+### Features
+
+- 🎸 Added subscribeEntities and subscribeConfig methods ([9341b87](https://github.com/windingtree/sdk/commit/9341b879baa667b0e004ab0553948bf9ff47dbd0))
+
 # [1.4.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.3.2...@windingtree/sdk-contracts-manager@1.4.0) (2024-01-22)
 
 ### Features
