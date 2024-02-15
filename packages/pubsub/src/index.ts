@@ -19,6 +19,7 @@ import { decodeText } from '@windingtree/sdk-utils';
 import { CashedMessageEntry, MessagesCache } from './cache.js';
 import { createLogger } from '@windingtree/sdk-logger';
 import { parse } from 'superjson';
+import { peerIdFromBytes } from '@libp2p/peer-id';
 
 const logger = createLogger('CenterSub');
 
@@ -179,13 +180,20 @@ export class CenterSub extends GossipSub {
         logger.trace('messageTransformer not defined');
         return;
       }
+
+      rpcMsg.from = new Uint8Array(rpcMsg.from as ArrayBufferLike);
+      rpcMsg.signature = new Uint8Array(rpcMsg.signature as ArrayBufferLike);
+      rpcMsg.key = new Uint8Array(rpcMsg.key as ArrayBufferLike);
+      rpcMsg.data = new Uint8Array(rpcMsg.data as ArrayBufferLike);
+      rpcMsg.seqno = new Uint8Array(rpcMsg.seqno as ArrayBufferLike);
+
       const msgId = await sha256.encode(rpcMsg.data);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const msgIdStr = this['msgIdToStrFn'](msgId) as string;
       const transformed = this.messageTransformer(rpcMsg.data);
       await this.messages.set(
         msgIdStr,
-        rpcMsg.from.toString(),
+        peerIdFromBytes(rpcMsg.from).toString(),
         rpcMsg,
         Number(transformed.expire),
         Number(transformed.nonce),
