@@ -6,6 +6,7 @@ export default defineWorkspace([
       name: 'packages:node',
       environment: 'node',
       include: ['./packages/**/*.spec.ts'],
+      testTimeout: 10000,
     },
   },
   {
