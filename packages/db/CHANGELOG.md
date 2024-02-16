@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.8...@windingtree/sdk-db@1.3.0) (2024-02-16)
+
+### Features
+
+- 🎸 Added user.list route to the node-api ([af485bc](https://github.com/windingtree/sdk/commit/af485bc1b18e5d7518a2867d1d22f6f9a2991780))
+
 ## [1.2.8](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.7...@windingtree/sdk-db@1.2.8) (2024-02-12)
 
 **Note:** Version bump only for package @windingtree/sdk-db
