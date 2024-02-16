@@ -37,6 +37,25 @@ export const userRouter = router({
     }),
 
   /**
+   * List users records.
+   * Throws an error if the user already exists.
+   */
+  list: authAdminProcedure.query(async ({ ctx }) => {
+    try {
+      const { users } = ctx;
+      const records = await users.getAll();
+      logger.trace(`Listed #${records.length} users`);
+      return records;
+    } catch (error) {
+      logger.error('user.list', error);
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: (error as Error).message,
+      });
+    }
+  }),
+
+  /**
    * Log in an existing user.
    * If successful, generates a new access token and sends it in the response.
    */

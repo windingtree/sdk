@@ -102,6 +102,25 @@ export class UsersDb {
   }
 
   /**
+   * Retrieves the user with the given login from storage.
+   *
+   * @returns {Promise<User[]>} The User object associated with the given login
+   * @throws Will throw an error if the user is not found
+   * @memberof UsersDb
+   */
+  async getAll(): Promise<User[]> {
+    const records: User[] = [];
+
+    for (const record of await this.storage.entries<User>()) {
+      if (record[0].startsWith(this.prefix)) {
+        records.push(record[1]);
+      }
+    }
+
+    return records;
+  }
+
+  /**
    * Adds a new user to the storage.
    *
    * @param {string} login The login of the user to be added
