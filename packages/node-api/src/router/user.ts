@@ -1,5 +1,10 @@
 import { TRPCError } from '@trpc/server';
-import { User, UserInputSchema, comparePassword } from '@windingtree/sdk-db';
+import {
+  User,
+  UserInputSchema,
+  UsersListOutputSchema,
+  comparePassword,
+} from '@windingtree/sdk-db';
 import {
   router,
   procedure,
@@ -40,20 +45,25 @@ export const userRouter = router({
    * List users records.
    * Throws an error if the user already exists.
    */
-  list: authAdminProcedure.query(async ({ ctx }) => {
-    try {
-      const { users } = ctx;
-      const records = await users.getAll();
-      logger.trace(`Listed #${records.length} users`);
-      return records;
-    } catch (error) {
-      logger.error('user.list', error);
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: (error as Error).message,
-      });
-    }
-  }),
+  list: authAdminProcedure
+    .output(UsersListOutputSchema)
+    .query(async ({ ctx }) => {
+      try {
+        const { users } = ctx;
+        const records = await users.getAll();
+        logger.trace(`Listed #${records.length} users`);
+        return records.map(({ login, isAdmin }) => ({
+          login,
+          isAdmin,
+        }));
+      } catch (error) {
+        logger.error('user.list', error);
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: (error as Error).message,
+        });
+      }
+    }),
 
   /**
    * Log in an existing user.
