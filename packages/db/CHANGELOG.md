@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.3.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.3.0...@windingtree/sdk-db@1.3.1) (2024-02-19)
+
+### Bug Fixes
+
+- 🐛 Fixed invalid deals pagination in the sdk-db package ([d067ddd](https://github.com/windingtree/sdk/commit/d067ddd01d6bfa30df6e2689a6decddbcf2ccc4e))
+
 # [1.3.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.2.8...@windingtree/sdk-db@1.3.0) (2024-02-16)
 
 ### Features
