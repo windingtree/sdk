@@ -289,3 +289,75 @@ describe('Queue', function () {
     });
   });
 });
+
+describe('Scheduled jobs', () => {
+  let queue: Queue;
+  let handler: JobHandler<JobData>;
+
+  beforeEach(() => {
+    queue = new Queue({ concurrencyLimit: 5 });
+    handler = async () => Promise.resolve(true);
+    queue.registerHandler('scheduledHandler', handler);
+  });
+
+  it('should correctly schedule a job for future execution', async function () {
+    const futureTime = Date.now() + 100;
+    const jobId = queue.add({
+      handlerName: 'scheduledHandler',
+      scheduledTime: futureTime,
+    });
+
+    expect(queue.getLocal(jobId)?.status).to.equal(JobStatus.Scheduled);
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        expect(queue.getLocal(jobId)?.status).to.equal(JobStatus.Done);
+        resolve(true);
+      }, 150);
+    });
+  });
+
+  it('should immediately execute a job scheduled for the past', async function () {
+    const pastTime = Date.now() - 1000;
+    const jobId = queue.add({
+      handlerName: 'scheduledHandler',
+      scheduledTime: pastTime,
+    });
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        expect(queue.getLocal(jobId)?.status).to.equal(JobStatus.Done);
+        resolve(true);
+      }, 50);
+    });
+  });
+
+  it('should handle the execution of multiple scheduled jobs', async function () {
+    const futureTimeShort = Date.now() + 50;
+    const futureTimeLong = Date.now() + 200;
+
+    const jobIdShort = queue.add({
+      handlerName: 'scheduledHandler',
+      scheduledTime: futureTimeShort,
+    });
+    const jobIdLong = queue.add({
+      handlerName: 'scheduledHandler',
+      scheduledTime: futureTimeLong,
+    });
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        expect(queue.getLocal(jobIdShort)?.status).to.equal(JobStatus.Done);
+        expect(queue.getLocal(jobIdLong)?.status).to.equal(JobStatus.Scheduled);
+        resolve(true);
+      }, 100);
+    });
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        expect(queue.getLocal(jobIdLong)?.status).to.equal(JobStatus.Done);
+        resolve(true);
+      }, 250);
+    });
+  });
+});
