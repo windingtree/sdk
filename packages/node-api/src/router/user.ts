@@ -12,6 +12,7 @@ import {
   authAdminProcedure,
 } from '../server.js';
 import { ACCESS_TOKEN_NAME } from '../constants.js';
+import { z } from 'zod';
 import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('UserRouter');
@@ -43,7 +44,7 @@ export const userRouter = router({
 
   /**
    * List users records.
-   * Throws an error if the user already exists.
+   * Allowed for admins only.
    */
   list: authAdminProcedure
     .output(UsersListOutputSchema)
@@ -58,6 +59,28 @@ export const userRouter = router({
         }));
       } catch (error) {
         logger.error('user.list', error);
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: (error as Error).message,
+        });
+      }
+    }),
+
+  /**
+   * Deletes user by login name.
+   * Allowed for admins only.
+   */
+  deleteByLogin: authAdminProcedure
+    .input(z.string())
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const { users } = ctx;
+        const user = await users.get(input);
+        logger.trace(`Found #${user.login} user`);
+        await users.delete(user.login);
+        logger.trace(`User ${user.login} has been deleted`);
+      } catch (error) {
+        logger.error('user.deleteByLogin', error);
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: (error as Error).message,
