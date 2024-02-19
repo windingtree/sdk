@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.3.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.3.1...@windingtree/sdk-db@1.3.2) (2024-02-19)
+
+### Bug Fixes
+
+- 🐛 Fixed users list output type in the sdk-db package ([9d84fe9](https://github.com/windingtree/sdk/commit/9d84fe9e8d95f0020133c2f8a2d6c5da10d13f6d))
+
 ## [1.3.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-db@1.3.0...@windingtree/sdk-db@1.3.1) (2024-02-19)
 
 ### Bug Fixes
