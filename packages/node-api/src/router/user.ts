@@ -74,14 +74,10 @@ export const userRouter = router({
     .input(z.string())
     .mutation(async ({ input, ctx }) => {
       try {
-        const { users, res } = ctx;
+        const { users } = ctx;
         const user = await users.get(input);
         logger.trace(`Found #${user.login} user`);
         await users.delete(user.login);
-        res.setHeader(
-          'Set-Cookie',
-          `${ACCESS_TOKEN_NAME}=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly`,
-        );
         logger.trace(`User ${user.login} has been deleted`);
       } catch (error) {
         logger.error('user.deleteByLogin', error);
