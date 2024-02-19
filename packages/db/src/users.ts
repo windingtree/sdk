@@ -56,7 +56,7 @@ export type SafeUserType = z.infer<typeof SafeUserSchema>;
  * Type definition for sanitized Users records list,
  * inferred from UsersListOutputSchema.
  */
-export type UsersListOutputSchema = z.infer<typeof UsersListOutputSchema>;
+export type UsersListOutputSchemaType = z.infer<typeof UsersListOutputSchema>;
 
 /**
  * Interface defining the properties of UsersDb initialization options.
