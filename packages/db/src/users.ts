@@ -23,8 +23,8 @@ export interface User {
  * It validates that the input contains a nonempty `login` and `password`.
  */
 export const UserInputSchema = z.object({
-  login: z.string().nonempty(),
-  password: z.union([z.string().nonempty(), z.string().startsWith('0x')]),
+  login: z.string().min(1),
+  password: z.union([z.string().min(1), z.string().startsWith('0x')]),
 });
 
 /**
@@ -32,6 +32,31 @@ export const UserInputSchema = z.object({
  * inferred from UserInputSchema.
  */
 export type UserInputType = z.infer<typeof UserInputSchema>;
+
+/**
+ * User output schema
+ */
+export const SafeUserSchema = z.object({
+  login: z.string().min(1),
+  isAdmin: z.boolean().optional(),
+});
+
+/**
+ * Users list output schema
+ */
+export const UsersListOutputSchema = z.array(SafeUserSchema);
+
+/**
+ * Type definition for sanitized User record,
+ * inferred from SafeUserSchema.
+ */
+export type SafeUserType = z.infer<typeof SafeUserSchema>;
+
+/**
+ * Type definition for sanitized Users records list,
+ * inferred from UsersListOutputSchema.
+ */
+export type UsersListOutputSchema = z.infer<typeof UsersListOutputSchema>;
 
 /**
  * Interface defining the properties of UsersDb initialization options.
@@ -130,7 +155,11 @@ export class UsersDb {
    * @throws Will throw an error if a user with the same login already exists
    * @memberof UsersDb
    */
-  async add(login: string, password: string, isAdmin = false): Promise<void> {
+  async add(
+    login: string,
+    password: string,
+    isAdmin: boolean = false,
+  ): Promise<void> {
     const knownUser = await this.storage.get<User>(`${this.prefix}${login}`);
 
     // Check if the user already exists

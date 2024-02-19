@@ -99,7 +99,7 @@ export class DealsDb {
         };
         let cursor = 0;
         const from = page.start >= 0 ? page.start : 0;
-        const to = from + page.skip ?? 0;
+        const to = from + (page.skip ?? 0);
         const records: DealRecord[] = [];
 
         for (const record of await this.storage.entries<DealRecord>()) {
