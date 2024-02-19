@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-queue@1.2.7...@windingtree/sdk-queue@1.3.0) (2024-02-19)
+
+### Features
+
+- 🎸 Added sheduled kind of jobs to the Queue ([05b5f4b](https://github.com/windingtree/sdk/commit/05b5f4b963cff4206a3c58a8aa89a1a06b885ef2))
+
 ## [1.2.7](https://github.com/windingtree/sdk/compare/@windingtree/sdk-queue@1.2.6...@windingtree/sdk-queue@1.2.7) (2024-01-26)
 
 **Note:** Version bump only for package @windingtree/sdk-queue
