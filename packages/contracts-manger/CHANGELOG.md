@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.5.0...@windingtree/sdk-contracts-manager@1.5.1) (2024-03-08)
+
+### Bug Fixes
+
+- 🐛 Fixed contract events subscription fromBlock management ([3c68a31](https://github.com/windingtree/sdk/commit/3c68a31ad73b579474503c414cea07da6dfd0bff))
+
 # [1.5.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.4.0...@windingtree/sdk-contracts-manager@1.5.0) (2024-02-15)
 
 ### Features

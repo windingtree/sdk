@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-node-api",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "The WindingTree market protocol node API server and client",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",

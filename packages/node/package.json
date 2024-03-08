@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-node",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "description": "The WindingTree market protocol node",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",

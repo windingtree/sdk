@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-client",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "The WindingTree market protocol client",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
