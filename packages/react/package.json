@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-react",
-  "version": "1.4.14",
+  "version": "1.4.15",
   "publishConfig": {
     "access": "public"
   },

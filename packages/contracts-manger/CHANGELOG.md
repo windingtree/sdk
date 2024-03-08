@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.5.1...@windingtree/sdk-contracts-manager@1.5.2) (2024-03-08)
+
+### Bug Fixes
+
+- 🐛 Fixed invalid onLogs interface ([ae059f8](https://github.com/windingtree/sdk/commit/ae059f8ba1b70f4e6f706fca23e7debaedb8a79d))
+
 ## [1.5.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-contracts-manager@1.5.0...@windingtree/sdk-contracts-manager@1.5.1) (2024-03-08)
 
 ### Bug Fixes

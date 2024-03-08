@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/sdk-contracts-manager",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Utility class for interaction with the protocol smart contracts",
   "repository": "https://github.com/windingtree/sdk#readme",
   "author": "Kostiantyn Smyrnov <kostysh@gmail.com>",
