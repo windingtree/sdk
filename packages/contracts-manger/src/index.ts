@@ -702,7 +702,7 @@ export class ProtocolContracts<
    * @param {TAbi} abi The ABI of the contract to subscribe to.
    * @param {Address} address The address of the contract.
    * @param {InferEventName<TAbi, TEventName>} eventName The name of the event.
-   * @param {(logs: GetFilterLogsReturnType<TAbi>) => void} onLogs Callback to execute when logs are received.
+   * @param {(logs: GetFilterLogsReturnType<TAbi>, maxBlockNumber: bigint) => void} onLogs Callback to execute when logs are received.
    * @param {bigint} [fromBlock] The block number from which to start listening for events.
    * @param {number} [pollInterval=1000] The interval in milliseconds at which to poll for new events.
    * @returns {() => void} A promise that resolves to an unsubscribe function.
@@ -782,14 +782,17 @@ export class ProtocolContracts<
    *
    * @template TEventName Type of event name.
    * @param {InferEventName<typeof marketABI, TEventName>} eventName The event name to subscribe to.
-   * @param {(logs: GetFilterLogsReturnType<typeof marketABI>) => void} onLogs Callback for when logs are received.
+   * @param {(logs: GetFilterLogsReturnType<typeof marketABI>, maxBlockNumber: bigint) => void} onLogs Callback for when logs are received.
    * @param {bigint} [fromBlock] Starting block number for listening for events.
    * @param {number} [pollInterval=1000] Polling interval in milliseconds.
    * @returns {() => void} Unsubscribe function.
    */
   subscribeMarket<TEventName extends string | undefined = undefined>(
     eventName: InferEventName<typeof marketABI, TEventName>,
-    onLogs: (logs: GetFilterLogsReturnType<typeof marketABI>) => void,
+    onLogs: (
+      logs: GetFilterLogsReturnType<typeof marketABI>,
+      maxBlockNumber: bigint,
+    ) => void,
     fromBlock?: bigint,
     pollInterval: number = 1000,
   ): () => void {
@@ -808,14 +811,17 @@ export class ProtocolContracts<
    *
    * @template TEventName Type of event name.
    * @param {InferEventName<typeof entitiesRegistryABI, TEventName>} eventName The event name to subscribe to.
-   * @param {(logs: GetFilterLogsReturnType<typeof entitiesRegistryABI>) => void} onLogs Callback for when logs are received.
+   * @param {(logs: GetFilterLogsReturnType<typeof entitiesRegistryABI>, maxBlockNumber: bigint) => void} onLogs Callback for when logs are received.
    * @param {bigint} [fromBlock] Starting block number for listening for events.
    * @param {number} [pollInterval=1000] Polling interval in milliseconds.
    * @returns {() => void} Unsubscribe function.
    */
   subscribeEntities<TEventName extends string | undefined = undefined>(
     eventName: InferEventName<typeof entitiesRegistryABI, TEventName>,
-    onLogs: (logs: GetFilterLogsReturnType<typeof entitiesRegistryABI>) => void,
+    onLogs: (
+      logs: GetFilterLogsReturnType<typeof entitiesRegistryABI>,
+      maxBlockNumber: bigint,
+    ) => void,
     fromBlock?: bigint,
     pollInterval: number = 1000,
   ): () => void {
@@ -834,14 +840,17 @@ export class ProtocolContracts<
    *
    * @template TEventName Type of event name.
    * @param {InferEventName<typeof configABI, TEventName>} eventName The event name to subscribe to.
-   * @param {(logs: GetFilterLogsReturnType<typeof configABI>) => void} onLogs Callback for when logs are received.
+   * @param {(logs: GetFilterLogsReturnType<typeof configABI>, maxBlockNumber: bigint) => void} onLogs Callback for when logs are received.
    * @param {bigint} [fromBlock] Starting block number for listening for events.
    * @param {number} [pollInterval=1000] Polling interval in milliseconds.
    * @returns {() => void} Unsubscribe function.
    */
   subscribeConfig<TEventName extends string | undefined = undefined>(
     eventName: InferEventName<typeof configABI, TEventName>,
-    onLogs: (logs: GetFilterLogsReturnType<typeof configABI>) => void,
+    onLogs: (
+      logs: GetFilterLogsReturnType<typeof configABI>,
+      maxBlockNumber: bigint,
+    ) => void,
     fromBlock?: bigint,
     pollInterval: number = 1000,
   ): () => void {
