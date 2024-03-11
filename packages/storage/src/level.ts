@@ -264,8 +264,12 @@ export class LevelDBStorage extends Storage {
    *
    * @memberof LevelDBStorage
    */
-  async open() {
+  async open(): Promise<void> {
     await this.db.open();
+  }
+
+  async close(): Promise<void> {
+    await this.db.close();
   }
 
   /**
