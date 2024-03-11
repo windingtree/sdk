@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.9](https://github.com/windingtree/sdk/compare/@windingtree/sdk-server@1.2.8...@windingtree/sdk-server@1.2.9) (2024-03-11)
+
+**Note:** Version bump only for package @windingtree/sdk-server
+
 ## [1.2.8](https://github.com/windingtree/sdk/compare/@windingtree/sdk-server@1.2.7...@windingtree/sdk-server@1.2.8) (2024-02-15)
 
 **Note:** Version bump only for package @windingtree/sdk-server

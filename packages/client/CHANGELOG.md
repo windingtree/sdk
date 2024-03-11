@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.4](https://github.com/windingtree/sdk/compare/@windingtree/sdk-client@1.4.3...@windingtree/sdk-client@1.4.4) (2024-03-11)
+
+**Note:** Version bump only for package @windingtree/sdk-client
+
 ## [1.4.3](https://github.com/windingtree/sdk/compare/@windingtree/sdk-client@1.4.2...@windingtree/sdk-client@1.4.3) (2024-03-08)
 
 **Note:** Version bump only for package @windingtree/sdk-client

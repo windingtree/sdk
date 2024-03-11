@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.5.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.4.2...@windingtree/sdk-storage@1.5.0) (2024-03-11)
+
+### Features
+
+- add open and close methods to db ([7032bf4](https://github.com/windingtree/sdk/commit/7032bf400b7aa65091ace55c0b139141589549a4))
+- add open and close methods to db format ([118765c](https://github.com/windingtree/sdk/commit/118765c76b3e57ca85f3ab63a452be16b3da467a))
+
 ## [1.4.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-storage@1.4.1...@windingtree/sdk-storage@1.4.2) (2024-01-26)
 
 ### Bug Fixes
