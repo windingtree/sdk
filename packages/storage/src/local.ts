@@ -258,6 +258,14 @@ export class LocalStorage extends Storage {
 
     return entriesIterator();
   }
+
+  close(): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  open(): Promise<void> {
+    return Promise.resolve(undefined);
+  }
 }
 
 /**

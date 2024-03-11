@@ -13,6 +13,8 @@ export abstract class Storage {
   abstract entries<CustomValueType = unknown>():
     | IterableIterator<[string, CustomValueType]>
     | Promise<[string, CustomValueType][]>;
+  abstract open(): Promise<void>
+  abstract close(): Promise<void>
 }
 
 export interface GenericStorageOptions {

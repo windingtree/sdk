@@ -223,6 +223,14 @@ export class MemoryStorage extends Storage {
       ? entriesIterator()
       : (this.db.entries() as IterableIterator<[string, ValueType]>);
   }
+
+  close(): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  open(): Promise<void> {
+    return Promise.resolve(undefined);
+  }
 }
 
 // Storage configuration
