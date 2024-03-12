@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-server@1.2.9...@windingtree/sdk-server@1.3.0) (2024-03-12)
+
+### Features
+
+- add open and close db to server package ([7a2c35f](https://github.com/windingtree/sdk/commit/7a2c35f67fae8c5ac0a91e0a4cd3c4dfcb43c53f))
+
 ## [1.2.9](https://github.com/windingtree/sdk/compare/@windingtree/sdk-server@1.2.8...@windingtree/sdk-server@1.2.9) (2024-03-11)
 
 **Note:** Version bump only for package @windingtree/sdk-server
