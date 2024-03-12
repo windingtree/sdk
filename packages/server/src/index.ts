@@ -9,7 +9,7 @@ import { CustomEvent, EventEmitter } from '@libp2p/interface/events';
 import { NodeKeyJson, PeerOptions } from '@windingtree/sdk-types';
 import { centerSub, CenterSub } from '@windingtree/sdk-pubsub';
 import { decodeText } from '@windingtree/sdk-utils';
-import { StorageInitializer } from '@windingtree/sdk-storage';
+import { Storage, StorageInitializer } from '@windingtree/sdk-storage';
 import { createLogger } from '@windingtree/sdk-logger';
 
 const logger = createLogger('Server');
@@ -65,6 +65,7 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
   private peerKey: NodeKeyJson;
   private libp2p?: Libp2p;
   private messagesStorageInit: StorageInitializer;
+  private messagesStorage?: Storage;
 
   /**
    * Creates an instance of CoordinationServer.
@@ -103,7 +104,8 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
    * @memberof CoordinationServer
    */
   async start(): Promise<void> {
-    const messagesStorage = await this.messagesStorageInit();
+    this.messagesStorage = await this.messagesStorageInit();
+    await this.messagesStorage.open();
 
     const config: Libp2pOptions = {
       start: false,
@@ -115,7 +117,7 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
       connectionEncryption: [noise()],
       services: {
         pubsub: centerSub({
-          messagesStorage,
+          messagesStorage: this.messagesStorage,
         }),
       },
       connectionManager: {
@@ -151,6 +153,7 @@ export class CoordinationServer extends EventEmitter<CoordinationServerEvents> {
    * @memberof CoordinationServer
    */
   async stop(): Promise<void> {
+    await this.messagesStorage?.close();
     if (!this.libp2p) {
       throw new Error('libp2p not initialized yet');
     }
