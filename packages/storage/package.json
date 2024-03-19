@@ -57,6 +57,11 @@
   "publishConfig": {
     "access": "public"
   },
+  "devDependencies": {
+    "@types/luxon": "^3.3.5",
+    "@windingtree/sdk-queue": "workspace:*",
+    "luxon": "^1.23.0"
+  },
   "dependencies": {
     "@windingtree/sdk-logger": "workspace:*",
     "buffer": "^6.0.3",
