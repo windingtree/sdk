@@ -817,16 +817,6 @@ importers:
       superjson:
         specifier: ^2.2.1
         version: 2.2.1
-    devDependencies:
-      '@types/luxon':
-        specifier: ^3.3.5
-        version: 3.3.7
-      '@windingtree/sdk-queue':
-        specifier: workspace:*
-        version: link:../queue
-      luxon:
-        specifier: ^1.23.0
-        version: 1.23.0
 
   packages/test-utils:
     dependencies:
@@ -9611,10 +9601,6 @@ packages:
   /lru-cache@7.18.3:
     resolution: {integrity: sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==}
     engines: {node: '>=12'}
-    dev: true
-
-  /luxon@1.23.0:
-    resolution: {integrity: sha512-+6a/bXsCWrrR8vfbL41iM92es12zwV2Rum/KPkT+ubOZnnU3Sqbqok/FmD1xsWlWN2Y9Hu0fU/vNgU24ns7bpA==}
     dev: true
 
   /luxon@3.4.4:
