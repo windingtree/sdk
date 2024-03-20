@@ -704,7 +704,7 @@ export class Queue extends EventEmitter<QueueEvents> {
     }
 
     this.jobs.push(job);
-    logger.trace('Job added:', job);
+    logger.trace('Job added:', JSON.stringify(job, null, 2));
     void this.storageUpdate(job.id, job);
     void this.start();
     return job.id;
