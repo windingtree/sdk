@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { GenericStorageOptions } from '../src/index.js';
-import { createInitializer } from '../src/level.js';
 import { JobHandler, Queue } from '@windingtree/sdk-queue';
 import { DateTime } from 'luxon';
+import { GenericStorageOptions } from '@windingtree/sdk-storage';
+import { createInitializer } from '@windingtree/sdk-storage/level';
 
 describe('Level Queue Test', () => {
   const createJobHandler =
