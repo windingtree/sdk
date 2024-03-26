@@ -4,21 +4,21 @@
 
 The WindingTree Market Protocol facilitates coordination and deal management for buyers and sellers. This SDK provides essential software tools to configure and construct the protocol actors, streamlining the implementation of its workflow. For a comprehensive understanding of the protocol's operation, explore the detailed documentation available at this [link](/docs/protocol.md).
 
-## Protocol Smart Contracts - Polygon zkEVM
+## Protocol Smart Contracts - Gnosis Chiado
 
 ### Smart Contract Instances
 
-- Config: [0x098b1d12cAfE7315C77b6d308A62ce02806260Ee](https://explorer.public.zkevm-test.net/address/0x098b1d12cAfE7315C77b6d308A62ce02806260Ee/read-proxy#address-tabs) - Protocol configuration smart contract
-- EntitiesRegistry: [0x4bB51528C83844b509E1152EEb05260eE1bf60e6](https://explorer.public.zkevm-test.net/address/0x4bB51528C83844b509E1152EEb05260eE1bf60e6/read-proxy#address-tabs) - Protocol identity management
-- Market: [0xDd5B6ffB3585E109ECddec5293e31cdc1e9DeD57](https://explorer.public.zkevm-test.net/address/0xDd5B6ffB3585E109ECddec5293e31cdc1e9DeD57/read-proxy#address-tabs) - Protocol entry point
-- LIF: [0x4d60F4483BaA654CdAF1c5734D9E6B16735efCF8](https://explorer.public.zkevm-test.net/address/0x4d60F4483BaA654CdAF1c5734D9E6B16735efCF8/read-proxy#address-tabs) - Test version of LIF token
+- Config ([0x4556d5C1486d799f67FA96c84F1d0552486CAAF4](https://gnosis-chiado.blockscout.com/address/0x4556d5C1486d799f67FA96c84F1d0552486CAAF4?tab=read_proxy)): the protocol configuration smart contract
+- EntitiesRegistry ([0x4EcB659060Da61D795D777bb21BAe3599b301C66](https://gnosis-chiado.blockscout.com/address/0x4EcB659060Da61D795D777bb21BAe3599b301C66?tab=read_proxy)): the protocol identity management
+- Market ([0xF54784206A53EF19fd3024D8cdc7A6251A4A0d67](https://gnosis-chiado.blockscout.com/address/0xF54784206A53EF19fd3024D8cdc7A6251A4A0d67?tab=read_proxy)): the protocol entry point
+- LIF ([0x8CB96383609C56af1Fe44DB7591F94AEE2fa43b2](https://gnosis-chiado.blockscout.com/address/0x8CB96383609C56af1Fe44DB7591F94AEE2fa43b2?tab=read_proxy)): Test version of LIF token
 
-### Testing Tokens
+#### Testing tokens
 
-- `STABLE6`: [ERC20, 6 decimals, no permit](https://explorer.public.zkevm-test.net/address/0x8CB96383609C56af1Fe44DB7591F94AEE2fa43b2/read-proxy#address-tabs)
-- `STABLE6PERMIT`: [ERC20, 6 decimals, with permit](https://explorer.public.zkevm-test.net/address/0x4556d5C1486d799f67FA96c84F1d0552486CAAF4/read-proxy#address-tabs)
-- `STABLE18`: [ERC20, 18 decimals, no permit](https://explorer.public.zkevm-test.net/address/0x4EcB659060Da61D795D777bb21BAe3599b301C66/read-proxy#address-tabs)
-- `STABLE18PERMIT`: [ERC20, 18 decimals, with permit](https://explorer.public.zkevm-test.net/address/0xF54784206A53EF19fd3024D8cdc7A6251A4A0d67/read-proxy#address-tabs)
+- `STABLE6`: [ERC20, 6 decimals, no permit](https://gnosis-chiado.blockscout.com/address/0xcC28A4e6DEF318A1b88CF34c4F2Eeb2489995513?tab=read_proxy)
+- `STABLE6PERMIT`: [ERC20, 6 decimals, with permit](https://gnosis-chiado.blockscout.com/address/0x78F924A7C70213D502E6110567AC556c2EFBBF73?tab=read_proxy)
+- `STABLE18`: [ERC20, 18 decimals, no permit](https://gnosis-chiado.blockscout.com/address/0x7067fC74fFCf4096796454747461D098E6bF7241?tab=read_proxy)
+- `STABLE18PERMIT`: [ERC20, 18 decimals, with permit](https://gnosis-chiado.blockscout.com/address/0x44947d69A9F06EF48170BD41Da9B27E74ecd0891?tab=read_proxy)
 
 ## Protocol Addresses
 
@@ -53,10 +53,10 @@ Once you have generated a peer key for your server, you can create a server addr
 To generate a server address, use the following script:
 
 ```bash
-pnpm gen:address --ip 127.0.0.1 --port 3333 --id QmQkjfoGnUGdq...8o75N89opSfgBeM
+pnpm gen:address --env local --id QmXH7wT21maJx9TrAk3neP45CeD3X5E8QnPLUH6AEYFxRt --address 127.0.0.1 --port 33333
 ```
 
-The resulting server address will have the format: `/ip4/127.0.0.1/tcp/3333/ws/p2p/QmQkjfoGnUGdq...8o75N89opSfgBeM`.
+The resulting server address will have the format: `/ip4/127.0.0.1/tcp/33333/ws/p2p/QmXH7wT21maJx9TrAk3neP45CeD3X5E8QnPLUH6AEYFxRt`.
 
 The address components are as follows:
 

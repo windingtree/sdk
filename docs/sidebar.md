@@ -6,5 +6,4 @@
 - [Clients](clients.md)
 - [Nodes](nodes.md)
 - [Storage](storage.md)
-- [Availability management](availability.md)
 - [Contribution](contribution.md)
