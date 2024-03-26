@@ -322,6 +322,29 @@ With the `ProtocolContracts` utility, you have a powerful tool to work with the 
 
 Tasks for checking deal state changes can be implemented in the same way as monitoring the creation of deals (requests processing). For more details, refer to the previous section on "Requests Processing."
 
+Also, monitoring the status of deals can be performed using the `subscribeMarket` method of the `ProtocolContracts` class. Here is a brief example:
+
+```typescript
+interface StatusEventLog {
+  offerId?: `0x${string}` | undefined;
+  status?: DealStatus | number | undefined;
+  sender?: `0x${string}` | undefined;
+};
+
+const unsubscribe = contractsManager.subscribeMarket(
+    'Status', // Event name
+    async (logs, maxBlockNumber) => {
+      // Process logs here
+      logs.forEach((log) => {
+        const { offerId, status } = log.args as StatusEventLog;
+        // ...
+      });
+      // Save `maxBlockNumber` for later use eq re-subscription
+    },
+    blockNumber, // Block number to listen from (0 by default)
+  );
+```
+
 With this information, you have a better understanding of how to configure the supplier node, manage incoming requests, build and publish offers, and handle deal state changes.
 
 ## The Node Management API
@@ -368,6 +391,104 @@ const apiServer = new NodeApiServer({
 
 // Start the API server and set up the defined routers
 apiServer.start(appRouter);
+```
+
+### Extending the Node API
+
+You can add your custom routes to the Node API. When creating API routes for your application, following specific guidelines can facilitate the development, maintenance, and use of your API. Below a guide for creating API routes:
+
+#### 1. **Structure of Routes**
+
+- **Naming**: Name your routes in a way that clearly reflects the actions they perform and the resources they handle. For example, use `add`, `update`, `delete`, `get`, and `getAll` for operations related to airplanes.
+- **Grouping**: Organize routes into logical groups. In the example, all routes are grouped under `airplanesRouter`, which simplifies understanding their purpose.
+
+```typescript
+export const airplanesRouter = router({
+  add: authAdminProcedure
+    // Implementation...
+  update: authAdminProcedure
+    // Implementation...
+  delete: authAdminProcedure
+    // Implementation...
+  get: authProcedure
+    // Implementation...
+  getAll: authProcedure
+    // Implementation...
+});
+```
+
+#### 2. **Authentication and Authorization**
+
+- Differentiate access levels for different operations. In the example, `authProcedure` is used for basic authentication and `authAdminProcedure` for operations requiring admin rights.
+- Explicitly specify authentication and authorization requirements for each route.
+
+#### 3. **Input Validation**
+
+- Use validation libraries, such as `zod`, to ensure inputs match expected types and formats. This helps prevent errors and vulnerabilities.
+- Define schemas for input data, like `AirplaneInputSchema` and `AirplaneUpdateSchema`, and use them in route procedures.
+
+```typescript
+.add: authAdminProcedure
+  .input(AirplaneInputSchema)
+  .mutation(async ({ input, ctx }) => {
+    // Implementation...
+  }),
+```
+
+#### 4. **Error Handling**
+
+- Handle exceptions and errors within each route to return understandable error messages.
+- Use standardized HTTP error codes, such as `BAD_REQUEST` for validation errors and `NOT_FOUND` for missing resources.
+
+```typescript
+.mutation(async ({ input, ctx }) => {
+  try {
+    // Operation...
+  } catch (error) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: (error as Error).message,
+    });
+  }
+}),
+```
+
+#### 5. **Logging**
+
+- Log key operations and errors. This facilitates debugging and monitoring your API.
+- Use a created logger, such as `logger`, to record events.
+
+```typescript
+logger.trace(`Airplane ${input.name} registered with id ${id}`);
+```
+
+#### Integrate Your Custom Route Into the Node API
+
+The following code snippet demonstrates how to set up and start a Node API server using the `@windingtree/sdk-node-api/server` package, integrating multiple routers for different parts of an application. It includes default routers like `adminRouter`, `dealsRouter`, `serviceRouter`, and `userRouter` provided by the `@windingtree/sdk-node-api/router` package, **along with a custom router defined by the developer (`customRouter`)**. The code creates a combined router that aggregates these individual routers under specific namespaces, making it easier to manage and organize routes according to their functionality. Finally, the code initializes a `NodeApiServer` instance with optional server configuration (`apiServerConfig`) and starts the server with the combined router, making the API ready to handle requests. This approach facilitates the modular development of API services, allowing for scalability and ease of maintenance.
+
+```typescript
+import { NodeApiServer, router } from '@windingtree/sdk-node-api/server';
+import {
+  adminRouter,
+  dealsRouter,
+  serviceRouter,
+  userRouter,
+} from '@windingtree/sdk-node-api/router';
+import { customRouter } from '../api/customRoute.js';
+
+// Create the combined router
+const appRouter = router({
+  service: serviceRouter, // Default route
+  admin: adminRouter, // Default route
+  user: userRouter, // Default route
+  deals: dealsRouter, // Default route
+  custom: customRouter, // Your custom router
+});
+
+// Create the Node API server
+const apiServer = new NodeApiServer({ /* apiServerConfig */ });
+
+apiServer.start(appRouter); // Initialize the combined router
 ```
 
 ### Remote Node API Usage

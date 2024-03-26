@@ -32,10 +32,12 @@ Next, we need to create industry-specific TypeScript types for the requests data
 ```typescript
 import { GenericQuery, GenericOfferOptions } from '@windingtree/sdk-types';
 
+// A request model
 export interface RequestQuery extends GenericQuery {
   greeting: string; // This is a very simple request, just for testing
 }
 
+// An offer options model
 export interface OfferOptions extends GenericOfferOptions {
   date?: string;
   buongiorno: boolean; // Yes, we expect that a supplier may propose us a good day
@@ -104,7 +106,7 @@ Now we are able to instantiate managers.
 
 ```typescript
 import { ClientRequestsManager, ClientDealsManager } from '@windingtree/sdk-client';
-import { polygonZkEvmTestnet } from 'viem/chains';
+import { gnosisChiado } from 'viem/chains';
 
 const requestsManager = new ClientRequestsManager<
   RequestQuery,
@@ -121,7 +123,7 @@ const dealsManager = new ClientDealsManager<
   storage: store,
   prefix: 'wt_deals_',
   checkInterval: '5s', // Interval for deal state change check
-  chain: polygonZkEvmTestnet, // Target blockchain network we will use
+  chain: gnosisChiado, // Target blockchain network we will use
   contracts: contractsConfig,
   publicClient, // See https://viem.sh/docs/clients/public.html
 });
