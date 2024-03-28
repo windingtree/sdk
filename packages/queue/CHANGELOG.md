@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-queue@1.4.0...@windingtree/sdk-queue@1.4.1) (2024-03-28)
+
+### Bug Fixes
+
+- add superjson serialize for BigInt ([20fae5b](https://github.com/windingtree/sdk/commit/20fae5b274c962e6a839cd61c2c39d00b665b615))
+- format ([b924b29](https://github.com/windingtree/sdk/commit/b924b29214716afdc670da0a14766ba7e8cac91d))
+
 # [1.4.0](https://github.com/windingtree/sdk/compare/@windingtree/sdk-queue@1.3.1...@windingtree/sdk-queue@1.4.0) (2024-03-20)
 
 ### Features
