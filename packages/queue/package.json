@@ -32,7 +32,8 @@
     "@windingtree/contracts": "^1.0.0",
     "@windingtree/sdk-logger": "workspace:*",
     "@windingtree/sdk-storage": "workspace:*",
-    "@windingtree/sdk-utils": "workspace:*"
+    "@windingtree/sdk-utils": "workspace:*",
+    "superjson": "^2.2.1"
   },
   "scripts": {
     "build": "tsup",
