@@ -3,7 +3,7 @@ import { simpleUid } from '@windingtree/contracts';
 import { Storage } from '@windingtree/sdk-storage';
 import { backoffWithJitter } from '@windingtree/sdk-utils';
 import { createLogger } from '@windingtree/sdk-logger';
-import { serialize } from "superjson";
+import { serialize } from 'superjson';
 
 const logger = createLogger('Queue');
 
