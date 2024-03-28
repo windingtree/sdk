@@ -702,6 +702,9 @@ importers:
       '@windingtree/sdk-utils':
         specifier: workspace:*
         version: link:../utils
+      superjson:
+        specifier: ^2.2.1
+        version: 2.2.1
 
   packages/react:
     devDependencies:

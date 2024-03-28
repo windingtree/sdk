@@ -3,6 +3,7 @@ import { simpleUid } from '@windingtree/contracts';
 import { Storage } from '@windingtree/sdk-storage';
 import { backoffWithJitter } from '@windingtree/sdk-utils';
 import { createLogger } from '@windingtree/sdk-logger';
+import { serialize } from 'superjson';
 
 const logger = createLogger('Queue');
 
@@ -704,7 +705,7 @@ export class Queue extends EventEmitter<QueueEvents> {
     }
 
     this.jobs.push(job);
-    logger.trace('Job added:', JSON.stringify(job, null, 2));
+    logger.trace('Job added:', JSON.stringify(serialize(job), null, 2));
     void this.storageUpdate(job.id, job);
     void this.start();
     return job.id;
