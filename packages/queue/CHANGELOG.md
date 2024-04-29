@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.2](https://github.com/windingtree/sdk/compare/@windingtree/sdk-queue@1.4.1...@windingtree/sdk-queue@1.4.2) (2024-04-29)
+
+### Bug Fixes
+
+- 🐛 Fixed invalid queue job serialization ([16967c3](https://github.com/windingtree/sdk/commit/16967c3e0e10e32a5b87bf4bb025b5be98d9ef29))
+
 ## [1.4.1](https://github.com/windingtree/sdk/compare/@windingtree/sdk-queue@1.4.0...@windingtree/sdk-queue@1.4.1) (2024-03-28)
 
 ### Bug Fixes

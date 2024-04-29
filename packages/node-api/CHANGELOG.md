@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.7.4](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.7.3...@windingtree/sdk-node-api@1.7.4) (2024-04-29)
+
+### Bug Fixes
+
+- 🐛 Fixed invalid queue job serialization ([16967c3](https://github.com/windingtree/sdk/commit/16967c3e0e10e32a5b87bf4bb025b5be98d9ef29))
+
 ## [1.7.3](https://github.com/windingtree/sdk/compare/@windingtree/sdk-node-api@1.7.2...@windingtree/sdk-node-api@1.7.3) (2024-03-11)
 
 **Note:** Version bump only for package @windingtree/sdk-node-api
